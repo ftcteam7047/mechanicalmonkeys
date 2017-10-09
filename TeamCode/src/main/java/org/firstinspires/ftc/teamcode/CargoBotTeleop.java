@@ -115,6 +115,6 @@ public class CargoBotTeleop extends OpMode {
 
     public void driveController() {
         cargoBot.leftDrive.setPower(gamepad1.left_stick_y);
-        cargoBot.rightDrive.setPower(-gamepad1.right_stick_y);
+        cargoBot.rightDrive.setPower(gamepad1.right_stick_y);
     }
 }

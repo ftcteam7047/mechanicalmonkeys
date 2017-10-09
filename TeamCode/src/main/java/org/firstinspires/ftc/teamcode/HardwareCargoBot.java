@@ -12,6 +12,7 @@ public class HardwareCargoBot {
     // declaration of all robot devices
     public DcMotor leftDrive;
     public DcMotor rightDrive;
+    public DcMotor blockLift;
     public Servo relicServo;
     public Servo gripServoLL;
     public Servo gripServoLR;
@@ -20,18 +21,27 @@ public class HardwareCargoBot {
 
     // enum for relic arm
     public enum RelicGripPosition {
-        CLOSE, OPEN
+        CLOSE,
+        OPEN
     }
     RelicGripPosition relicGripPosition;
 
     // enum for block grabber
-    enum GrabberPosition {
+    public enum GrabberPosition {
         OPEN,
         CLOSE,
         STOW
     }
     GrabberPosition grabberPosition;
 
+    // enum for block lift
+    public enum LiftPosition {
+        GRAB,
+        MOVE,
+        STACK,
+        PLACE
+    }
+    LiftPosition liftPosition;
 
     /* local OpMode members. */
     HardwareMap hwMap           =  null;
@@ -51,6 +61,7 @@ public class HardwareCargoBot {
         // Define and Initialize Motors and Servos
         leftDrive = hwMap.dcMotor.get("leftDrive");
         rightDrive = hwMap.dcMotor.get("rightDrive");
+        blockLift = hwMap.dcMotor.get("blockLift");
         relicServo = hwMap.servo.get("relicServo");
         gripServoLL = hwMap.servo.get("LLServo");
         gripServoLR = hwMap.servo.get("LRServo");
@@ -64,6 +75,8 @@ public class HardwareCargoBot {
         // Set all motors to zero power
         leftDrive.setPower(0);
         rightDrive.setPower(0);
+        blockLift.setPower(0);
+        liftPosition = LiftPosition.GRAB;
 
         // Set all servo positions
         relicServo.setPosition(0.0);
@@ -74,6 +87,10 @@ public class HardwareCargoBot {
         gripServoUL.setPosition(1.0);
         gripServoUR.setPosition(0.0);
         grabberPosition = GrabberPosition.OPEN;
+
+        // Encoder reset
+        blockLift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        blockLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
 
 //        // Set drive motors to run with encoders.
