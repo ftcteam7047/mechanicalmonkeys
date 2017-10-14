@@ -14,9 +14,16 @@
 // Include common definitions from above.
 apply from: '../build.common.gradle'
 
-allprojects {
-    repositories {
-        jcenter()
+//allprojects {
+//    repositories {
+//        jcenter()
+//    }
+//}
+
+repositories {
+    jcenter()
+    maven {
+        url 'https://google.bintray.com/tensorflow'
     }
 }
 
