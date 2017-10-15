@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
+import android.content.Context;
+
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -9,6 +11,11 @@ import com.qualcomm.robotcore.hardware.Servo;
  */
 
 public class HardwareCargoBot {
+
+    // initialize fileHandler
+    MMFileHandler fileHandler = new MMFileHandler();
+    Context context;
+
     // declaration of all robot devices
     public DcMotor leftDrive;
     public DcMotor rightDrive;
@@ -55,8 +62,12 @@ public class HardwareCargoBot {
     /* Initialize standard Hardware interfaces */
     public void init(HardwareMap ahwMap) {
 
+
         // Save reference to Hardware map
         hwMap = ahwMap;
+
+        // fileHandler context
+        context = hwMap.appContext;
 
         // Define and Initialize Motors and Servos
         leftDrive = hwMap.dcMotor.get("leftDrive");
@@ -69,14 +80,17 @@ public class HardwareCargoBot {
         gripServoUR = hwMap.servo.get("URServo");
 
         // Set motor initial direction
-        leftDrive.setDirection(DcMotor.Direction.FORWARD); // Set to FORWARD if using AndyMark motors Neverest 60
-        rightDrive.setDirection(DcMotor.Direction.REVERSE);// Set to REVERSE if using AndyMark motors Neverest 60
+        leftDrive.setDirection(DcMotor.Direction.FORWARD); // Set to FORWARD if using AndyMark motors Neverest 40
+        rightDrive.setDirection(DcMotor.Direction.REVERSE); // Set to REVERSE if using AndyMark motors Neverest 40
+        blockLift.setDirection(DcMotor.Direction.FORWARD); // Set to FORWARD if using AndyMark motors Neverest 60
 
         // Set all motors to zero power
         leftDrive.setPower(0);
         rightDrive.setPower(0);
         blockLift.setPower(0);
         liftPosition = LiftPosition.GRAB;
+        blockLift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        blockLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         // Set all servo positions
         relicServo.setPosition(0.0);
