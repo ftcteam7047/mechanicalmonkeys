@@ -1,7 +1,9 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
 
 /**
  * Created by michaelchen on 10/7/17.
@@ -18,6 +20,10 @@ public class CargoBotTeleop extends OpMode {
     boolean isRelicGripperButtonPressed;
     boolean isGrabberButtonPressed;
     boolean isBlockVisible;
+    boolean isLifterButtonPressed;
+
+    int target;
+    int offset;
 
     @Override
     public void init() {
@@ -27,6 +33,13 @@ public class CargoBotTeleop extends OpMode {
         isRelicGripperButtonPressed = false;
         isGrabberButtonPressed = false;
         isBlockVisible = false;
+        isLifterButtonPressed = false;
+
+        if (cargoBot.fileHandler.readFromFile("offset.txt", cargoBot.context).equals("error")){
+            offset = 0;
+        } else {
+            offset = cargoBot.fileHandler.stringToInt(cargoBot.fileHandler.readFromFile("offset.txt", cargoBot.context));
+        }
     }
 
     @Override
@@ -36,6 +49,11 @@ public class CargoBotTeleop extends OpMode {
         relicGripperController();
         grabberController();
 
+    }
+
+    @Override
+    public void stop() {
+        cargoBot.fileHandler.writeToFile("offset.txt", Integer.toString(offset + cargoBot.blockLift.getCurrentPosition()), cargoBot.context);
     }
 
     public void relicGripperController() {
@@ -116,5 +134,62 @@ public class CargoBotTeleop extends OpMode {
     public void driveController() {
         cargoBot.leftDrive.setPower(gamepad1.left_stick_y);
         cargoBot.rightDrive.setPower(gamepad1.right_stick_y);
+    }
+
+    public void blockLiftController() {
+        if (gamepad1.dpad_up) {
+            if (cargoBot.liftPosition == cargoBot.liftPosition.GRAB && !isLifterButtonPressed) {
+                cargoBot.liftPosition = cargoBot.liftPosition.MOVE;
+                isLifterButtonPressed = true;
+            } else if (cargoBot.liftPosition == cargoBot.liftPosition.MOVE && !isLifterButtonPressed) {
+                cargoBot.liftPosition = cargoBot.liftPosition.STACK;
+                isLifterButtonPressed = true;
+            } else if (cargoBot.liftPosition == cargoBot.liftPosition.STACK && !isLifterButtonPressed) {
+                cargoBot.liftPosition = cargoBot.liftPosition.PLACE;
+                isLifterButtonPressed = true;
+            }
+        } else if (gamepad1.dpad_down) {
+            if (cargoBot.liftPosition == cargoBot.liftPosition.PLACE && !isLifterButtonPressed) {
+                cargoBot.liftPosition = cargoBot.liftPosition.STACK;
+                isLifterButtonPressed = true;
+            } else if (cargoBot.liftPosition == cargoBot.liftPosition.STACK && !isLifterButtonPressed) {
+                cargoBot.liftPosition = cargoBot.liftPosition.MOVE;
+                isLifterButtonPressed = true;
+            } else if (cargoBot.liftPosition == cargoBot.liftPosition.MOVE && !isLifterButtonPressed) {
+                cargoBot.liftPosition = cargoBot.liftPosition.GRAB;
+                isLifterButtonPressed = true;
+            }
+        }
+
+        switch (cargoBot.liftPosition) {
+            case GRAB:
+                target = (int) CargoBotConstants.GRAB_DISTANCE_FROM_START - offset;
+                break;
+            case MOVE:
+                target = (int) CargoBotConstants.MOVE_DISTANCE_FROM_START - offset;
+                break;
+            case STACK:
+                target = (int) CargoBotConstants.STACK_DISTANCE_FROM_START - offset;
+                break;
+            case PLACE:
+                target = (int) CargoBotConstants.PLACE_DISTANCE_FROM_START - offset;
+                break;
+        }
+
+        cargoBot.blockLift.setTargetPosition(target);
+        cargoBot.blockLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        cargoBot.blockLift.setPower(CargoBotConstants.LIFT_SPEED);
+        telemetry.addData("pos", cargoBot.blockLift.getCurrentPosition());
+        telemetry.update();
+        if (!cargoBot.blockLift.isBusy()) {
+            cargoBot.blockLift.setPower(0.0);
+            cargoBot.blockLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        }
+
+        if (isLifterButtonPressed) {
+            if (!gamepad1.dpad_down && !gamepad1.dpad_up) {
+                isLifterButtonPressed = false;
+            }
+        }
     }
 }

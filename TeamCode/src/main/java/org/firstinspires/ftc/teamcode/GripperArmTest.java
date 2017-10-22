@@ -1,7 +1,11 @@
 package org.firstinspires.ftc.teamcode;
 
+import android.content.Context;
+
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 
 /**
@@ -18,6 +22,21 @@ import com.qualcomm.robotcore.hardware.Servo;
 //@Disabled
 
 public class GripperArmTest extends OpMode {
+
+    MMFileHandler fileHandler = new MMFileHandler();
+    Context context;
+    boolean isLifterButtonPressed;
+    DcMotor blockLift;
+    int target;
+    int offset;
+
+    public enum LiftPosition {
+        GRAB,
+        MOVE,
+        STACK,
+        PLACE
+    }
+    LiftPosition liftPosition;
 
     Servo lServo;
     Servo rServo;
@@ -36,6 +55,9 @@ public class GripperArmTest extends OpMode {
 
     gripperPosition position;
 
+    DcMotor leftDrive;
+    DcMotor rightDrive;
+
     @Override
     public void init() {
         lServo = hardwareMap.servo.get("leftServo");
@@ -44,15 +66,90 @@ public class GripperArmTest extends OpMode {
         rHServo = hardwareMap.servo.get("hrservo");
         lServo.setPosition(0.0);
         rServo.setPosition(1.0);
-        lHServo.setPosition(0.75);
-        rHServo.setPosition(0.25);
+        lHServo.setPosition(1.0);
+        rHServo.setPosition(0.0);
         position = gripperPosition.OPEN;
         isBlockVisible = false;
         isVisibilityButtonPressed = false;
+
+        liftPosition = LiftPosition.GRAB;
+        context = hardwareMap.appContext;
+        if (fileHandler.readFromFile("offset.txt", context).equals("error")){
+            offset = 0;
+        } else {
+            offset = fileHandler.stringToInt(fileHandler.readFromFile("offset.txt", context));
+        }
+
+        blockLift = hardwareMap.dcMotor.get("blockLift");
+
+        blockLift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        blockLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        blockLift.setDirection(DcMotorSimple.Direction.REVERSE);
+
+        leftDrive = hardwareMap.dcMotor.get("leftDrive");
+        rightDrive = hardwareMap.dcMotor.get("rightDrive");
+        leftDrive.setPower(0.0);
+        rightDrive.setPower(0.0);
     }
 
     @Override
     public void loop() {
+
+        if (gamepad1.dpad_up) {
+            if (liftPosition == liftPosition.GRAB && !isLifterButtonPressed) {
+                liftPosition = liftPosition.MOVE;
+                isLifterButtonPressed = true;
+            } else if (liftPosition == liftPosition.MOVE && !isLifterButtonPressed) {
+                liftPosition = liftPosition.STACK;
+                isLifterButtonPressed = true;
+            } else if (liftPosition == liftPosition.STACK && !isLifterButtonPressed) {
+                liftPosition = liftPosition.PLACE;
+                isLifterButtonPressed = true;
+            }
+        } else if (gamepad1.dpad_down) {
+            if (liftPosition == liftPosition.PLACE && !isLifterButtonPressed) {
+                liftPosition = liftPosition.STACK;
+                isLifterButtonPressed = true;
+            } else if (liftPosition == liftPosition.STACK && !isLifterButtonPressed) {
+                liftPosition = liftPosition.MOVE;
+                isLifterButtonPressed = true;
+            } else if (liftPosition == liftPosition.MOVE && !isLifterButtonPressed) {
+                liftPosition = liftPosition.GRAB;
+                isLifterButtonPressed = true;
+            }
+        }
+
+        switch (liftPosition) {
+            case GRAB:
+                target = (int) CargoBotConstants.GRAB_DISTANCE_FROM_START - offset;
+                break;
+            case MOVE:
+                target = (int) CargoBotConstants.MOVE_DISTANCE_FROM_START - offset;
+                break;
+            case STACK:
+                target = (int) CargoBotConstants.STACK_DISTANCE_FROM_START - offset;
+                break;
+            case PLACE:
+                target = (int) CargoBotConstants.PLACE_DISTANCE_FROM_START - offset;
+                break;
+        }
+
+        blockLift.setTargetPosition(target);
+        blockLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        blockLift.setPower(CargoBotConstants.LIFT_SPEED);
+        telemetry.addData("pos", blockLift.getCurrentPosition());
+        telemetry.update();
+        if (!blockLift.isBusy()) {
+            blockLift.setPower(0.0);
+            blockLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        }
+
+        if (isLifterButtonPressed) {
+            if (!gamepad1.dpad_down && !gamepad1.dpad_up) {
+                isLifterButtonPressed = false;
+            }
+        }
+
         if (gamepad1.a && !isGripperButtonPressed) {
             if (position == gripperPosition.OPEN) {
                 position = gripperPosition.CLOSE;
@@ -97,8 +194,8 @@ public class GripperArmTest extends OpMode {
             case OPEN:
                 lServo.setPosition(0.0);
                 rServo.setPosition(1.0);
-                lHServo.setPosition(0.75);
-                rHServo.setPosition(0.25);
+                lHServo.setPosition(1.0);
+                rHServo.setPosition(0.1);
                 break;
             case CLOSE:
                 lServo.setPosition(0.5);
@@ -109,7 +206,7 @@ public class GripperArmTest extends OpMode {
             case STOW:
                 lServo.setPosition(1.0);
                 rServo.setPosition(0.0);
-                lHServo.setPosition(0.1);
+                lHServo.setPosition(0.0);
                 rHServo.setPosition(1.0);
         }
 
@@ -120,5 +217,13 @@ public class GripperArmTest extends OpMode {
         }
         telemetry.update();
 
+        leftDrive.setPower(gamepad1.left_stick_y * 0.4);
+        rightDrive.setPower(-gamepad1.right_stick_y * 0.4);
+
     }
+
+    public void stop() {
+        fileHandler.writeToFile("offset.txt", Integer.toString(offset + blockLift.getCurrentPosition()), context);
+    }
+    
 }
