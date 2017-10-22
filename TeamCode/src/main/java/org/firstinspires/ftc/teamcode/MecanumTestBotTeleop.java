@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import static java.lang.Math.abs;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
+import static java.lang.Math.sqrt;
 
 /**
  * Created by chrischen on 10/21/17.
@@ -59,25 +60,89 @@ public class MecanumTestBotTeleop extends OpMode {
 
     public void driveController() {
         if (abs(gamepad1.left_stick_x) < 0.25 && abs(gamepad1.right_stick_x) < 0.25) {
+            // Typical tank drive
             mecanumBot.frontLeftDrive.setPower(gamepad1.left_stick_y);
             mecanumBot.frontRightDrive.setPower(gamepad1.right_stick_y);
             mecanumBot.rearLeftDrive.setPower(gamepad1.left_stick_y);
             mecanumBot.rearRightDrive.setPower(gamepad1.right_stick_y);
         } else {
             // check if left and right sticks move in the same direction
+            // and within a top-bottom band around the y-axis
             if (gamepad1.right_stick_x * gamepad1.left_stick_x > 0) {
 
-                float sideMovement = 0;
-                if (gamepad1.right_stick_x > 0) {
-                    sideMovement = max(gamepad1.left_stick_x, gamepad1.right_stick_x);
+                if (abs(gamepad1.left_stick_y) < 0.25 && abs(gamepad1.right_stick_y) < 0.25) {
+                    float sideMovement = 0;
+                    if (gamepad1.right_stick_x > 0) {
+                        sideMovement = max(gamepad1.left_stick_x, gamepad1.right_stick_x);
+                    } else {
+                        sideMovement = min(gamepad1.left_stick_x, gamepad1.right_stick_x);
+                    }
+                    mecanumBot.frontLeftDrive.setPower(-sideMovement);
+                    mecanumBot.frontRightDrive.setPower(sideMovement);
+                    mecanumBot.rearLeftDrive.setPower(sideMovement);
+                    mecanumBot.rearRightDrive.setPower(-sideMovement);
+
                 } else {
-                    sideMovement = min(gamepad1.left_stick_x, gamepad1.right_stick_x);
+                    float diagMovement = 0;
+                    float x = 0;
+                    float y = 0;
+                    float sign = 1;
+                    if (gamepad1.right_stick_x > 0) {
+                        x = max(gamepad1.left_stick_x, gamepad1.right_stick_x);
+
+                    } else {
+                        x = min(gamepad1.left_stick_x, gamepad1.right_stick_x);
+                        sign = -1;
+                    }
+                    if (gamepad1.right_stick_y > 0) {
+                        y = -max(gamepad1.left_stick_y, gamepad1.right_stick_y);
+
+                    } else {
+                        y = -min(gamepad1.left_stick_y, gamepad1.right_stick_y);
+                    }
+
+                    telemetry.addData("x", x);
+                    telemetry.addData("y", y);
+
+                    if ((y >= (x - sqrt(2.0) * CargoBotConstants.DIAGONAL_HALF_BAND_WIDTH)) &&
+                            (y <= (x + sqrt(2.0) * CargoBotConstants.DIAGONAL_HALF_BAND_WIDTH))) {
+
+                        diagMovement = (float) sqrt(x * x + y * y);
+                        if (x > 0 && y > 0) {
+                            mecanumBot.frontLeftDrive.setPower(-diagMovement);
+                            mecanumBot.frontRightDrive.setPower(0);
+                            mecanumBot.rearLeftDrive.setPower(0);
+                            mecanumBot.rearRightDrive.setPower(-diagMovement);
+                            telemetry.addData("diag", "upper right");
+                        } else if (x < 0 && y < 0) {
+                            mecanumBot.frontLeftDrive.setPower(diagMovement);
+                            mecanumBot.frontRightDrive.setPower(0);
+                            mecanumBot.rearLeftDrive.setPower(0);
+                            mecanumBot.rearRightDrive.setPower(diagMovement);
+                            telemetry.addData("diag", "lower left");
+                        }
+
+                    } else if ((y >= (-x - sqrt(2.0) * CargoBotConstants.DIAGONAL_HALF_BAND_WIDTH)) &&
+                            (y <= (-x + sqrt(2.0) * CargoBotConstants.DIAGONAL_HALF_BAND_WIDTH))){
+                        diagMovement = (float) sqrt(x * x + y * y);
+                        if (x < 0 && y > 0) {
+                            mecanumBot.frontLeftDrive.setPower(0);
+                            mecanumBot.frontRightDrive.setPower(-diagMovement);
+                            mecanumBot.rearLeftDrive.setPower(-diagMovement);
+                            mecanumBot.rearRightDrive.setPower(0);
+                            telemetry.addData("diag", "upper left");
+                        } else if (x > 0 && y < 0) {
+                            mecanumBot.frontLeftDrive.setPower(0);
+                            mecanumBot.frontRightDrive.setPower(diagMovement);
+                            mecanumBot.rearLeftDrive.setPower(diagMovement);
+                            mecanumBot.rearRightDrive.setPower(0);
+                            telemetry.addData("diag", "lower right");
+                        }
+                    }
+
                 }
-                mecanumBot.frontLeftDrive.setPower(-sideMovement);
-                mecanumBot.frontRightDrive.setPower(sideMovement);
-                mecanumBot.rearLeftDrive.setPower(sideMovement);
-                mecanumBot.rearRightDrive.setPower(-sideMovement);
             }
+            telemetry.update();
         }
     }
 }

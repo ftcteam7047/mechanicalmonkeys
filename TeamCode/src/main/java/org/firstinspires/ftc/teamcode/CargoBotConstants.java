@@ -1,7 +1,5 @@
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.hardware.DcMotor;
-
 /**
  * Created by michaelchen on 10/7/17.
  */
@@ -27,5 +25,5 @@ public interface CargoBotConstants {
     double MOVE_DISTANCE_FROM_START = COUNTS_PER_INCH_16_TOOTH * GRAB_HEIGHT;
     double STACK_DISTANCE_FROM_START = COUNTS_PER_INCH_16_TOOTH * STACK_HEIGHT;
     double PLACE_DISTANCE_FROM_START = COUNTS_PER_INCH_16_TOOTH * PLACE_HEIGHT;
-
+    double DIAGONAL_HALF_BAND_WIDTH = 0.30; // max shall be less than sqrt(2)
 }
