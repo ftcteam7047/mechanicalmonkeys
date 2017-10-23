@@ -47,10 +47,13 @@ public class HardwareMecanumTestBot {
         rearLeftDrive.setPower(0);
         rearRightDrive.setPower(0);
 
-        // Encoder reset if necessary
-//        frontLeftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-//        frontLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
+        // Encoder reset: this step seems to be necessary to allow RUN_TO_POSITION to work
+        // otherwise, motor speed may not be consistent.
+        // Watch out for inconsistent motor speed in the autonomous mode, if the following is not performed
+        frontLeftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        frontRightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rearLeftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rearRightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
 
 

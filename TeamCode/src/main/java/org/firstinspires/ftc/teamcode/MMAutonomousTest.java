@@ -37,6 +37,8 @@ import android.util.Log;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.RobotLog;
 import com.vuforia.Image;
 import com.vuforia.PIXEL_FORMAT;
@@ -153,11 +155,40 @@ public class MMAutonomousTest extends LinearOpMode {
     boolean isProcessingFrame = false;
     Context appContext = null;
     private static final double PERIOD_PER_TICK = 0.5; // in seconds
-    HardwareMecanumTestBot mecanumBot = new HardwareMecanumTestBot();
+    HardwareMecanumTestBot robot = new HardwareMecanumTestBot();
+
+
+    private ElapsedTime runtime = new ElapsedTime();
+
+    // configure motor encoder
+    static final double     COUNTS_PER_MOTOR_REV    = 1120 ;    // NeverRest 40
+    static final double     DRIVE_GEAR_REDUCTION    = 1.0 ;     // This is < 1.0 if geared UP
+    static final double     WHEEL_DIAMETER_INCHES   = 4.0 ;     // For figuring circumference
+    static final double     COUNTS_PER_INCH         = (COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) /
+            (WHEEL_DIAMETER_INCHES * 3.1415);
+    static final double     DRIVE_SPEED             = 0.6;
+    static final double     TURN_SPEED              = 0.5;
+
+    ENCODER_DRIVE state = ENCODER_DRIVE.START;
+    boolean driveStatus = false;
+
+    enum OPMODE_STEPS {
+        STEP1,
+        STEP2,
+        STEP3,
+        STEP4,
+        STEP5,
+        STEP6,
+        STEP7,
+        STEP8,
+        STEP9,
+        STEP10
+    }
+    OPMODE_STEPS opmodeState = OPMODE_STEPS.STEP1;
 
     @Override public void runOpMode() throws InterruptedException {
 
-        mecanumBot.init(hardwareMap);
+        robot.init(hardwareMap);
 
         /*
          * To start up Vuforia, tell it the view that we wish to use for camera monitor (on the RC phone);
@@ -315,8 +346,13 @@ public class MMAutonomousTest extends LinearOpMode {
 
             telemetry.update();
 
+
+            // step through linear opmode steps
+            linearOpModeSteps();
+
+
             // run loops every 10 ms
-            sleep(10);
+            //sleep(10);
         }
     }
 
@@ -596,5 +632,148 @@ public class MMAutonomousTest extends LinearOpMode {
         numTicks.intValue();
 
         return numTicks.intValue();
+    }
+
+    enum ENCODER_DRIVE {
+        START,
+        LOOP,
+        END
+    }
+
+    /*
+ *  Method to perfmorm a relative move, based on encoder counts.
+ *  Encoders are not reset as the move is based on the current position.
+ *  Move will stop if any of three conditions occur:
+ *  1) Move gets to the desired position
+ *  2) Move runs out of time
+ *  3) Driver stops the opmode running.
+ */
+    public boolean encoderDrive(double speed,
+                             double leftInches, double rightInches,
+                             double timeoutS) {
+        int newLeftTarget = 0;
+        int newRightTarget = 0;
+        boolean driveComplete = false;
+
+        // inverse direction due to motor configuration
+        leftInches = -leftInches;
+        rightInches = -rightInches;
+
+        // Ensure that the opmode is still active
+        if (opModeIsActive()) {
+
+            switch (state){
+                case START:
+                    // Determine new target position, and pass to motor controller
+                    newLeftTarget = robot.frontLeftDrive.getCurrentPosition() + (int)(leftInches * COUNTS_PER_INCH);
+                    newRightTarget = robot.frontRightDrive.getCurrentPosition() + (int)(rightInches * COUNTS_PER_INCH);
+                    robot.frontLeftDrive.setTargetPosition(newLeftTarget);
+                    robot.frontRightDrive.setTargetPosition(newRightTarget);
+                    robot.rearLeftDrive.setTargetPosition(newLeftTarget);
+                    robot.rearRightDrive.setTargetPosition(newRightTarget);
+
+                    // Turn On RUN_TO_POSITION
+                    robot.frontLeftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    robot.frontRightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    robot.rearLeftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    robot.rearRightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+                    // reset the timeout time and start motion.
+                    runtime.reset();
+                    robot.frontLeftDrive.setPower(Math.abs(speed));
+                    robot.frontRightDrive.setPower(Math.abs(speed));
+                    robot.rearLeftDrive.setPower(Math.abs(speed));
+                    robot.rearRightDrive.setPower(Math.abs(speed));
+
+                    // go to next state
+                    state = ENCODER_DRIVE.LOOP;
+                    break;
+
+                case LOOP:
+                    // keep looping while we are still active, and there is time left, and both motors are running.
+                    // Note: We use (isBusy() && isBusy()) in the loop test, which means that when EITHER motor hits
+                    // its target position, the motion will stop.  This is "safer" in the event that the robot will
+                    // always end the motion as soon as possible.
+                    // However, if you require that BOTH motors have finished their moves before the robot continues
+                    // onto the next step, use (isBusy() || isBusy()) in the loop test.
+                    if (opModeIsActive() &&
+                            (runtime.seconds() < timeoutS) &&
+                            (robot.frontLeftDrive.isBusy() && robot.frontRightDrive.isBusy())) {
+
+                        // Display it for the driver.
+                        telemetry.addData("Path1",  "Running to %7d :%7d", newLeftTarget,  newRightTarget);
+                        telemetry.addData("Path2",  "Running at %7d :%7d",
+                                robot.frontLeftDrive.getCurrentPosition(),
+                                robot.frontRightDrive.getCurrentPosition());
+                        telemetry.update();
+                    } else {
+                        // go to next state
+                        state = ENCODER_DRIVE.END;
+                    }
+                    break;
+
+                case END:
+                    // Stop all motion;
+                    robot.frontLeftDrive.setPower(0);
+                    robot.frontRightDrive.setPower(0);
+                    robot.rearLeftDrive.setPower(0);
+                    robot.rearRightDrive.setPower(0);
+
+                    // Turn off RUN_TO_POSITION
+                    robot.frontLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                    robot.frontRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                    robot.rearLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                    robot.rearRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+                    driveComplete = true;
+
+                    // go back to initial state
+                    state = ENCODER_DRIVE.START;
+                    break;
+            }
+
+        }
+        return driveComplete;
+    }
+
+    private void linearOpModeSteps() {
+        switch (opmodeState) {
+            case STEP1:
+                driveStatus = encoderDrive(DRIVE_SPEED, 12, 12, 1.2);  // Forward 12 Inches with 1.2 Sec timeout
+                if (driveStatus) {
+                    opmodeState = OPMODE_STEPS.STEP2;
+                }
+                break;
+            case STEP2:
+                driveStatus = encoderDrive(DRIVE_SPEED, 5, 5, 1.2);  // Forward 5 Inches with 1.2 Sec timeout
+                if (driveStatus) {
+                    opmodeState = OPMODE_STEPS.STEP3;
+                }
+                break;
+            case STEP3:
+                driveStatus = encoderDrive(TURN_SPEED,   12, -12, 4.0);  // Turn Right 12 Inches with 4 Sec timeout
+                if (driveStatus) {
+                    opmodeState = OPMODE_STEPS.STEP4;
+                }
+                break;
+            case STEP4:
+                driveStatus = encoderDrive(DRIVE_SPEED, -24, -24, 4.0);  // Reverse 24 Inches with 4 Sec timeout
+                if (driveStatus) {
+                    opmodeState = OPMODE_STEPS.STEP5;
+                }
+                break;
+            case STEP5:
+                break;
+            case STEP6:
+                break;
+            case STEP7:
+                break;
+            case STEP8:
+                break;
+            case STEP9:
+                break;
+            case STEP10:
+                break;
+        }
     }
 }
