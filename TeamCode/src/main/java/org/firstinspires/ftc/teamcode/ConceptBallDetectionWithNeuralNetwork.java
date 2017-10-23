@@ -542,6 +542,7 @@ public class ConceptBallDetectionWithNeuralNetwork extends LinearOpMode implemen
         telemetry.update();
         return  null;
     }
+
     public Bitmap getBitmapFromImage(Image img){
         // TODO: TRY Bitmap.Config.ARGB_8888
         Bitmap bm = Bitmap.createBitmap(img.getWidth(), img.getHeight(), Bitmap.Config.RGB_565);
@@ -679,7 +680,6 @@ public class ConceptBallDetectionWithNeuralNetwork extends LinearOpMode implemen
         }
         final double endTime = getRuntime() - startTime;
 
-        // TODO: verify that this act as a callback
         Activity ftcAppActivity = (Activity) appContext;
         ftcAppActivity.runOnUiThread(new Runnable() {
             @Override
