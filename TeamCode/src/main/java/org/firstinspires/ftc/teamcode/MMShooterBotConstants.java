@@ -166,7 +166,7 @@ interface MMShooterBotConstants {
     boolean    displayRangeSensorInfo               = false;
     boolean    displayShooterPowerPhase2            = false;
     long       TELEMETRY_UPDATE_INTERVAL            = 2;   // in milliseconds
-    boolean    displayNavXTelemetryTeleOp           = true;
+    boolean    displayNavXTelemetryTeleOp           = false;
 
     // gyro
     double     GYRO_RESET_TIMEOUT                   = 1.0;
@@ -203,7 +203,7 @@ interface MMShooterBotConstants {
     double     TOLERANCE_DEGREES                    = 2.0;
     double     MIN_MOTOR_OUTPUT_VALUE               = -1.0;
     double     MAX_MOTOR_OUTPUT_VALUE               = 1.0;
-    double     YAW_PID_P                            = 0.007095;
+    double     YAW_PID_P                            = 0.015;
     double     YAW_PID_I                            = 0.0;
     double     YAW_PID_D                            = 0.0;
     double     NAVX_CONNECTION_TIMEOUT              = 3.0;
