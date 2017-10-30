@@ -2,24 +2,33 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.Servo;
 
 /**
  * Created by chrischen on 10/21/17.
  */
 
-public class HardwareMecanumTestBot {
-    // declaration of all robot devices
+public class HardwareMecanumCargoBot {
+    // declaration of all robot drive motors
     public DcMotor frontLeftDrive;
     public DcMotor frontRightDrive;
     public DcMotor rearLeftDrive;
     public DcMotor rearRightDrive;
+
+    // decleration of all robot servos
+    public Servo ballArm;
+
+    public Servo lowerLeftServo;
+    public Servo lowerRightServo;
+    public Servo upperLeftServo;
+    public Servo upperRightServo;
 
     /* local OpMode members. */
     HardwareMap hwMap           =  null;
 //    private ElapsedTime period  = new ElapsedTime();
 
     /* Constructor */
-    public HardwareMecanumTestBot(){
+    public HardwareMecanumCargoBot(){
 
     }
 
@@ -34,6 +43,14 @@ public class HardwareMecanumTestBot {
         frontRightDrive = hwMap.dcMotor.get("frontRightDrive");
         rearLeftDrive = hwMap.dcMotor.get("rearLeftDrive");
         rearRightDrive = hwMap.dcMotor.get("rearRightDrive");
+
+        ballArm = hwMap.servo.get("ballArm");
+
+        lowerLeftServo = hwMap.servo.get("lls");
+        lowerRightServo = hwMap.servo.get("lrs");
+        upperLeftServo = hwMap.servo.get("uls");
+        upperRightServo = hwMap.servo.get("urs");
+
 
         // Set motor initial direction
         frontLeftDrive.setDirection(DcMotor.Direction.FORWARD); // Set to FORWARD if using AndyMark motors Neverest 40
@@ -55,6 +72,13 @@ public class HardwareMecanumTestBot {
         rearLeftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rearRightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
+        // Set all servos to initial position
+        ballArm.setPosition(CargoBotConstants.BALL_ARM_UP);
+
+        lowerLeftServo.setPosition(0.5);
+        lowerRightServo.setPosition(0.5);
+        upperLeftServo.setPosition(0.5);
+        upperRightServo.setPosition(0.5);
 
 
 //        // Set drive motors to run with encoders.

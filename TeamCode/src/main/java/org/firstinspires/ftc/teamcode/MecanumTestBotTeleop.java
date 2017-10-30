@@ -19,7 +19,7 @@ import static java.lang.Math.sqrt;
 
 public class MecanumTestBotTeleop extends OpMode {
 
-    HardwareMecanumTestBot mecanumBot = new HardwareMecanumTestBot();
+    HardwareMecanumCargoBot mecanumBot = new HardwareMecanumCargoBot();
 
 
 

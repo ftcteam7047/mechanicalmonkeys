@@ -26,4 +26,10 @@ public interface CargoBotConstants {
     double STACK_DISTANCE_FROM_START = COUNTS_PER_INCH_16_TOOTH * STACK_HEIGHT;
     double PLACE_DISTANCE_FROM_START = COUNTS_PER_INCH_16_TOOTH * PLACE_HEIGHT;
     double DIAGONAL_HALF_BAND_WIDTH = 0.30; // max shall be less than sqrt(2)
+
+    double BALL_ARM_UP = 0.0;
+    double BALL_ARM_DOWN = 1.0;
+
+    double BALL_SPEED = 0.1;
+    double BALL_DISTANCE = 2.75;
 }

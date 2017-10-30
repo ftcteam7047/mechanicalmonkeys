@@ -90,9 +90,9 @@ import java.util.concurrent.Executors;
  * is explained in {@link ConceptVuforiaNavigation}.
  */
 
-@Autonomous(name="Autonomous Test", group ="Concept")
+@Autonomous(name="Red Relic Autonomous", group ="Concept")
 //@Disabled
-public class MMAutonomousTest extends LinearOpMode {
+public class MMAutonomousRedRelic extends LinearOpMode {
 
     public static final String TAG = "Vuforia VuMark Sample";
 
@@ -162,7 +162,35 @@ public class MMAutonomousTest extends LinearOpMode {
     HardwareMecanumCargoBot robot = new HardwareMecanumCargoBot();
 
 
+    enum ALLIANCE_COLOR {
+        RED,
+        BLUE
+    }
 
+    ALLIANCE_COLOR alliance = ALLIANCE_COLOR.RED;
+
+    enum STARTING_POSITION {
+        RELIC,
+        TIP
+    }
+
+    public enum LiftPosition {
+        GRAB,
+        MOVE,
+        STACK,
+        PLACE
+    }
+    LiftPosition liftPosition = LiftPosition.GRAB;
+
+    enum gripperPosition {
+        OPEN,
+        CLOSE,
+        STOW
+    }
+
+    gripperPosition position = gripperPosition.CLOSE;
+
+    STARTING_POSITION startingPosition = STARTING_POSITION.RELIC;
 
     private ElapsedTime runtime = new ElapsedTime();
 
@@ -210,6 +238,8 @@ public class MMAutonomousTest extends LinearOpMode {
 	private boolean isDoneRunningAuto = false;
 
     ExecutorService cameraExecutorService = Executors.newFixedThreadPool(1);
+
+    ArrayList<BALL_PREDICTION_RESULT> predictions = new ArrayList<BALL_PREDICTION_RESULT>();
 
     @Override public void runOpMode() throws InterruptedException {
         try {
@@ -285,7 +315,7 @@ public class MMAutonomousTest extends LinearOpMode {
                 appContext = context;
 
                 // initialize tensor flow object detection
-                initDetection(context);
+                 initDetection(context);
 
                 // time management
                 int tick = 0;
@@ -375,13 +405,13 @@ public class MMAutonomousTest extends LinearOpMode {
                 /* Found an instance of the template. In the actual game, you will probably
                  * loop until this condition occurs, then move on to act accordingly depending
                  * on which VuMark was visible. */
-                        telemetry.addData("VuMark", "%s visible", vuMark);
+                        //telemetry.addData("VuMark", "%s visible", vuMark);
 
                 /* For fun, we also exhibit the navigational pose. In the Relic Recovery game,
                  * it is perhaps unlikely that you will actually need to act on this pose information, but
                  * we illustrate it nevertheless, for completeness. */
                         OpenGLMatrix pose = ((VuforiaTrackableDefaultListener) relicTemplate.getListener()).getPose();
-                        telemetry.addData("Pose", format(pose));
+                        //telemetry.addData("Pose", format(pose));
 
                 /* We further illustrate how to decompose the pose into useful rotational and
                  * translational components */
@@ -400,14 +430,15 @@ public class MMAutonomousTest extends LinearOpMode {
                             double rZ = rot.thirdAngle;
                         }
                     } else {
-                        telemetry.addData("VuMark", "not visible");
+                        //telemetry.addData("VuMark", "not visible");
                     }
 
-                    telemetry.update();
+                    //telemetry.update();
 
 
                     // step through linear opmode steps
                     linearOpModeSteps();
+
 
 
                     // run loops every 10 ms
@@ -416,14 +447,14 @@ public class MMAutonomousTest extends LinearOpMode {
 
                 }
             }
-            cameraExecutorService.shutdown();
+//            cameraExecutorService.shutdown();
         }
         catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
         } finally {
-            if (!cameraExecutorService.isShutdown()) {
-                cameraExecutorService.shutdown();
-            }
+//            if (!cameraExecutorService.isShutdown()) {
+//                cameraExecutorService.shutdown();
+//            }
             navxDevice.close();
             telemetry.addData("Autonomous", "Complete");
         }
@@ -813,23 +844,75 @@ public class MMAutonomousTest extends LinearOpMode {
     private void linearOpModeSteps() throws InterruptedException {
         switch (opmodeState) {
             case STEP1:
-                //driveStatus = encoderDrive(DRIVE_SPEED, 12, 12, 1.2);  // Forward 12 Inches with 1.2 Sec timeout
-                driveStatus = navxDrive(0.5, 10, 10, 0);
+                robot.ballArm.setPosition(CargoBotConstants.BALL_ARM_DOWN);
+                driveStatus = true;
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP2;
                 }
                 break;
             case STEP2:
-//                driveStatus = encoderDrive(DRIVE_SPEED, 5, 5, 1.2);  // Forward 5 Inches with 1.2 Sec timeout
-                driveStatus = navxDrive(0.5, -5, 10, 0);
+                driveStatus = false;
+                if (prediction != BALL_PREDICTION_RESULT.UNKNOWN) {
+                    if (startingPosition == STARTING_POSITION.RELIC) {
+                        if (alliance == ALLIANCE_COLOR.RED) {
+                            if (prediction == BALL_PREDICTION_RESULT.RED_ON_LEFT) {
+                                // move forward or turn right
+                                //telemetry.addData("detection result", "red on left");
+                                //sleep(5000);
+                                predictions.add(prediction);
+                                driveStatus = navxDrive(CargoBotConstants.BALL_SPEED,
+                                        CargoBotConstants.BALL_DISTANCE,
+                                        2.0, 0);
+//                                driveStatus = encoderDrive(CargoBotConstants.BALL_SPEED,
+//                                        CargoBotConstants.BALL_DISTANCE,
+//                                        CargoBotConstants.BALL_DISTANCE,
+//                                        5);
+                            } else {
+                                // move back or turn left
+                                //telemetry.addData("detection result", "red on right");
+                                //sleep(5000);
+                                predictions.add(prediction);
+                                driveStatus = navxDrive(CargoBotConstants.BALL_SPEED,
+                                        -CargoBotConstants.BALL_DISTANCE,
+                                        2.0, 0);
+//                                driveStatus = encoderDrive(CargoBotConstants.BALL_SPEED,
+//                                        -CargoBotConstants.BALL_DISTANCE,
+//                                        -CargoBotConstants.BALL_DISTANCE,
+//                                        5);
+                            }
+                        } else {
+                            if (prediction == BALL_PREDICTION_RESULT.RED_ON_LEFT) {
+                                // move forward or turn right
+                                driveStatus = navxDrive(CargoBotConstants.BALL_SPEED,
+                                        -CargoBotConstants.BALL_DISTANCE,
+                                        2.0, 0);
+//                                driveStatus = encoderDrive(CargoBotConstants.BALL_SPEED,
+//                                        -CargoBotConstants.BALL_DISTANCE,
+//                                        -CargoBotConstants.BALL_DISTANCE,
+//                                        5);
+                            } else {
+                                // move back or turn left
+                                driveStatus = navxDrive(CargoBotConstants.BALL_SPEED,
+                                        CargoBotConstants.BALL_DISTANCE,
+                                        2.0, 0);
+//                                driveStatus = encoderDrive(CargoBotConstants.BALL_SPEED,
+//                                        CargoBotConstants.BALL_DISTANCE,
+//                                        CargoBotConstants.BALL_DISTANCE,
+//                                        5);
+                            }
+                        }
+                    }
+                } else {
+                    telemetry.addData("detection result", "unknown");
+                }
+                telemetry.addData("detection list", predictions.toString());
+                telemetry.update();
                 if (driveStatus) {
-                    navxDevice.close();
-                    isDoneRunningAuto = true;
                     opmodeState = OPMODE_STEPS.STEP3;
                 }
                 break;
             case STEP3:
-//                driveStatus = encoderDrive(TURN_SPEED,   12, -12, 4.0);  // Turn Right 12 Inches with 4 Sec timeout
+
 //                if (driveStatus) {
 //                    opmodeState = OPMODE_STEPS.STEP4;
 //                }
@@ -991,6 +1074,8 @@ public class MMAutonomousTest extends LinearOpMode {
         int     newRightTarget;
         int     moveCounts;
         boolean driveComplete = false;
+        // negation for mecanum drive arrangement
+        distance = -distance;
 
         // set up navx stuff
         double angleNormalized = -angle; // reverse the angle's direction: since positive is for CCW, negative is for CW
