@@ -912,7 +912,8 @@ public class MMAutonomousRedRelic extends LinearOpMode {
                 }
                 break;
             case STEP3:
-
+                // TODO: ensure when the last step is complete, isDoneRunningAuto is set to true to quit the outer while loop. For now, step 3 is the conclusion of autonomous mode.
+                isDoneRunningAuto = true;
 //                if (driveStatus) {
 //                    opmodeState = OPMODE_STEPS.STEP4;
 //                }
