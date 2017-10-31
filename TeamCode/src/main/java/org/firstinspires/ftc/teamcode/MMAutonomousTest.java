@@ -159,7 +159,7 @@ public class MMAutonomousTest extends LinearOpMode {
     boolean isProcessingFrame = false;
     Context appContext = null;
     private static final double PERIOD_PER_TICK = 0.5; // in seconds
-    HardwareMecanumCargoBot robot = new HardwareMecanumCargoBot();
+    HardwareMecanumTestBot robot = new HardwareMecanumTestBot();
 
 
 
@@ -814,7 +814,7 @@ public class MMAutonomousTest extends LinearOpMode {
         switch (opmodeState) {
             case STEP1:
                 //driveStatus = encoderDrive(DRIVE_SPEED, 12, 12, 1.2);  // Forward 12 Inches with 1.2 Sec timeout
-                driveStatus = navxDrive(0.5, 10, 10, 0);
+                driveStatus = navxDrive(0.5, 5, 10, 0);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP2;
                 }
@@ -991,6 +991,8 @@ public class MMAutonomousTest extends LinearOpMode {
         int     newRightTarget;
         int     moveCounts;
         boolean driveComplete = false;
+
+        distance = -distance;
 
         // set up navx stuff
         double angleNormalized = -angle; // reverse the angle's direction: since positive is for CCW, negative is for CW
