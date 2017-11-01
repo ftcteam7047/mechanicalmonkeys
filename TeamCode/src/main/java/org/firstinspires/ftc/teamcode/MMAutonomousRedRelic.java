@@ -182,13 +182,13 @@ public class MMAutonomousRedRelic extends LinearOpMode {
     }
     LiftPosition liftPosition = LiftPosition.GRAB;
 
-    enum gripperPosition {
+    enum GripperPosition {
         OPEN,
         CLOSE,
         STOW
     }
 
-    gripperPosition position = gripperPosition.CLOSE;
+    GripperPosition gripperPosition = GripperPosition.CLOSE;
 
     STARTING_POSITION startingPosition = STARTING_POSITION.RELIC;
 
@@ -236,6 +236,9 @@ public class MMAutonomousRedRelic extends LinearOpMode {
     double Kp                   = 0.005;
 	
 	private boolean isDoneRunningAuto = false;
+
+    int target;
+    int offset = 0;
 
     ExecutorService cameraExecutorService = Executors.newFixedThreadPool(1);
 
@@ -438,8 +441,6 @@ public class MMAutonomousRedRelic extends LinearOpMode {
 
                     // step through linear opmode steps
                     linearOpModeSteps();
-
-
 
                     // run loops every 10 ms
                     //sleep(10);
@@ -844,8 +845,9 @@ public class MMAutonomousRedRelic extends LinearOpMode {
     private void linearOpModeSteps() throws InterruptedException {
         switch (opmodeState) {
             case STEP1:
+                liftPosition = LiftPosition.STACK;
                 robot.ballArm.setPosition(CargoBotConstants.BALL_ARM_DOWN);
-                driveStatus = true;
+                driveStatus = blockLiftController();
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP2;
                 }
@@ -862,7 +864,9 @@ public class MMAutonomousRedRelic extends LinearOpMode {
                                 predictions.add(prediction);
                                 driveStatus = navxDrive(CargoBotConstants.BALL_SPEED,
                                         CargoBotConstants.BALL_DISTANCE,
-                                        2.0, 0);
+                                        calculateTimeout(CargoBotConstants.BALL_DISTANCE,
+                                                CargoBotConstants.BALL_SPEED),
+                                        0);
 //                                driveStatus = encoderDrive(CargoBotConstants.BALL_SPEED,
 //                                        CargoBotConstants.BALL_DISTANCE,
 //                                        CargoBotConstants.BALL_DISTANCE,
@@ -874,7 +878,9 @@ public class MMAutonomousRedRelic extends LinearOpMode {
                                 predictions.add(prediction);
                                 driveStatus = navxDrive(CargoBotConstants.BALL_SPEED,
                                         -CargoBotConstants.BALL_DISTANCE,
-                                        2.0, 0);
+                                        calculateTimeout(CargoBotConstants.BALL_DISTANCE,
+                                                CargoBotConstants.BALL_SPEED),
+                                        0);
 //                                driveStatus = encoderDrive(CargoBotConstants.BALL_SPEED,
 //                                        -CargoBotConstants.BALL_DISTANCE,
 //                                        -CargoBotConstants.BALL_DISTANCE,
@@ -885,7 +891,9 @@ public class MMAutonomousRedRelic extends LinearOpMode {
                                 // move forward or turn right
                                 driveStatus = navxDrive(CargoBotConstants.BALL_SPEED,
                                         -CargoBotConstants.BALL_DISTANCE,
-                                        2.0, 0);
+                                        calculateTimeout(CargoBotConstants.BALL_DISTANCE,
+                                                CargoBotConstants.BALL_SPEED),
+                                        0);
 //                                driveStatus = encoderDrive(CargoBotConstants.BALL_SPEED,
 //                                        -CargoBotConstants.BALL_DISTANCE,
 //                                        -CargoBotConstants.BALL_DISTANCE,
@@ -894,7 +902,9 @@ public class MMAutonomousRedRelic extends LinearOpMode {
                                 // move back or turn left
                                 driveStatus = navxDrive(CargoBotConstants.BALL_SPEED,
                                         CargoBotConstants.BALL_DISTANCE,
-                                        2.0, 0);
+                                        calculateTimeout(CargoBotConstants.BALL_DISTANCE,
+                                                CargoBotConstants.BALL_SPEED),
+                                        0);
 //                                driveStatus = encoderDrive(CargoBotConstants.BALL_SPEED,
 //                                        CargoBotConstants.BALL_DISTANCE,
 //                                        CargoBotConstants.BALL_DISTANCE,
@@ -1191,4 +1201,58 @@ public class MMAutonomousRedRelic extends LinearOpMode {
         return Math.abs(timeoutS);
     }
 
+    private boolean blockLiftController() {
+
+        boolean isDone = false;
+
+        switch (liftPosition) {
+            case GRAB:
+                target = (int) CargoBotConstants.GRAB_DISTANCE_FROM_START - offset;
+                break;
+            case MOVE:
+                target = (int) CargoBotConstants.MOVE_DISTANCE_FROM_START - offset;
+                break;
+            case STACK:
+                target = (int) CargoBotConstants.STACK_DISTANCE_FROM_START - offset;
+                break;
+            case PLACE:
+                target = (int) CargoBotConstants.PLACE_DISTANCE_FROM_START - offset;
+                break;
+        }
+
+        robot.blockLift.setTargetPosition(target);
+        robot.blockLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        robot.blockLift.setPower(CargoBotConstants.LIFT_SPEED);
+        telemetry.addData("pos", robot.blockLift.getCurrentPosition());
+        telemetry.update();
+        if (!robot.blockLift.isBusy()) {
+            robot.blockLift.setPower(0.0);
+            robot.blockLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            isDone = true;
+        }
+        return isDone;
+    }
+
+    private void grabberController() {
+        switch (gripperPosition) {
+            case OPEN:
+                robot.lowerLeftServo.setPosition(0.0);
+                robot.lowerRightServo.setPosition(1.0);
+                robot.upperLeftServo.setPosition(1.0);
+                robot.upperRightServo.setPosition(0.0);
+                break;
+            case CLOSE:
+                robot.lowerLeftServo.setPosition(CargoBotConstants.GRABBER_CLOSE);
+                robot.lowerRightServo.setPosition(CargoBotConstants.GRABBER_CLOSE);
+                robot.upperLeftServo.setPosition(CargoBotConstants.GRABBER_CLOSE);
+                robot.upperRightServo.setPosition(CargoBotConstants.GRABBER_CLOSE);
+                break;
+            case STOW:
+                robot.lowerLeftServo.setPosition(1.0);
+                robot.lowerRightServo.setPosition(0.0);
+                robot.upperLeftServo.setPosition(0.0);
+                robot.upperRightServo.setPosition(1.0);
+                break;
+        }
+    }
 }

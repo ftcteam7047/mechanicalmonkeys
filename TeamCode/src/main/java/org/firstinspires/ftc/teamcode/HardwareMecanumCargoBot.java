@@ -15,13 +15,17 @@ public class HardwareMecanumCargoBot {
     public DcMotor rearLeftDrive;
     public DcMotor rearRightDrive;
 
-    // decleration of all robot servos
+    // declaration of all non drive motors
+    public DcMotor blockLift;
+
+    // declaration of all robot servos
     public Servo ballArm;
 
     public Servo lowerLeftServo;
     public Servo lowerRightServo;
     public Servo upperLeftServo;
     public Servo upperRightServo;
+
 
     /* local OpMode members. */
     HardwareMap hwMap           =  null;
@@ -31,6 +35,8 @@ public class HardwareMecanumCargoBot {
     public HardwareMecanumCargoBot(){
 
     }
+
+
 
     /* Initialize standard Hardware interfaces */
     public void init(HardwareMap ahwMap) {
@@ -43,6 +49,8 @@ public class HardwareMecanumCargoBot {
         frontRightDrive = hwMap.dcMotor.get("frontRightDrive");
         rearLeftDrive = hwMap.dcMotor.get("rearLeftDrive");
         rearRightDrive = hwMap.dcMotor.get("rearRightDrive");
+
+        blockLift = hwMap.dcMotor.get("blockLift");
 
         ballArm = hwMap.servo.get("ballArm");
 

@@ -120,6 +120,27 @@ public class MecanumTestBotTeleopAdvanced extends OpMode {
         }
     }
 
+    /*
+    * Code to run REPEATEDLY after the driver hits INIT, but before they hit PLAY
+    */
+    @Override
+    public void init_loop() {
+        if (!isNavxMicroDataTimeout){
+            telemetry.addData(">", "TeleOp Ready. Press Start.");
+            telemetry.update();
+        }
+    }
+
+    /*
+     * Code to run ONCE when the driver hits PLAY
+     */
+    @Override
+    public void start() {
+        telemetry.addData(">", "TeleOp Started");
+        telemetry.update();
+    }
+
+
     @Override
     public void loop() {
 
@@ -291,10 +312,6 @@ public class MecanumTestBotTeleopAdvanced extends OpMode {
             telemetry.update();
         }
 
-        if (!isNavxMicroDataTimeout){
-            telemetry.addData(">", "Robot ready for Teleop.");    //
-            telemetry.update();
-        }
     }
 
     private enum RotateTo90DegreeState {

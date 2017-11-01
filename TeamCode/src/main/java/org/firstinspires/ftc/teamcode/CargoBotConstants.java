@@ -32,4 +32,6 @@ public interface CargoBotConstants {
 
     double BALL_SPEED = 0.1;
     double BALL_DISTANCE = 2.75;
+
+    //TODO: For driving off platform, if going from center go 26 inches witout offset of 2.75 to clear platfrom and speed of 0.3
 }
