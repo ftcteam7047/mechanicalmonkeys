@@ -33,5 +33,13 @@ public interface CargoBotConstants {
     double BALL_SPEED = 0.1;
     double BALL_DISTANCE = 2.75;
 
-    //TODO: For driving off platform, if going from center go 26 inches witout offset of 2.75 to clear platfrom and speed of 0.3
+    double DRIVE_OFF_PLATFORM_MORE_OFFSET = 2.75;
+    double DRIVE_OFF_PLATFORM_LESS_OFFSET = -2.75;
+    double DRIVE_OFF_PLATFORM_DISTANCE_WITHOUT_OFFSET = 26;
+    double DRIVING_OFF_PLATFORM_SPEED = 0.3;
+
+    double RED_TURN_ANGLE = -35;
+    double BLUE_TURN_ANGLE = 70;
+
+    double VU_MARK_DETECTION_TIMEOUT = 3.0;
 }

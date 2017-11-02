@@ -206,10 +206,19 @@ public class MMAutonomousTest extends LinearOpMode {
     double timeNavxDataTestTimeout = 0.0;
     private boolean calibration_complete = false;
     double Kp                   = 0.005;
-	
+
 	private boolean isDoneRunningAuto = false;
 
+    private enum ENUM_NAVX_GYRO_TURN {
+        NOT_ARRIVED,
+        ARRIVED,
+        TIMEOUT
+    }
+
     ExecutorService cameraExecutorService = Executors.newFixedThreadPool(1);
+
+    boolean isNavxRotateInitialized = false;
+    double timeRotationRequested;
 
     @Override public void runOpMode() throws InterruptedException {
         try {
@@ -813,7 +822,7 @@ public class MMAutonomousTest extends LinearOpMode {
     private void linearOpModeSteps() throws InterruptedException {
         switch (opmodeState) {
             case STEP1:
-                //driveStatus = encoderDrive(DRIVE_SPEED, 12, 12, 1.2);  // Forward 12 Inches with 1.2 Sec timeout
+//                driveStatus = encoderDrive(DRIVE_SPEED, 12, 12, 1.2);  // Forward 12 Inches with 1.2 Sec timeout
                 driveStatus = navxDrive(0.5, 5, 10, 0);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP2;
@@ -823,24 +832,29 @@ public class MMAutonomousTest extends LinearOpMode {
 //                driveStatus = encoderDrive(DRIVE_SPEED, 5, 5, 1.2);  // Forward 5 Inches with 1.2 Sec timeout
                 driveStatus = navxDrive(0.5, -5, 10, 0);
                 if (driveStatus) {
-                    navxDevice.close();
-                    isDoneRunningAuto = true;
                     opmodeState = OPMODE_STEPS.STEP3;
                 }
                 break;
             case STEP3:
-//                driveStatus = encoderDrive(TURN_SPEED,   12, -12, 4.0);  // Turn Right 12 Inches with 4 Sec timeout
-//                if (driveStatus) {
-//                    opmodeState = OPMODE_STEPS.STEP4;
-//                }
+                driveStatus = navxRotateToAngle(-45, yawKp);
+                if (driveStatus){
+                    opmodeState = OPMODE_STEPS.STEP4;
+                }
                 break;
             case STEP4:
-//                driveStatus = encoderDrive(DRIVE_SPEED, -24, -24, 4.0);  // Reverse 24 Inches with 4 Sec timeout
-//                if (driveStatus) {
-//                    opmodeState = OPMODE_STEPS.STEP5;
-//                }
+                driveStatus = navxRotateToAngle(0, yawKp);
+                if (driveStatus){
+                    opmodeState = OPMODE_STEPS.STEP5;
+                }
+
                 break;
             case STEP5:
+                driveStatus = navxRotateToAngle(45, 1.2*yawKp);
+                if (driveStatus){
+                    opmodeState = OPMODE_STEPS.STEP6;
+                    navxDevice.close();
+                    isDoneRunningAuto = true;
+                }
                 break;
             case STEP6:
                 break;
@@ -853,6 +867,8 @@ public class MMAutonomousTest extends LinearOpMode {
             case STEP10:
                 break;
         }
+        telemetry.addData("Opmode step", opmodeState);
+
     }
 
     private void initNavxMicroCalibration(double timeoutS) {
@@ -924,62 +940,73 @@ public class MMAutonomousTest extends LinearOpMode {
         }
     }
 
-    private void navxRotateToAngle(double angle, double Kp) throws InterruptedException {
-
+    private boolean navxRotateToAngle(double angle, double Kp) throws InterruptedException{
+        ENUM_NAVX_GYRO_TURN rotationStatus = ENUM_NAVX_GYRO_TURN.NOT_ARRIVED;
         double angleNormalized = -angle; // reverse the angle's direction: since positive is for CCW, negative is for CW
-        // set the parameters before enabling the PID controller
-        yawTurnPIDController.setSetpoint(angleNormalized);
-        yawTurnPIDController.setPID(Kp, MMShooterBotConstants.YAW_PID_I, MMShooterBotConstants.YAW_PID_D);
-        yawTurnPIDController.enable(true);
+
+        if (!isNavxRotateInitialized) {
+            // set the parameters before enabling the PID controller
+            yawTurnPIDController.setSetpoint(angleNormalized);
+            yawTurnPIDController.setPID(Kp, MMShooterBotConstants.YAW_PID_I, MMShooterBotConstants.YAW_PID_D);
+            yawTurnPIDController.enable(true);
+            timeRotationRequested = getRuntime();
+            // set to true so that init only runs once per request
+            isNavxRotateInitialized = true;
+        }
 
         navXPIDController.PIDResult yawPIDResult = new navXPIDController.PIDResult();
-
         DecimalFormat df = new DecimalFormat("#.##");
-
         Thread.sleep(MMShooterBotConstants.SLEEP_MS);
-        // this instruction blocks the thread, and won't return immediately
-        // return true if new data is available
-        // return false if it times out.
-        if (yawTurnPIDController.waitForNewUpdate(yawPIDResult, MMShooterBotConstants.WAIT_FOR_UPDATE_TIMEOUT_MS)) {
-            // proceed to keep using data from navx-micro
-            while (opModeIsActive() && !yawPIDResult.isOnTarget()) {
-                if (yawTurnPIDController.isNewUpdateAvailable(yawPIDResult)) {
-                    if (yawPIDResult.isOnTarget()) {
-                        robot.frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                        robot.frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                        robot.rearLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                        robot.rearRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-//                        telemetry.addData("PIDOutput", df.format(0.00));
-                    } else {
-                        double output = yawPIDResult.getOutput();
 
-                        // amplify the output of PID controller as it get close to the target
-                        // otherwise, it would not finish turning in time
-                        if (Math.abs(output) <= MMShooterBotConstants.NAVX_PID_LOW_OUTPUT_THRESHOLD) {
-                            output = output * MMShooterBotConstants.MULTIPLER_WHEN_NAVX_LOW_OUTPUT;
-                        }
+        if (yawTurnPIDController.isNewUpdateAvailable(yawPIDResult)) {
 
-                        robot.frontLeftDrive.setPower(output);
-                        robot.frontRightDrive.setPower(-output);
-                        robot.rearLeftDrive.setPower(output);
-                        robot.rearRightDrive.setPower(-output);
-
-//                        telemetry.addData("PIDOutput", df.format(output) + ", " +
-//                                df.format(-output));
-                    }
+            if (yawPIDResult.isOnTarget()) {
+                robot.frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                robot.frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                robot.rearRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                robot.rearLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                turnOffDriveMotors();
+                rotationStatus = ENUM_NAVX_GYRO_TURN.ARRIVED;
+                if (MMShooterBotConstants.displayNavXTelemetryTeleOp) {
+                    telemetry.addData("PIDOutput", df.format(0.00));
                 }
-//                telemetry.addData("Yaw", df.format(navxDevice.getYaw()));
-//                telemetry.update();
+            } else {
+                double output = yawPIDResult.getOutput();
+
+                // amplify the output of PID controller as it gets close to the target
+                // otherwise, it would not finish turning in time
+                if (Math.abs(output) <= MMShooterBotConstants.NAVX_PID_LOW_OUTPUT_THRESHOLD) {
+                    output = output * MMShooterBotConstants.MULTIPLER_WHEN_NAVX_LOW_OUTPUT;
+                }
+
+                robot.frontLeftDrive.setPower(-output);
+                robot.frontRightDrive.setPower(output);
+                robot.rearLeftDrive.setPower(-output);
+                robot.rearRightDrive.setPower(output);
+                if (MMShooterBotConstants.displayNavXTelemetryTeleOp) {
+                    telemetry.addData("PIDOutput", df.format(output) + ", " +
+                            df.format(-output));
+                }
             }
 
+            if (MMShooterBotConstants.displayNavXTelemetryTeleOp) {
+                telemetry.addData("Yaw", df.format(-navxDevice.getYaw())); // add negative to convert to robot's heading
+            }
         } else {
-            // time out occurs, fall back to use modern robotics gyro and change the mission route
-            RobotLog.vv("navXRotateOp", "Yaw PID waitForNewUpdate() TIMEOUT.");
-            isNavxMicroDataTimeout = true;
+            // check for timeout waiting for navx data to update
+            // note: this is not a timeout for the rotation, but for data availability.
+            if ((getRuntime() - timeRotationRequested) >= MMShooterBotConstants.TIMEOUT_WAIT_FOR_NAVX_DATA) {
+                // give up and return time out status
+                rotationStatus = ENUM_NAVX_GYRO_TURN.TIMEOUT;
+            }
+
         }
-        // always turn off the motors whether it's due to timeout or we are on target.
-        turnOffDriveMotors();
-        yawTurnPIDController.enable(false);
+        if (rotationStatus == ENUM_NAVX_GYRO_TURN.ARRIVED) {
+            isNavxRotateInitialized = false;
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public boolean navxDrive( double speed,
@@ -1106,5 +1133,73 @@ public class MMAutonomousTest extends LinearOpMode {
         // make sure we return a positive value
         return Math.abs(timeoutS);
     }
+
+//    private boolean navxRotateToAngle(double angle, double Kp) {
+//        ENUM_NAVX_GYRO_TURN rotationStatus = ENUM_NAVX_GYRO_TURN.NOT_ARRIVED;
+//        double angleNormalized = -angle; // reverse the angle's direction: since positive is for CCW, negative is for CW
+//
+//        if (!isNavxRotateInitialized) {
+//            // set the parameters before enabling the PID controller
+//            yawTurnPIDController.setSetpoint(angleNormalized);
+//            yawTurnPIDController.setPID(Kp, MMShooterBotConstants.YAW_PID_I, MMShooterBotConstants.YAW_PID_D);
+//            yawTurnPIDController.enable(true);
+//            timeRotationRequested = getRuntime();
+//            // set to true so that init only runs once per request
+//            isNavxRotateInitialized = true;
+//        }
+//
+//        navXPIDController.PIDResult yawPIDResult = new navXPIDController.PIDResult();
+//        DecimalFormat df = new DecimalFormat("#.##");
+//
+//        if (yawTurnPIDController.isNewUpdateAvailable(yawPIDResult)) {
+//
+//            if (yawPIDResult.isOnTarget()) {
+//                robot.frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+//                robot.frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+//                robot.rearRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+//                robot.rearLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+//                turnOffDriveMotors();
+//                rotationStatus = ENUM_NAVX_GYRO_TURN.ARRIVED;
+//                if (MMShooterBotConstants.displayNavXTelemetryTeleOp) {
+//                    telemetry.addData("PIDOutput", df.format(0.00));
+//                }
+//            } else {
+//                double output = yawPIDResult.getOutput();
+//
+//                // amplify the output of PID controller as it gets close to the target
+//                // otherwise, it would not finish turning in time
+//                if (Math.abs(output) <= MMShooterBotConstants.NAVX_PID_LOW_OUTPUT_THRESHOLD) {
+//                    output = output * MMShooterBotConstants.MULTIPLER_WHEN_NAVX_LOW_OUTPUT;
+//                }
+//
+//                robot.frontLeftDrive.setPower(-output);
+//                robot.frontRightDrive.setPower(output);
+//                robot.rearLeftDrive.setPower(-output);
+//                robot.rearRightDrive.setPower(output);
+//                if (MMShooterBotConstants.displayNavXTelemetryTeleOp) {
+//                    telemetry.addData("PIDOutput", df.format(output) + ", " +
+//                            df.format(-output));
+//                }
+//            }
+//
+//            if (MMShooterBotConstants.displayNavXTelemetryTeleOp) {
+//                telemetry.addData("Yaw", df.format(-navxDevice.getYaw())); // add negative to convert to robot's heading
+//            }
+//        } else {
+//            // check for timeout waiting for navx data to update
+//            // note: this is not a timeout for the rotation, but for data availability.
+//            if ((getRuntime() - timeRotationRequested) >= MMShooterBotConstants.TIMEOUT_WAIT_FOR_NAVX_DATA) {
+//                // give up and return time out status
+//                rotationStatus = ENUM_NAVX_GYRO_TURN.TIMEOUT;
+//            }
+//
+//        }
+//        if (rotationStatus == ENUM_NAVX_GYRO_TURN.ARRIVED) {
+//            isNavxRotateInitialized = false;
+//            return true;
+//        } else {
+//            return false;
+//        }
+//    }
 
 }

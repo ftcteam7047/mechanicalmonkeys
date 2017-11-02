@@ -244,6 +244,25 @@ public class MMAutonomousRedRelic extends LinearOpMode {
 
     ArrayList<BALL_PREDICTION_RESULT> predictions = new ArrayList<BALL_PREDICTION_RESULT>();
 
+    double drivingOffPlatformOffset;
+
+    double timeRotationRequested;
+
+    boolean isNavxRotateInitialized = false;
+
+    double stepFiveStartTime;
+
+    double tX = 0;
+    double tY = 0;
+    double tZ = 0;
+
+    // Extract the rotational components of the target relative to the robot
+    double rX = 0;
+    double rY = 0;
+    double rZ = 0;
+
+    boolean isRobotPositionAvailable = false;
+
     @Override public void runOpMode() throws InterruptedException {
         try {
             while (!isDoneRunningAuto && !Thread.currentThread().isInterrupted()) {
@@ -423,21 +442,42 @@ public class MMAutonomousRedRelic extends LinearOpMode {
                             Orientation rot = Orientation.getOrientation(pose, AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
 
                             // Extract the X, Y, and Z components of the offset of the target relative to the robot
-                            double tX = trans.get(0);
-                            double tY = trans.get(1);
-                            double tZ = trans.get(2);
+                            tX = trans.get(0);
+                            tY = trans.get(1);
+                            tZ = trans.get(2);
 
                             // Extract the rotational components of the target relative to the robot
-                            double rX = rot.firstAngle;
-                            double rY = rot.secondAngle;
-                            double rZ = rot.thirdAngle;
+                            rX = rot.firstAngle;
+                            rY = rot.secondAngle;
+                            rZ = rot.thirdAngle;
+                            isRobotPositionAvailable = true;
+                        } else {
+                            isRobotPositionAvailable = false;
                         }
                     } else {
+                        isRobotPositionAvailable = false;
                         //telemetry.addData("VuMark", "not visible");
                     }
 
                     //telemetry.update();
 
+                    // checks what vuMark is currently visible and sets a variable
+                    // to keep track and locks it in if it is detected
+                    if (vuMarkIdentified == VU_MARK_TYPE.UNKNOWN) {
+                        switch (vuMark) {
+                            case LEFT:
+                                vuMarkIdentified = VU_MARK_TYPE.LEFT;
+                                break;
+                            case CENTER:
+                                vuMarkIdentified = VU_MARK_TYPE.CENTER;
+                                break;
+                            case RIGHT:
+                                vuMarkIdentified = VU_MARK_TYPE.RIGHT;
+                                break;
+                            case UNKNOWN:
+                                break;
+                        }
+                    }
 
                     // step through linear opmode steps
                     linearOpModeSteps();
@@ -746,6 +786,20 @@ public class MMAutonomousRedRelic extends LinearOpMode {
         END
     }
 
+    private enum ENUM_NAVX_GYRO_TURN {
+        NOT_ARRIVED,
+        ARRIVED,
+        TIMEOUT
+    }
+
+    enum VU_MARK_TYPE {
+        LEFT,
+        CENTER,
+        RIGHT,
+        UNKNOWN
+    }
+    VU_MARK_TYPE vuMarkIdentified = VU_MARK_TYPE.UNKNOWN;
+
     /*
  *  Method to perfmorm a relative move, based on encoder counts.
  *  Encoders are not reset as the move is based on the current position.
@@ -845,6 +899,7 @@ public class MMAutonomousRedRelic extends LinearOpMode {
     private void linearOpModeSteps() throws InterruptedException {
         switch (opmodeState) {
             case STEP1:
+                // Lowers ball arm and raises block
                 liftPosition = LiftPosition.STACK;
                 robot.ballArm.setPosition(CargoBotConstants.BALL_ARM_DOWN);
                 driveStatus = blockLiftController();
@@ -853,6 +908,7 @@ public class MMAutonomousRedRelic extends LinearOpMode {
                 }
                 break;
             case STEP2:
+                // Move backwards or forwards to knock off ball
                 driveStatus = false;
                 if (prediction != BALL_PREDICTION_RESULT.UNKNOWN) {
                     if (startingPosition == STARTING_POSITION.RELIC) {
@@ -867,6 +923,7 @@ public class MMAutonomousRedRelic extends LinearOpMode {
                                         calculateTimeout(CargoBotConstants.BALL_DISTANCE,
                                                 CargoBotConstants.BALL_SPEED),
                                         0);
+                                drivingOffPlatformOffset = CargoBotConstants.DRIVE_OFF_PLATFORM_MORE_OFFSET;
 //                                driveStatus = encoderDrive(CargoBotConstants.BALL_SPEED,
 //                                        CargoBotConstants.BALL_DISTANCE,
 //                                        CargoBotConstants.BALL_DISTANCE,
@@ -881,6 +938,7 @@ public class MMAutonomousRedRelic extends LinearOpMode {
                                         calculateTimeout(CargoBotConstants.BALL_DISTANCE,
                                                 CargoBotConstants.BALL_SPEED),
                                         0);
+                                drivingOffPlatformOffset = CargoBotConstants.DRIVE_OFF_PLATFORM_LESS_OFFSET;
 //                                driveStatus = encoderDrive(CargoBotConstants.BALL_SPEED,
 //                                        -CargoBotConstants.BALL_DISTANCE,
 //                                        -CargoBotConstants.BALL_DISTANCE,
@@ -894,6 +952,7 @@ public class MMAutonomousRedRelic extends LinearOpMode {
                                         calculateTimeout(CargoBotConstants.BALL_DISTANCE,
                                                 CargoBotConstants.BALL_SPEED),
                                         0);
+                                drivingOffPlatformOffset = CargoBotConstants.DRIVE_OFF_PLATFORM_MORE_OFFSET;
 //                                driveStatus = encoderDrive(CargoBotConstants.BALL_SPEED,
 //                                        -CargoBotConstants.BALL_DISTANCE,
 //                                        -CargoBotConstants.BALL_DISTANCE,
@@ -905,6 +964,7 @@ public class MMAutonomousRedRelic extends LinearOpMode {
                                         calculateTimeout(CargoBotConstants.BALL_DISTANCE,
                                                 CargoBotConstants.BALL_SPEED),
                                         0);
+                                drivingOffPlatformOffset = CargoBotConstants.DRIVE_OFF_PLATFORM_LESS_OFFSET;
 //                                driveStatus = encoderDrive(CargoBotConstants.BALL_SPEED,
 //                                        CargoBotConstants.BALL_DISTANCE,
 //                                        CargoBotConstants.BALL_DISTANCE,
@@ -919,26 +979,77 @@ public class MMAutonomousRedRelic extends LinearOpMode {
                 telemetry.update();
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP3;
+                    robot.ballArm.setPosition(CargoBotConstants.BALL_ARM_UP);
                 }
                 break;
             case STEP3:
-                // TODO: ensure when the last step is complete, isDoneRunningAuto is set to true to quit the outer while loop. For now, step 3 is the conclusion of autonomous mode.
-                isDoneRunningAuto = true;
-//                if (driveStatus) {
-//                    opmodeState = OPMODE_STEPS.STEP4;
-//                }
+                // Get off the platform and stop (to view VuMark)
+                // positive going forward negative go backward
+                // leaving platform always use negative for red and leaving platform for blue always use positive
+                if (alliance == ALLIANCE_COLOR.RED) {
+                    driveStatus = navxDrive(CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED,
+                            -CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_WITHOUT_OFFSET - drivingOffPlatformOffset,
+                            calculateTimeout(CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_WITHOUT_OFFSET +
+                                            drivingOffPlatformOffset,
+                                    CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
+                } else {
+                    driveStatus = navxDrive(CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED,
+                            CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_WITHOUT_OFFSET + drivingOffPlatformOffset,
+                            calculateTimeout(CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_WITHOUT_OFFSET +
+                                            drivingOffPlatformOffset,
+                                    CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
+                }
+                if (driveStatus) {
+                    opmodeState = OPMODE_STEPS.STEP4;
+                }
                 break;
             case STEP4:
-//                driveStatus = encoderDrive(DRIVE_SPEED, -24, -24, 4.0);  // Reverse 24 Inches with 4 Sec timeout
-//                if (driveStatus) {
-//                    opmodeState = OPMODE_STEPS.STEP5;
-//                }
+                // Turn towards the VuMark
+                if (alliance == ALLIANCE_COLOR.RED) {
+                    driveStatus = navxRotateToAngle(CargoBotConstants.RED_TURN_ANGLE, yawKp);
+                } else {
+                    driveStatus = navxRotateToAngle(CargoBotConstants.BLUE_TURN_ANGLE, yawKp);
+                }
+
+                if (driveStatus) {
+                    stepFiveStartTime = getRuntime();
+                    opmodeState = OPMODE_STEPS.STEP5;
+                }
                 break;
             case STEP5:
+                // Lower ball arm (so the camera can focus on the VuMark) and detect VuMark
+                driveStatus = false;
+                robot.ballArm.setPosition(CargoBotConstants.BALL_ARM_DOWN);
+                if (vuMarkIdentified != VU_MARK_TYPE.UNKNOWN) {
+                    driveStatus = true;
+                } else {
+                    driveStatus = false;
+                    // timeout and default to center
+                    if ((getRuntime() - stepFiveStartTime) > CargoBotConstants.VU_MARK_DETECTION_TIMEOUT) {
+                        vuMarkIdentified = VU_MARK_TYPE.CENTER;
+                        driveStatus = true;
+                    }
+                }
+
+                if (driveStatus) {
+                    robot.ballArm.setPosition(CargoBotConstants.BALL_ARM_UP);
+                    opmodeState = OPMODE_STEPS.STEP6;
+                }
                 break;
             case STEP6:
+                // Localize robot using VuMark
+                driveStatus = false;
+                if (isRobotPositionAvailable) {
+                    // Todo: Create robot localizing algorithm
+                }
+                if (driveStatus) {
+                    robot.ballArm.setPosition(CargoBotConstants.BALL_ARM_UP);
+                    opmodeState = OPMODE_STEPS.STEP6;
+                }
                 break;
             case STEP7:
+                // TODO: ensure when the last step is complete, isDoneRunningAuto is set to true to quit the outer while loop. For now, step 7 is the conclusion of autonomous mode.
+                isDoneRunningAuto = true;
                 break;
             case STEP8:
                 break;
@@ -1018,62 +1129,74 @@ public class MMAutonomousRedRelic extends LinearOpMode {
         }
     }
 
-    private void navxRotateToAngle(double angle, double Kp) throws InterruptedException {
-
+    private boolean navxRotateToAngle(double angle, double Kp) throws InterruptedException{
+        ENUM_NAVX_GYRO_TURN rotationStatus = ENUM_NAVX_GYRO_TURN.NOT_ARRIVED;
         double angleNormalized = -angle; // reverse the angle's direction: since positive is for CCW, negative is for CW
-        // set the parameters before enabling the PID controller
-        yawTurnPIDController.setSetpoint(angleNormalized);
-        yawTurnPIDController.setPID(Kp, MMShooterBotConstants.YAW_PID_I, MMShooterBotConstants.YAW_PID_D);
-        yawTurnPIDController.enable(true);
+
+        if (!isNavxRotateInitialized) {
+            // set the parameters before enabling the PID controller
+            yawTurnPIDController.setSetpoint(angleNormalized);
+            yawTurnPIDController.setPID(Kp, MMShooterBotConstants.YAW_PID_I, MMShooterBotConstants.YAW_PID_D);
+            yawTurnPIDController.enable(true);
+            timeRotationRequested = getRuntime();
+            // set to true so that init only runs once per request
+            isNavxRotateInitialized = true;
+        }
 
         navXPIDController.PIDResult yawPIDResult = new navXPIDController.PIDResult();
-
         DecimalFormat df = new DecimalFormat("#.##");
-
+        // this step is necessary for this method to work
         Thread.sleep(MMShooterBotConstants.SLEEP_MS);
-        // this instruction blocks the thread, and won't return immediately
-        // return true if new data is available
-        // return false if it times out.
-        if (yawTurnPIDController.waitForNewUpdate(yawPIDResult, MMShooterBotConstants.WAIT_FOR_UPDATE_TIMEOUT_MS)) {
-            // proceed to keep using data from navx-micro
-            while (opModeIsActive() && !yawPIDResult.isOnTarget()) {
-                if (yawTurnPIDController.isNewUpdateAvailable(yawPIDResult)) {
-                    if (yawPIDResult.isOnTarget()) {
-                        robot.frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                        robot.frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                        robot.rearLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                        robot.rearRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-//                        telemetry.addData("PIDOutput", df.format(0.00));
-                    } else {
-                        double output = yawPIDResult.getOutput();
 
-                        // amplify the output of PID controller as it get close to the target
-                        // otherwise, it would not finish turning in time
-                        if (Math.abs(output) <= MMShooterBotConstants.NAVX_PID_LOW_OUTPUT_THRESHOLD) {
-                            output = output * MMShooterBotConstants.MULTIPLER_WHEN_NAVX_LOW_OUTPUT;
-                        }
+        if (yawTurnPIDController.isNewUpdateAvailable(yawPIDResult)) {
 
-                        robot.frontLeftDrive.setPower(output);
-                        robot.frontRightDrive.setPower(-output);
-                        robot.rearLeftDrive.setPower(output);
-                        robot.rearRightDrive.setPower(-output);
-
-//                        telemetry.addData("PIDOutput", df.format(output) + ", " +
-//                                df.format(-output));
-                    }
+            if (yawPIDResult.isOnTarget()) {
+                robot.frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                robot.frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                robot.rearRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                robot.rearLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                turnOffDriveMotors();
+                rotationStatus = ENUM_NAVX_GYRO_TURN.ARRIVED;
+                if (MMShooterBotConstants.displayNavXTelemetryTeleOp) {
+                    telemetry.addData("PIDOutput", df.format(0.00));
                 }
-//                telemetry.addData("Yaw", df.format(navxDevice.getYaw()));
-//                telemetry.update();
+            } else {
+                double output = yawPIDResult.getOutput();
+
+                // amplify the output of PID controller as it gets close to the target
+                // otherwise, it would not finish turning in time
+                if (Math.abs(output) <= MMShooterBotConstants.NAVX_PID_LOW_OUTPUT_THRESHOLD) {
+                    output = output * MMShooterBotConstants.MULTIPLER_WHEN_NAVX_LOW_OUTPUT;
+                }
+
+                robot.frontLeftDrive.setPower(-output);
+                robot.frontRightDrive.setPower(output);
+                robot.rearLeftDrive.setPower(-output);
+                robot.rearRightDrive.setPower(output);
+                if (MMShooterBotConstants.displayNavXTelemetryTeleOp) {
+                    telemetry.addData("PIDOutput", df.format(output) + ", " +
+                            df.format(-output));
+                }
             }
 
+            if (MMShooterBotConstants.displayNavXTelemetryTeleOp) {
+                telemetry.addData("Yaw", df.format(-navxDevice.getYaw())); // add negative to convert to robot's heading
+            }
         } else {
-            // time out occurs, fall back to use modern robotics gyro and change the mission route
-            RobotLog.vv("navXRotateOp", "Yaw PID waitForNewUpdate() TIMEOUT.");
-            isNavxMicroDataTimeout = true;
+            // check for timeout waiting for navx data to update
+            // note: this is not a timeout for the rotation, but for data availability.
+            if ((getRuntime() - timeRotationRequested) >= MMShooterBotConstants.TIMEOUT_WAIT_FOR_NAVX_DATA) {
+                // give up and return time out status
+                rotationStatus = ENUM_NAVX_GYRO_TURN.TIMEOUT;
+            }
+
         }
-        // always turn off the motors whether it's due to timeout or we are on target.
-        turnOffDriveMotors();
-        yawTurnPIDController.enable(false);
+        if (rotationStatus == ENUM_NAVX_GYRO_TURN.ARRIVED) {
+            isNavxRotateInitialized = false;
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public boolean navxDrive( double speed,
