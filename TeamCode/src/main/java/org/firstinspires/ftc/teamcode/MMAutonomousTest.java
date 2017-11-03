@@ -422,7 +422,7 @@ public class MMAutonomousTest extends LinearOpMode {
                     // run loops every 10 ms
                     //sleep(10);
 
-
+                    idle(); // Always call idle() at the bottom of your while(opModeIsActive()) loop
                 }
             }
             cameraExecutorService.shutdown();
