@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
+import android.content.Context;
+
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -9,6 +11,10 @@ import com.qualcomm.robotcore.hardware.Servo;
  */
 
 public class HardwareMecanumCargoBot {
+    // initialize fileHandler
+    MMFileHandler fileHandler = new MMFileHandler();
+    Context context;
+
     // declaration of all robot drive motors
     public DcMotor frontLeftDrive;
     public DcMotor frontRightDrive;
@@ -20,11 +26,36 @@ public class HardwareMecanumCargoBot {
 
     // declaration of all robot servos
     public Servo ballArm;
-
+    // TODO: relic servo
+    //public Servo relicServo;
     public Servo lowerLeftServo;
     public Servo lowerRightServo;
     public Servo upperLeftServo;
     public Servo upperRightServo;
+
+    // enum for relic arm
+    public enum RelicGripPosition {
+        CLOSE,
+        OPEN
+    }
+    RelicGripPosition relicGripPosition;
+
+    // enum for block grabber
+    public enum GrabberPosition {
+        OPEN,
+        CLOSE,
+        STOW
+    }
+    GrabberPosition grabberPosition;
+
+    // enum for block lift
+    public enum LiftPosition {
+        GRAB,
+        MOVE,
+        STACK,
+        PLACE
+    }
+    LiftPosition liftPosition;
 
 
     /* local OpMode members. */
@@ -44,16 +75,17 @@ public class HardwareMecanumCargoBot {
         // Save reference to Hardware map
         hwMap = ahwMap;
 
+        // fileHandler context
+        context = hwMap.appContext;
+
         // Define and Initialize Motors and Servos
         frontLeftDrive = hwMap.dcMotor.get("frontLeftDrive");
         frontRightDrive = hwMap.dcMotor.get("frontRightDrive");
         rearLeftDrive = hwMap.dcMotor.get("rearLeftDrive");
         rearRightDrive = hwMap.dcMotor.get("rearRightDrive");
-
         blockLift = hwMap.dcMotor.get("blockLift");
-
+        //relicServo = hwMap.servo.get("relicServo");
         ballArm = hwMap.servo.get("ballArm");
-
         lowerLeftServo = hwMap.servo.get("lls");
         lowerRightServo = hwMap.servo.get("lrs");
         upperLeftServo = hwMap.servo.get("uls");
@@ -79,15 +111,22 @@ public class HardwareMecanumCargoBot {
         frontRightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rearLeftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rearRightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        liftPosition = LiftPosition.GRAB;
+        blockLift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        blockLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         // Set all servos to initial position
         ballArm.setPosition(CargoBotConstants.BALL_ARM_UP);
+
+        // TODO: relic servos
+        //relicServo.setPosition(0.0);
+        relicGripPosition = RelicGripPosition.CLOSE;
 
         lowerLeftServo.setPosition(0.5);
         lowerRightServo.setPosition(0.5);
         upperLeftServo.setPosition(0.5);
         upperRightServo.setPosition(0.5);
-
+        grabberPosition = GrabberPosition.OPEN;
 
 //        // Set drive motors to run with encoders.
 //        front:eftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);

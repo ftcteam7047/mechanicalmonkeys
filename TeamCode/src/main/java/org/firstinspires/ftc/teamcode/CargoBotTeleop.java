@@ -14,7 +14,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 
 public class CargoBotTeleop extends OpMode {
 
-    HardwareCargoBot cargoBot = new HardwareCargoBot();
+    HardwareCargoBot robot = new HardwareCargoBot();
 
     boolean isRelicGripperButtonPressed;
     boolean isGrabberButtonPressed;
@@ -27,17 +27,17 @@ public class CargoBotTeleop extends OpMode {
     @Override
     public void init() {
 
-        cargoBot.init(hardwareMap);
+        robot.init(hardwareMap);
 
         isRelicGripperButtonPressed = false;
         isGrabberButtonPressed = false;
         isBlockVisible = false;
         isLifterButtonPressed = false;
 
-        if (cargoBot.fileHandler.readFromFile("offset.txt", cargoBot.context).equals("error")){
+        if (robot.fileHandler.readFromFile("offset.txt", robot.context).equals("error")){
             offset = 0;
         } else {
-            offset = cargoBot.fileHandler.stringToInt(cargoBot.fileHandler.readFromFile("offset.txt", cargoBot.context));
+            offset = robot.fileHandler.stringToInt(robot.fileHandler.readFromFile("offset.txt", robot.context));
         }
     }
 
@@ -52,7 +52,7 @@ public class CargoBotTeleop extends OpMode {
 
     @Override
     public void stop() {
-        cargoBot.fileHandler.writeToFile("offset.txt", Integer.toString(offset + cargoBot.blockLift.getCurrentPosition()), cargoBot.context);
+        robot.fileHandler.writeToFile("offset.txt", Integer.toString(offset + robot.blockLift.getCurrentPosition()), robot.context);
     }
 
     public void relicGripperController() {
@@ -63,23 +63,23 @@ public class CargoBotTeleop extends OpMode {
         }
 
         if (gamepad1.right_bumper
-                && cargoBot.relicGripPosition == cargoBot.relicGripPosition.CLOSE
+                && robot.relicGripPosition == robot.relicGripPosition.CLOSE
                 && !isRelicGripperButtonPressed) {
             isRelicGripperButtonPressed = true;
-            cargoBot.relicGripPosition = cargoBot.relicGripPosition.OPEN;
+            robot.relicGripPosition = robot.relicGripPosition.OPEN;
         } else if (gamepad1.left_bumper
-                && cargoBot.relicGripPosition == cargoBot.relicGripPosition.OPEN
+                && robot.relicGripPosition == robot.relicGripPosition.OPEN
                 && !isRelicGripperButtonPressed) {
             isRelicGripperButtonPressed = true;
-            cargoBot.relicGripPosition = cargoBot.relicGripPosition.CLOSE;
+            robot.relicGripPosition = robot.relicGripPosition.CLOSE;
         }
 
-        switch (cargoBot.relicGripPosition) {
+        switch (robot.relicGripPosition) {
             case CLOSE:
-                cargoBot.relicServo.setPosition(CargoBotConstants.RELIC_ARM_CLOSE);
+                robot.relicServo.setPosition(CargoBotConstants.RELIC_ARM_CLOSE);
                 break;
             case OPEN:
-                cargoBot.relicServo.setPosition(CargoBotConstants.RELIC_ARM_OPEN);
+                robot.relicServo.setPosition(CargoBotConstants.RELIC_ARM_OPEN);
                 break;
         }
     }
@@ -92,75 +92,75 @@ public class CargoBotTeleop extends OpMode {
         }
 
         if (gamepad1.a && !isGrabberButtonPressed) {
-            if (cargoBot.grabberPosition == cargoBot.grabberPosition.OPEN) {
-                cargoBot.grabberPosition = cargoBot.grabberPosition.CLOSE;
+            if (robot.grabberPosition == robot.grabberPosition.OPEN) {
+                robot.grabberPosition = robot.grabberPosition.CLOSE;
                 isGrabberButtonPressed = true;
-            } else if (cargoBot.grabberPosition == cargoBot.grabberPosition.CLOSE) {
-                cargoBot.grabberPosition = cargoBot.grabberPosition.OPEN;
+            } else if (robot.grabberPosition == robot.grabberPosition.CLOSE) {
+                robot.grabberPosition = robot.grabberPosition.OPEN;
                 isGrabberButtonPressed = true;
-            } else if (cargoBot.grabberPosition == cargoBot.grabberPosition.STOW) {
-                cargoBot.grabberPosition = cargoBot.grabberPosition.OPEN;
+            } else if (robot.grabberPosition == robot.grabberPosition.STOW) {
+                robot.grabberPosition = robot.grabberPosition.OPEN;
                 isGrabberButtonPressed = true;
             }
         }
 
         if (gamepad1.b && !isBlockVisible) {
-            cargoBot.grabberPosition = cargoBot.grabberPosition.STOW;
+            robot.grabberPosition = robot.grabberPosition.STOW;
         }
 
-        switch (cargoBot.grabberPosition) {
+        switch (robot.grabberPosition) {
             case OPEN:
-                cargoBot.gripServoLL.setPosition(0.0);
-                cargoBot.gripServoLR.setPosition(1.0);
-                cargoBot.gripServoUL.setPosition(1.0);
-                cargoBot.gripServoUR.setPosition(0.0);
+                robot.gripServoLL.setPosition(0.0);
+                robot.gripServoLR.setPosition(1.0);
+                robot.gripServoUL.setPosition(1.0);
+                robot.gripServoUR.setPosition(0.0);
                 break;
             case CLOSE:
-                cargoBot.gripServoLL.setPosition(CargoBotConstants.GRABBER_CLOSE);
-                cargoBot.gripServoLR.setPosition(CargoBotConstants.GRABBER_CLOSE);
-                cargoBot.gripServoUL.setPosition(CargoBotConstants.GRABBER_CLOSE);
-                cargoBot.gripServoUR.setPosition(CargoBotConstants.GRABBER_CLOSE);
+                robot.gripServoLL.setPosition(CargoBotConstants.GRABBER_CLOSE);
+                robot.gripServoLR.setPosition(CargoBotConstants.GRABBER_CLOSE);
+                robot.gripServoUL.setPosition(CargoBotConstants.GRABBER_CLOSE);
+                robot.gripServoUR.setPosition(CargoBotConstants.GRABBER_CLOSE);
                 break;
             case STOW:
-                cargoBot.gripServoLL.setPosition(1.0);
-                cargoBot.gripServoLR.setPosition(0.0);
-                cargoBot.gripServoUL.setPosition(0.0);
-                cargoBot.gripServoUR.setPosition(1.0);
+                robot.gripServoLL.setPosition(1.0);
+                robot.gripServoLR.setPosition(0.0);
+                robot.gripServoUL.setPosition(0.0);
+                robot.gripServoUR.setPosition(1.0);
                 break;
         }
     }
 
     public void driveController() {
-        cargoBot.leftDrive.setPower(gamepad1.left_stick_y);
-        cargoBot.rightDrive.setPower(gamepad1.right_stick_y);
+        robot.leftDrive.setPower(gamepad1.left_stick_y);
+        robot.rightDrive.setPower(gamepad1.right_stick_y);
     }
 
     public void blockLiftController() {
         if (gamepad1.dpad_up) {
-            if (cargoBot.liftPosition == cargoBot.liftPosition.GRAB && !isLifterButtonPressed) {
-                cargoBot.liftPosition = cargoBot.liftPosition.MOVE;
+            if (robot.liftPosition == robot.liftPosition.GRAB && !isLifterButtonPressed) {
+                robot.liftPosition = robot.liftPosition.MOVE;
                 isLifterButtonPressed = true;
-            } else if (cargoBot.liftPosition == cargoBot.liftPosition.MOVE && !isLifterButtonPressed) {
-                cargoBot.liftPosition = cargoBot.liftPosition.STACK;
+            } else if (robot.liftPosition == robot.liftPosition.MOVE && !isLifterButtonPressed) {
+                robot.liftPosition = robot.liftPosition.STACK;
                 isLifterButtonPressed = true;
-            } else if (cargoBot.liftPosition == cargoBot.liftPosition.STACK && !isLifterButtonPressed) {
-                cargoBot.liftPosition = cargoBot.liftPosition.PLACE;
+            } else if (robot.liftPosition == robot.liftPosition.STACK && !isLifterButtonPressed) {
+                robot.liftPosition = robot.liftPosition.PLACE;
                 isLifterButtonPressed = true;
             }
         } else if (gamepad1.dpad_down) {
-            if (cargoBot.liftPosition == cargoBot.liftPosition.PLACE && !isLifterButtonPressed) {
-                cargoBot.liftPosition = cargoBot.liftPosition.STACK;
+            if (robot.liftPosition == robot.liftPosition.PLACE && !isLifterButtonPressed) {
+                robot.liftPosition = robot.liftPosition.STACK;
                 isLifterButtonPressed = true;
-            } else if (cargoBot.liftPosition == cargoBot.liftPosition.STACK && !isLifterButtonPressed) {
-                cargoBot.liftPosition = cargoBot.liftPosition.MOVE;
+            } else if (robot.liftPosition == robot.liftPosition.STACK && !isLifterButtonPressed) {
+                robot.liftPosition = robot.liftPosition.MOVE;
                 isLifterButtonPressed = true;
-            } else if (cargoBot.liftPosition == cargoBot.liftPosition.MOVE && !isLifterButtonPressed) {
-                cargoBot.liftPosition = cargoBot.liftPosition.GRAB;
+            } else if (robot.liftPosition == robot.liftPosition.MOVE && !isLifterButtonPressed) {
+                robot.liftPosition = robot.liftPosition.GRAB;
                 isLifterButtonPressed = true;
             }
         }
 
-        switch (cargoBot.liftPosition) {
+        switch (robot.liftPosition) {
             case GRAB:
                 target = (int) CargoBotConstants.GRAB_DISTANCE_FROM_START - offset;
                 break;
@@ -175,14 +175,14 @@ public class CargoBotTeleop extends OpMode {
                 break;
         }
 
-        cargoBot.blockLift.setTargetPosition(target);
-        cargoBot.blockLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        cargoBot.blockLift.setPower(CargoBotConstants.LIFT_SPEED);
-        telemetry.addData("pos", cargoBot.blockLift.getCurrentPosition());
+        robot.blockLift.setTargetPosition(target);
+        robot.blockLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        robot.blockLift.setPower(CargoBotConstants.LIFT_SPEED);
+        telemetry.addData("pos", robot.blockLift.getCurrentPosition());
         telemetry.update();
-        if (!cargoBot.blockLift.isBusy()) {
-            cargoBot.blockLift.setPower(0.0);
-            cargoBot.blockLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        if (!robot.blockLift.isBusy()) {
+            robot.blockLift.setPower(0.0);
+            robot.blockLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         }
 
         if (isLifterButtonPressed) {

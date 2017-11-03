@@ -42,4 +42,7 @@ public interface CargoBotConstants {
     double BLUE_TURN_ANGLE = 70;
 
     double VU_MARK_DETECTION_TIMEOUT = 3.0;
+
+    double TELEOP_SLOW_MODE_TOP_SPEED = 0.3;
+    boolean USE_Y_BUTTON_FOR_LOW_SPEED_MODE = true;
 }
