@@ -159,8 +159,10 @@ public class MMAutonomousRedRelic extends LinearOpMode {
     boolean isProcessingFrame = false;
     Context appContext = null;
     private static final double PERIOD_PER_TICK = 0.5; // in seconds
-    HardwareMecanumCargoBot robot = new HardwareMecanumCargoBot();
+    boolean isFirstLoop = true;
 
+
+    HardwareMecanumCargoBot robot = new HardwareMecanumCargoBot();
 
     enum ALLIANCE_COLOR {
         RED,
@@ -256,7 +258,7 @@ public class MMAutonomousRedRelic extends LinearOpMode {
     double tY = 0;
     double tZ = 0;
 
-    // Extract the rotational components of the target relative to the robot
+    // Extract the rotational components of the target relative to the robot (phone)
     double rX = 0;
     double rY = 0;
     double rZ = 0;
@@ -376,9 +378,10 @@ public class MMAutonomousRedRelic extends LinearOpMode {
                 while (opModeIsActive()) {
                     VuforiaLocalizer.CloseableFrame frame = null;
                     tick = getRuntimeInTicks(tStart, PERIOD_PER_TICK);
-                    if (tick > lastTick) {
+                    if ((tick > lastTick) || isFirstLoop) {
                         // update for comparison in the next loop
                         lastTick = tick;
+                        isFirstLoop = false;
 
                         frame = vuforia.getFrameQueue().take();
                         if (frame != null) {
@@ -496,8 +499,10 @@ public class MMAutonomousRedRelic extends LinearOpMode {
 //            if (!cameraExecutorService.isShutdown()) {
 //                cameraExecutorService.shutdown();
 //            }
-            navxDevice.close();
-            telemetry.addData("Autonomous", "Complete");
+            onRobotStopOrInterrupt();
+
+            telemetry.addData("Autonomous", "Interrupted");
+            telemetry.update();
         }
     }
 
@@ -1048,8 +1053,10 @@ public class MMAutonomousRedRelic extends LinearOpMode {
                 }
                 break;
             case STEP7:
-                // TODO: ensure when the last step is complete, isDoneRunningAuto is set to true to quit the outer while loop. For now, step 7 is the conclusion of autonomous mode.
-                isDoneRunningAuto = true;
+                // TODO: ensure when the last step is complete, call onRobotStopOrInterrupt() to terminate properly. For now, step 7 is the conclusion of autonomous mode.
+                onRobotStopOrInterrupt();
+                telemetry.addData("Autonomous", "Complete");
+                telemetry.update();
                 break;
             case STEP8:
                 break;
@@ -1377,5 +1384,13 @@ public class MMAutonomousRedRelic extends LinearOpMode {
                 robot.upperRightServo.setPosition(1.0);
                 break;
         }
+    }
+    private void onRobotStopOrInterrupt(){
+        isDoneRunningAuto = true;
+        if (navxDevice != null) {
+            navxDevice.close();
+        }
+        // save the block lift position for next operation
+        robot.fileHandler.writeToFile("offset.txt", Integer.toString(offset + robot.blockLift.getCurrentPosition()), robot.context);
     }
 }

@@ -53,7 +53,8 @@ public class HardwareMecanumCargoBot {
         GRAB,
         MOVE,
         STACK,
-        PLACE
+        PLACE,
+        INIT_POSITION
     }
     LiftPosition liftPosition;
 
@@ -111,7 +112,7 @@ public class HardwareMecanumCargoBot {
         frontRightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rearLeftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rearRightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        liftPosition = LiftPosition.GRAB;
+        liftPosition = LiftPosition.INIT_POSITION;
         blockLift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         blockLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 

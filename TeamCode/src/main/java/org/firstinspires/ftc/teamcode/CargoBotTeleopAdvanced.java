@@ -364,27 +364,102 @@ public class CargoBotTeleopAdvanced extends OpMode {
     }
 
     public void blockLiftController() {
+        // initialization, considering offset
+        if (robot.liftPosition == robot.liftPosition.INIT_POSITION){
+            // first determine lift position, then determine the target position depending on dpad up/down
+            int grab = (int) CargoBotConstants.GRAB_DISTANCE_FROM_START;
+            int move = (int) CargoBotConstants.MOVE_DISTANCE_FROM_START;
+            int stack = (int) CargoBotConstants.STACK_DISTANCE_FROM_START;
+            int place = (int) CargoBotConstants.PLACE_DISTANCE_FROM_START;
+
+            if (offset < grab){
+                // only accept dpad up
+                if (gamepad1.dpad_up){
+                    if (!isLifterButtonPressed){
+                        robot.liftPosition = robot.liftPosition.GRAB;
+                        isLifterButtonPressed = true;
+                    }
+                }
+            } else if (offset >= grab && offset < move){
+                // can accept dpad up or down
+                if (gamepad1.dpad_up){
+                    if (!isLifterButtonPressed){
+                        robot.liftPosition = robot.liftPosition.MOVE;
+                        isLifterButtonPressed = true;
+                    }
+                } else if (gamepad1.dpad_down){
+                    if (!isLifterButtonPressed){
+                        robot.liftPosition = robot.liftPosition.GRAB;
+                        isLifterButtonPressed = true;
+                    }
+                }
+
+            } else if (offset >= move && offset < stack) {
+                // can accept dpad up or down
+                if (gamepad1.dpad_up){
+                    if (!isLifterButtonPressed){
+                        robot.liftPosition = robot.liftPosition.STACK;
+                        isLifterButtonPressed = true;
+                    }
+                } else if (gamepad1.dpad_down){
+                    if (!isLifterButtonPressed){
+                        robot.liftPosition = robot.liftPosition.MOVE;
+                        isLifterButtonPressed = true;
+                    }
+                }
+
+            } else if (offset >= stack && offset < place) {
+                // can accept dpad up or down
+                if (gamepad1.dpad_up){
+                    if (!isLifterButtonPressed){
+                        robot.liftPosition = robot.liftPosition.PLACE;
+                        isLifterButtonPressed = true;
+                    }
+                } else if (gamepad1.dpad_down){
+                    if (!isLifterButtonPressed){
+                        robot.liftPosition = robot.liftPosition.STACK;
+                        isLifterButtonPressed = true;
+                    }
+                }
+
+            } else {
+                // offset >= place, only accept dpad down
+                if (gamepad1.dpad_down){
+                    if (!isLifterButtonPressed){
+                        robot.liftPosition = robot.liftPosition.PLACE;
+                        isLifterButtonPressed = true;
+                    }
+                }
+            }
+        }
+        // normal operation
         if (gamepad1.dpad_up) {
             if (robot.liftPosition == robot.liftPosition.GRAB && !isLifterButtonPressed) {
                 robot.liftPosition = robot.liftPosition.MOVE;
                 isLifterButtonPressed = true;
+                telemetry.addData("lift status", "to MOVE");
             } else if (robot.liftPosition == robot.liftPosition.MOVE && !isLifterButtonPressed) {
                 robot.liftPosition = robot.liftPosition.STACK;
                 isLifterButtonPressed = true;
+                telemetry.addData("lift status", "to STACK");
             } else if (robot.liftPosition == robot.liftPosition.STACK && !isLifterButtonPressed) {
                 robot.liftPosition = robot.liftPosition.PLACE;
                 isLifterButtonPressed = true;
+                telemetry.addData("lift status", "to PLACE");
             }
         } else if (gamepad1.dpad_down) {
             if (robot.liftPosition == robot.liftPosition.PLACE && !isLifterButtonPressed) {
                 robot.liftPosition = robot.liftPosition.STACK;
                 isLifterButtonPressed = true;
+                telemetry.addData("lift status", "to STACK");
             } else if (robot.liftPosition == robot.liftPosition.STACK && !isLifterButtonPressed) {
                 robot.liftPosition = robot.liftPosition.MOVE;
+                telemetry.addData("lift status", "to MOVE");
                 isLifterButtonPressed = true;
             } else if (robot.liftPosition == robot.liftPosition.MOVE && !isLifterButtonPressed) {
                 robot.liftPosition = robot.liftPosition.GRAB;
                 isLifterButtonPressed = true;
+                telemetry.addData("lift status", "to GRAB");
             }
         }
 
@@ -401,16 +476,23 @@ public class CargoBotTeleopAdvanced extends OpMode {
             case PLACE:
                 target = (int) CargoBotConstants.PLACE_DISTANCE_FROM_START - offset;
                 break;
+            case INIT_POSITION:
+                // robot is just initialized, don't move the lifter without user input
+                break;
         }
 
-        robot.blockLift.setTargetPosition(target);
-        robot.blockLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        robot.blockLift.setPower(CargoBotConstants.LIFT_SPEED);
-        telemetry.addData("pos", robot.blockLift.getCurrentPosition());
-        telemetry.update();
-        if (!robot.blockLift.isBusy()) {
-            robot.blockLift.setPower(0.0);
-            robot.blockLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        // don't move the lifter without user input
+        if (robot.liftPosition != HardwareMecanumCargoBot.LiftPosition.INIT_POSITION){
+            robot.blockLift.setTargetPosition(target);
+            robot.blockLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            robot.blockLift.setPower(CargoBotConstants.LIFT_SPEED);
+            telemetry.addData("lift encoder pos", robot.blockLift.getCurrentPosition());
+            telemetry.update();
+            if (!robot.blockLift.isBusy()) {
+                robot.blockLift.setPower(0.0);
+                robot.blockLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                reportLiftLogicalPos();
+            }
         }
 
         if (isLifterButtonPressed) {
@@ -488,7 +570,7 @@ public class CargoBotTeleopAdvanced extends OpMode {
 
         // navx data timeout, warn the driver to stop the app, and re-activate the configuration. Then re-start the app.
         while ((isNavxMicroDataTimeout) && ((getRuntime() - timeNavxDataTestTimeout) < MMShooterBotConstants.TIME_DISPLAY_NAVX_TIMEOUT_MSG)) {
-            telemetry.addData(">", "Stop the app. Re-activate ftc7047shooterBot configuration. Then re-start.");    //
+            telemetry.addData(">", "Stop the app and exit. Cycle robot power. Then re-start.");    //
             telemetry.update();
         }
 
@@ -719,6 +801,26 @@ public class CargoBotTeleopAdvanced extends OpMode {
             telemetry.addData("Speed", "Low");
         } else {
             telemetry.addData("Speed", "Normal");
+        }
+    }
+
+    private void reportLiftLogicalPos(){
+        switch (robot.liftPosition){
+            case GRAB:
+                telemetry.addData("lift status", "@ GRAB");
+                break;
+            case MOVE:
+                telemetry.addData("lift status", "@ MOVE");
+                break;
+            case STACK:
+                telemetry.addData("lift status", "@ STACK");
+                break;
+            case PLACE:
+                telemetry.addData("lift status", "@ PLACE");
+                break;
+            case INIT_POSITION:
+                telemetry.addData("lift status", "@ INIT_POSITION");
+                break;
         }
     }
 
