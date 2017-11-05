@@ -45,4 +45,13 @@ public interface CargoBotConstants {
 
     double TELEOP_SLOW_MODE_TOP_SPEED = 0.3;
     boolean USE_Y_BUTTON_FOR_LOW_SPEED_MODE = true;
+
+    double MOTOR_STALL_CHECKING_PERIOD = 0.3;
+    int    secondsPerMinute            = 60;
+    double ANDYMARK_60_COUNTS_PER_MOTOR_REV = 1680.0;
+    int    ANDYMARK_60_NO_LOAD_MAX_RPM  = 105; // Andymark NeverRest 60 See http://www.andymark.com/NeveRest-60-Gearmotor-p/am-3103.htm
+    int ANDYMARK_60_MAX_COUNT_PER_SEC = (int)(CargoBotConstants.ANDYMARK_60_COUNTS_PER_MOTOR_REV * CargoBotConstants.ANDYMARK_60_NO_LOAD_MAX_RPM / CargoBotConstants.secondsPerMinute);
+    double MOTOR_TOP_SPEED = 1.0;
+    double MOTOR_STALL_RATIO = 0.3;
+    double MOTOR_VOLTAGE = 12.0; // Andymark performance spec, See https://www.andymark.com/NeveRest-60-Gearmotor-p/am-3103.htm
 }

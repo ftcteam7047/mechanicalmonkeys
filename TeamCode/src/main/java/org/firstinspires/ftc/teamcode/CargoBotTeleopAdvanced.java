@@ -5,6 +5,7 @@ import com.kauailabs.navx.ftc.navXPIDController;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
@@ -59,6 +60,12 @@ public class CargoBotTeleopAdvanced extends OpMode {
 
     int target;
     int offset;
+
+    int lastTick = 0;
+    int lastEncoderPos = 0;
+    double tStart = 0;
+    boolean isMotorStalled = false;
+
 
     // low speed mode
     boolean isLowSpeedMode = false;
@@ -174,6 +181,7 @@ public class CargoBotTeleopAdvanced extends OpMode {
         //relicGripperController();
         grabberController();
         blockLiftController();
+        telemetry.update();
     }
 
 
@@ -190,7 +198,6 @@ public class CargoBotTeleopAdvanced extends OpMode {
                     left = Range.clip(left, -CargoBotConstants.TELEOP_SLOW_MODE_TOP_SPEED, CargoBotConstants.TELEOP_SLOW_MODE_TOP_SPEED);
                     right = Range.clip(right, -CargoBotConstants.TELEOP_SLOW_MODE_TOP_SPEED, CargoBotConstants.TELEOP_SLOW_MODE_TOP_SPEED);
                 }
-
                 robot.frontLeftDrive.setPower(left);
                 robot.frontRightDrive.setPower(right);
                 robot.rearLeftDrive.setPower(left);
@@ -233,8 +240,8 @@ public class CargoBotTeleopAdvanced extends OpMode {
                             y = -min(gamepad1.left_stick_y, gamepad1.right_stick_y);
                         }
 
-                        telemetry.addData("x", x);
-                        telemetry.addData("y", y);
+                        //telemetry.addData("x", x);
+                        //telemetry.addData("y", y);
 
                         if ((y >= (x - sqrt(2.0) * CargoBotConstants.DIAGONAL_HALF_BAND_WIDTH)) &&
                                 (y <= (x + sqrt(2.0) * CargoBotConstants.DIAGONAL_HALF_BAND_WIDTH))) {
@@ -249,13 +256,13 @@ public class CargoBotTeleopAdvanced extends OpMode {
                                 robot.frontRightDrive.setPower(0);
                                 robot.rearLeftDrive.setPower(0);
                                 robot.rearRightDrive.setPower(-diagMovement);
-                                telemetry.addData("diag", "upper right");
+                                //telemetry.addData("diag", "upper right");
                             } else if (x < 0 && y < 0) {
                                 robot.frontLeftDrive.setPower(diagMovement);
                                 robot.frontRightDrive.setPower(0);
                                 robot.rearLeftDrive.setPower(0);
                                 robot.rearRightDrive.setPower(diagMovement);
-                                telemetry.addData("diag", "lower left");
+                                //telemetry.addData("diag", "lower left");
                             }
 
                         } else if ((y >= (-x - sqrt(2.0) * CargoBotConstants.DIAGONAL_HALF_BAND_WIDTH)) &&
@@ -270,19 +277,19 @@ public class CargoBotTeleopAdvanced extends OpMode {
                                 robot.frontRightDrive.setPower(-diagMovement);
                                 robot.rearLeftDrive.setPower(-diagMovement);
                                 robot.rearRightDrive.setPower(0);
-                                telemetry.addData("diag", "upper left");
+                                //telemetry.addData("diag", "upper left");
                             } else if (x > 0 && y < 0) {
                                 robot.frontLeftDrive.setPower(0);
                                 robot.frontRightDrive.setPower(diagMovement);
                                 robot.rearLeftDrive.setPower(diagMovement);
                                 robot.rearRightDrive.setPower(0);
-                                telemetry.addData("diag", "lower right");
+                                //telemetry.addData("diag", "lower right");
                             }
                         }
 
                     }
                 }
-                telemetry.update();
+                //telemetry.update();
             }
 
         }
@@ -364,6 +371,7 @@ public class CargoBotTeleopAdvanced extends OpMode {
     }
 
     public void blockLiftController() {
+        // TODO: implement stall detection/timeout near GRAB(bottom) and PLACE (top) positions
         // initialization, considering offset
         if (robot.liftPosition == robot.liftPosition.INIT_POSITION){
             // first determine lift position, then determine the target position depending on dpad up/down
@@ -483,15 +491,18 @@ public class CargoBotTeleopAdvanced extends OpMode {
 
         // don't move the lifter without user input
         if (robot.liftPosition != HardwareMecanumCargoBot.LiftPosition.INIT_POSITION){
-            robot.blockLift.setTargetPosition(target);
-            robot.blockLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            robot.blockLift.setPower(CargoBotConstants.LIFT_SPEED);
-            telemetry.addData("lift encoder pos", robot.blockLift.getCurrentPosition());
-            telemetry.update();
+            if (!isMotorStalled) {
+                robot.blockLift.setTargetPosition(target);
+                robot.blockLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                robot.blockLift.setPower(CargoBotConstants.LIFT_SPEED);
+            }
+            //telemetry.addData("lift encoder pos", robot.blockLift.getCurrentPosition());
+            //telemetry.update();
             if (!robot.blockLift.isBusy()) {
-                robot.blockLift.setPower(0.0);
-                robot.blockLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                turnOffLiftMotor();
                 reportLiftLogicalPos();
+            } else {
+                detectNeverRest60MotorStall();
             }
         }
 
@@ -666,6 +677,11 @@ public class CargoBotTeleopAdvanced extends OpMode {
         robot.rearRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
 
+    private void turnOffLiftMotor(){
+        robot.blockLift.setPower(0.0);
+        robot.blockLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    }
+
 
     private ENUM_NAVX_GYRO_TURN navxRotateToAngle(double angle, double Kp) {
         ENUM_NAVX_GYRO_TURN retValue = ENUM_NAVX_GYRO_TURN.NOT_ARRIVED;
@@ -822,6 +838,77 @@ public class CargoBotTeleopAdvanced extends OpMode {
                 telemetry.addData("lift status", "@ INIT_POSITION");
                 break;
         }
+    }
+
+    private int getRuntimeInTicks(double tStart, double tick){
+        double runtime = getRuntime() - tStart;
+
+        Double numTicks = runtime/tick;
+        numTicks.intValue();
+
+        return numTicks.intValue();
+    }
+
+    // Computes the current battery voltage
+    double getBatteryVoltage() {
+        double result = Double.POSITIVE_INFINITY;
+        for (VoltageSensor sensor : hardwareMap.voltageSensor) {
+            double voltage = sensor.getVoltage();
+            if (voltage > 0) {
+                result = Math.min(result, voltage);
+            }
+        }
+        return result;
+    }
+
+    private void detectNeverRest60MotorStall(){
+        // create time base for checking if encoder count is not advancing much, which implies motor stall
+        int tick = 0;
+        // for every new request, set the last encoder position to the current position
+        // as the basis for comparison
+        // clear the motor stall flag to allow movement to other positions
+        if (isLifterButtonPressed) {
+            lastEncoderPos = robot.blockLift.getCurrentPosition();
+            tStart = getRuntime();
+            lastTick = getRuntimeInTicks(tStart, CargoBotConstants.MOTOR_STALL_CHECKING_PERIOD);
+            isMotorStalled = false;
+        }
+
+        tick = getRuntimeInTicks(tStart, CargoBotConstants.MOTOR_STALL_CHECKING_PERIOD);
+        if (tick > lastTick) {
+            // update for comparison in the next loop
+            lastTick = tick;
+            double time = CargoBotConstants.MOTOR_STALL_CHECKING_PERIOD;
+            int motorStallThreshold = (int) (getNeverest60MotorEncoderCountWithTime(time, CargoBotConstants.LIFT_SPEED) * CargoBotConstants.MOTOR_STALL_RATIO);
+//            telemetry.addData("last encoder", lastEncoderPos);
+//            telemetry.addData("current pos", robot.blockLift.getCurrentPosition());
+//            telemetry.addData("delta pos", abs(lastEncoderPos - robot.blockLift.getCurrentPosition()));
+//            telemetry.addData("motor stall thres", motorStallThreshold);
+
+            // check the difference in encoder count at every tick
+            if (abs(lastEncoderPos - robot.blockLift.getCurrentPosition()) < motorStallThreshold) {
+                turnOffLiftMotor();
+                isMotorStalled = true;
+            }
+            // update for comparison in the next loop
+            lastEncoderPos = robot.blockLift.getCurrentPosition();
+
+        }
+    }
+
+    /*
+     * Calculate the theoretical encoder counts/pulses per tick using AndyMark's data
+     * https://www.andymark.com/NeveRest-60-Gearmotor-p/am-3103.htm
+     * Data is measured at Voltage: 12 volt DC
+     * No Load Free Speed, at gearbox output shaft: 105 RPM
+     */
+    private int getNeverest60MotorEncoderCountWithTime(double tick, double motorPower) {
+        // limit the motorPower to [-1.0, 1.0]
+        motorPower = Range.clip(motorPower, -CargoBotConstants.MOTOR_TOP_SPEED, CargoBotConstants.MOTOR_TOP_SPEED);
+        int maxEncoderPulsesPerSec = (int) Math.round(motorPower * CargoBotConstants.ANDYMARK_60_MAX_COUNT_PER_SEC * getBatteryVoltage() / CargoBotConstants.MOTOR_VOLTAGE);
+        int maxEncoderPulsesPerTick = (int) Math.round(maxEncoderPulsesPerSec * tick);
+
+        return maxEncoderPulsesPerTick;
     }
 
     /*
