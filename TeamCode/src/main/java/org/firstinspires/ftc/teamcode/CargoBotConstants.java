@@ -21,7 +21,7 @@ public interface CargoBotConstants {
     double GRAB_DISTANCE_FROM_START = 0;
     double MOVE_HEIGHT = 2.0;
     double STACK_HEIGHT = 7.5;
-    double PLACE_HEIGHT = 13.5;
+    double PLACE_HEIGHT = 13.9;
     double MOVE_DISTANCE_FROM_START = COUNTS_PER_INCH_16_TOOTH * MOVE_HEIGHT;
     double STACK_DISTANCE_FROM_START = COUNTS_PER_INCH_16_TOOTH * STACK_HEIGHT;
     double PLACE_DISTANCE_FROM_START = COUNTS_PER_INCH_16_TOOTH * PLACE_HEIGHT;
@@ -34,7 +34,8 @@ public interface CargoBotConstants {
     double BALL_DISTANCE = 2.75;
 
     double DRIVE_OFF_PLATFORM_MORE_OFFSET = 2.75;
-    double DRIVE_OFF_PLATFORM_LESS_OFFSET = -2.75;
+    // Increased due to possible slip when on platform
+    double DRIVE_OFF_PLATFORM_LESS_OFFSET = -3.75;
     double DRIVE_OFF_PLATFORM_DISTANCE_WITHOUT_OFFSET = 26;
     double DRIVING_OFF_PLATFORM_SPEED = 0.3;
 
@@ -54,4 +55,23 @@ public interface CargoBotConstants {
     double MOTOR_TOP_SPEED = 1.0;
     double MOTOR_STALL_RATIO = 0.3;
     double MOTOR_VOLTAGE = 12.0; // Andymark performance spec, See https://www.andymark.com/NeveRest-60-Gearmotor-p/am-3103.htm
+    float TZ_CORRECTION_FACTOR = (float) 0.01;
+
+    // servo position
+
+    double LEFT_OPEN = 0.0;
+    double RIGHT_OPEN = 1.0;
+
+    double LEFT_CLOSE = 0.55;
+    double RIGHT_CLOSE = 0.45;
+
+    double LEFT_STOW = 1.0;
+    double RIGHT_STOW = 0.0;
+
+    // cryptoBox for relic
+
+    double ANGLE_TO_FACE_BOX_RED_RELIC = 90.0;
+    double CRYPTO_BOX_DISTANCE_RED_RELIC = 7.0;
+    double APPROACH_SPEED = 0.2;
+    double BACKUP_DISTANCE = -1.0;
 }

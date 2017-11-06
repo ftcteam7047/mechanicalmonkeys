@@ -46,6 +46,12 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
 
+import java.util.Arrays;
+
+import static java.lang.Math.abs;
+import static java.lang.StrictMath.cos;
+import static java.lang.StrictMath.sin;
+
 /**
  * This OpMode illustrates the basics of using the Vuforia engine to determine
  * the identity of Vuforia VuMarks encountered on the field. The code is structured as
@@ -72,6 +78,12 @@ public class ConceptVuMarkIdentification extends LinearOpMode {
     public static final String TAG = "Vuforia VuMark Sample";
 
     OpenGLMatrix lastLocation = null;
+    float tX = 0;
+    float tY = 0;
+    float tZ = 0;
+    float rX = 0;
+    float rY = 0;
+    float rZ = 0;
 
     /**
      * {@link #vuforia} is the variable we will use to store our instance of the Vuforia
@@ -158,15 +170,36 @@ public class ConceptVuMarkIdentification extends LinearOpMode {
                     Orientation rot = Orientation.getOrientation(pose, AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
 
                     // Extract the X, Y, and Z components of the offset of the target relative to the robot
-                    double tX = trans.get(0);
-                    double tY = trans.get(1);
-                    double tZ = trans.get(2);
+                    tX = trans.get(0);
+                    tY = trans.get(1);
+                    tZ = trans.get(2);
+                    float[] translation = {tX, tY, tZ};
 
                     // Extract the rotational components of the target relative to the robot
-                    double rX = rot.firstAngle;
-                    double rY = rot.secondAngle;
-                    double rZ = rot.thirdAngle;
+                    rX = rot.firstAngle;
+                    rY = rot.secondAngle;
+                    rZ = rot.thirdAngle;
+                    float[] rotation = {rX, rY, rZ};
+                    telemetry.addData("tx ty tz", Arrays.toString(translation));
+                    telemetry.addData("rX rY rZ", Arrays.toString(rotation));
+
+                } else {
+                    tX = 0;
+                    tY = 0;
+                    tZ = 0;
+                    rX = 0;
+                    rY = 0;
+                    rZ = 0;
                 }
+                float tZCorrected = tZ * (1 + CargoBotConstants.TZ_CORRECTION_FACTOR);
+                double rXRadians = (rX * Math.PI / 180);
+                float projectedtZCorrected = tZCorrected * (float) cos(rXRadians);
+                float robotHeading = 45;
+                double rYRadians = (abs(robotHeading) * Math.PI / 180);
+                float lateralDistFromCenterOfPic = projectedtZCorrected * (float) sin(rYRadians);
+                float longitudinalDisFromCenterOfPic = projectedtZCorrected * (float) cos(rYRadians);
+                float[] distanceArray = {lateralDistFromCenterOfPic, longitudinalDisFromCenterOfPic};
+                telemetry.addData("distance array", Arrays.toString(distanceArray));
             }
             else {
                 telemetry.addData("VuMark", "not visible");

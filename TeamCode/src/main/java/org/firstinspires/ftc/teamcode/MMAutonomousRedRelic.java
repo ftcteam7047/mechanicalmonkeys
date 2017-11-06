@@ -67,9 +67,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import static java.lang.Math.abs;
+import static java.lang.StrictMath.cos;
+import static java.lang.StrictMath.sin;
 
 /**
  * This OpMode illustrates the basics of using the Vuforia engine to determine
@@ -207,6 +212,7 @@ public class MMAutonomousRedRelic extends LinearOpMode {
 
     ENCODER_DRIVE state = ENCODER_DRIVE.START;
     boolean driveStatus = false;
+    boolean liftStatus = false;
 
     enum OPMODE_STEPS {
         STEP1,
@@ -218,7 +224,8 @@ public class MMAutonomousRedRelic extends LinearOpMode {
         STEP7,
         STEP8,
         STEP9,
-        STEP10
+        STEP10,
+        STEP11
     }
     OPMODE_STEPS opmodeState = OPMODE_STEPS.STEP1;
 
@@ -804,6 +811,7 @@ public class MMAutonomousRedRelic extends LinearOpMode {
         UNKNOWN
     }
     VU_MARK_TYPE vuMarkIdentified = VU_MARK_TYPE.UNKNOWN;
+    ArrayList<Double> yaws = new ArrayList<Double>();
 
     /*
  *  Method to perfmorm a relative move, based on encoder counts.
@@ -905,6 +913,7 @@ public class MMAutonomousRedRelic extends LinearOpMode {
         switch (opmodeState) {
             case STEP1:
                 // Lowers ball arm and raises block
+                grabberController();
                 liftPosition = LiftPosition.STACK;
                 robot.ballArm.setPosition(CargoBotConstants.BALL_ARM_DOWN);
                 driveStatus = blockLiftController();
@@ -1043,26 +1052,73 @@ public class MMAutonomousRedRelic extends LinearOpMode {
                 break;
             case STEP6:
                 // Localize robot using VuMark
-                driveStatus = false;
-                if (isRobotPositionAvailable) {
-                    // Todo: Create robot localizing algorithm
-                }
+//                if (isRobotPositionAvailable) {
+//                    // Todo: Create robot localizing algorithm
+//                    double medianYaw = getMedianValue(abs(navxDevice.getYaw()));
+//                    if (medianYaw != 0) {
+//                        localizeRobot(medianYaw);
+//                    } else {
+//                        telemetry.addData("yaw", "not available");
+//                    }
+//                }
+                // Turn away from VuMark
+                driveStatus = navxRotateToAngle(0, yawKp);
                 if (driveStatus) {
-                    robot.ballArm.setPosition(CargoBotConstants.BALL_ARM_UP);
-                    opmodeState = OPMODE_STEPS.STEP6;
+                    opmodeState = OPMODE_STEPS.STEP7;
                 }
                 break;
             case STEP7:
+                if (startingPosition == STARTING_POSITION.RELIC) {
+                    switch (vuMarkIdentified) {
+                        case RIGHT:
+                            driveStatus = true;
+                            break;
+                        case CENTER:
+                            // TODO: add 7.5 distance
+                            driveStatus = true;
+                            break;
+                        case LEFT:
+                            // TODO: add 15 distance
+                            driveStatus = true;
+                            break;
+                    }
+                }
+                if (driveStatus) {
+                    opmodeState = OPMODE_STEPS.STEP8;
+                }
+                break;
+            case STEP8:
+                liftPosition = LiftPosition.MOVE;
+                liftStatus = blockLiftController();
+                driveStatus = navxRotateToAngle(CargoBotConstants.ANGLE_TO_FACE_BOX_RED_RELIC, yawKp);
+                if (driveStatus && liftStatus) {
+                    opmodeState = OPMODE_STEPS.STEP9;
+                }
+                break;
+            case STEP9:
+                driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                        CargoBotConstants.CRYPTO_BOX_DISTANCE_RED_RELIC,
+                        calculateTimeout(CargoBotConstants.CRYPTO_BOX_DISTANCE_RED_RELIC, CargoBotConstants.APPROACH_SPEED),
+                        CargoBotConstants.ANGLE_TO_FACE_BOX_RED_RELIC);
+                if (driveStatus) {
+                    opmodeState = OPMODE_STEPS.STEP10;
+                }
+                break;
+            case STEP10:
+                gripperPosition = GripperPosition.OPEN;
+                grabberController();
+                driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                        CargoBotConstants.BACKUP_DISTANCE,
+                        calculateTimeout(CargoBotConstants.BACKUP_DISTANCE, CargoBotConstants.APPROACH_SPEED),
+                        CargoBotConstants.ANGLE_TO_FACE_BOX_RED_RELIC);
+                if (driveStatus) {
+                    opmodeState = OPMODE_STEPS.STEP11;
+                }
+            case STEP11:
                 // TODO: ensure when the last step is complete, call onRobotStopOrInterrupt() to terminate properly. For now, step 7 is the conclusion of autonomous mode.
                 onRobotStopOrInterrupt();
                 telemetry.addData("Autonomous", "Complete");
                 telemetry.update();
-                break;
-            case STEP8:
-                break;
-            case STEP9:
-                break;
-            case STEP10:
                 break;
         }
     }
@@ -1366,22 +1422,22 @@ public class MMAutonomousRedRelic extends LinearOpMode {
     private void grabberController() {
         switch (gripperPosition) {
             case OPEN:
-                robot.lowerLeftServo.setPosition(0.0);
-                robot.lowerRightServo.setPosition(1.0);
-                robot.upperLeftServo.setPosition(1.0);
-                robot.upperRightServo.setPosition(0.0);
+                robot.lowerLeftServo.setPosition(CargoBotConstants.LEFT_OPEN);
+                robot.lowerRightServo.setPosition(CargoBotConstants.RIGHT_OPEN);
+                robot.upperLeftServo.setPosition(CargoBotConstants.LEFT_OPEN);
+                robot.upperRightServo.setPosition(CargoBotConstants.RIGHT_OPEN);
                 break;
             case CLOSE:
-                robot.lowerLeftServo.setPosition(CargoBotConstants.GRABBER_CLOSE);
-                robot.lowerRightServo.setPosition(CargoBotConstants.GRABBER_CLOSE);
-                robot.upperLeftServo.setPosition(CargoBotConstants.GRABBER_CLOSE);
-                robot.upperRightServo.setPosition(CargoBotConstants.GRABBER_CLOSE);
+                robot.lowerLeftServo.setPosition(CargoBotConstants.LEFT_CLOSE);
+                robot.lowerRightServo.setPosition(CargoBotConstants.RIGHT_CLOSE);
+                robot.upperLeftServo.setPosition(CargoBotConstants.LEFT_CLOSE);
+                robot.upperRightServo.setPosition(CargoBotConstants.RIGHT_CLOSE);
                 break;
             case STOW:
-                robot.lowerLeftServo.setPosition(1.0);
-                robot.lowerRightServo.setPosition(0.0);
-                robot.upperLeftServo.setPosition(0.0);
-                robot.upperRightServo.setPosition(1.0);
+                robot.lowerLeftServo.setPosition(CargoBotConstants.LEFT_STOW);
+                robot.lowerRightServo.setPosition(CargoBotConstants.RIGHT_STOW);
+                robot.upperLeftServo.setPosition(CargoBotConstants.LEFT_STOW);
+                robot.upperRightServo.setPosition(CargoBotConstants.RIGHT_STOW);
                 break;
         }
     }
@@ -1392,5 +1448,38 @@ public class MMAutonomousRedRelic extends LinearOpMode {
         }
         // save the block lift position for next operation
         robot.fileHandler.writeToFile("offset.txt", Integer.toString(offset + robot.blockLift.getCurrentPosition()), robot.context);
+    }
+
+    private void localizeRobot(double robotHeading){
+        float tZCorrected = (float) (tZ * (1 + CargoBotConstants.TZ_CORRECTION_FACTOR));
+        double rXRadians = (rX * Math.PI / 180);
+        float projectedtZCorrected = tZCorrected * (float) cos(rXRadians);
+        double robotHeadingRadians = (abs(robotHeading) * Math.PI / 180);
+        float lateralDistFromCenterOfPic = projectedtZCorrected * (float) sin(robotHeadingRadians);
+        float longitudinalDisFromCenterOfPic = projectedtZCorrected * (float) cos(robotHeadingRadians);
+        float[] distanceArray = {lateralDistFromCenterOfPic, longitudinalDisFromCenterOfPic};
+        telemetry.addData("distance array", Arrays.toString(distanceArray));
+    }
+
+    private double getMedianValue(double yaw){
+        double median = 0;
+        yaws.add(yaw);
+
+        if (yaws.size() == 20){
+            double[] yawArray = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0, 0};
+            for (int i = 0; i < 20; i++){
+                yawArray[i] = yaws.get(i);
+            }
+            Arrays.sort(yawArray);
+
+            if (yawArray.length % 2 == 0){
+                median = (double)yawArray[yawArray.length/2] + (double)yawArray[yawArray.length/2 - 1]/2;
+
+            } else {
+                median =(double)yawArray[yawArray.length/2];
+            }
+        }
+
+        return median;
     }
 }

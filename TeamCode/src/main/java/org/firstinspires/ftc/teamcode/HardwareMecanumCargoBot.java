@@ -123,10 +123,10 @@ public class HardwareMecanumCargoBot {
         //relicServo.setPosition(0.0);
         relicGripPosition = RelicGripPosition.CLOSE;
 
-        lowerLeftServo.setPosition(0.5);
-        lowerRightServo.setPosition(0.5);
-        upperLeftServo.setPosition(0.5);
-        upperRightServo.setPosition(0.5);
+        lowerLeftServo.setPosition(CargoBotConstants.LEFT_CLOSE);
+        lowerRightServo.setPosition(CargoBotConstants.RIGHT_CLOSE);
+        upperLeftServo.setPosition(CargoBotConstants.LEFT_CLOSE);
+        upperRightServo.setPosition(CargoBotConstants.RIGHT_CLOSE);
         grabberPosition = GrabberPosition.OPEN;
 
 //        // Set drive motors to run with encoders.

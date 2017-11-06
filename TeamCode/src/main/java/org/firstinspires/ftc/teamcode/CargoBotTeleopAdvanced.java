@@ -350,22 +350,22 @@ public class CargoBotTeleopAdvanced extends OpMode {
 
         switch (robot.grabberPosition) {
             case OPEN:
-                robot.lowerLeftServo.setPosition(0.0);
-                robot.lowerRightServo.setPosition(1.0);
-                robot.upperLeftServo.setPosition(1.0);
-                robot.upperRightServo.setPosition(0.0);
+                robot.lowerLeftServo.setPosition(CargoBotConstants.LEFT_OPEN);
+                robot.lowerRightServo.setPosition(CargoBotConstants.RIGHT_OPEN);
+                robot.upperLeftServo.setPosition(CargoBotConstants.LEFT_OPEN);
+                robot.upperRightServo.setPosition(CargoBotConstants.RIGHT_OPEN);
                 break;
             case CLOSE:
-                robot.lowerLeftServo.setPosition(CargoBotConstants.GRABBER_CLOSE);
-                robot.lowerRightServo.setPosition(CargoBotConstants.GRABBER_CLOSE);
-                robot.upperLeftServo.setPosition(CargoBotConstants.GRABBER_CLOSE);
-                robot.upperRightServo.setPosition(CargoBotConstants.GRABBER_CLOSE);
+                robot.lowerLeftServo.setPosition(CargoBotConstants.LEFT_CLOSE);
+                robot.lowerRightServo.setPosition(CargoBotConstants.RIGHT_CLOSE);
+                robot.upperLeftServo.setPosition(CargoBotConstants.LEFT_CLOSE);
+                robot.upperRightServo.setPosition(CargoBotConstants.RIGHT_CLOSE);
                 break;
             case STOW:
-                robot.lowerLeftServo.setPosition(1.0);
-                robot.lowerRightServo.setPosition(0.0);
-                robot.upperLeftServo.setPosition(0.0);
-                robot.upperRightServo.setPosition(1.0);
+                robot.lowerLeftServo.setPosition(CargoBotConstants.LEFT_STOW);
+                robot.lowerRightServo.setPosition(CargoBotConstants.RIGHT_STOW);
+                robot.upperLeftServo.setPosition(CargoBotConstants.LEFT_STOW);
+                robot.upperRightServo.setPosition(CargoBotConstants.RIGHT_STOW);
                 break;
         }
     }
