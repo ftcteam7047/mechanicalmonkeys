@@ -1068,18 +1068,23 @@ public class MMAutonomousRedRelic extends LinearOpMode {
                 }
                 break;
             case STEP7:
+                // move to the column specified by vuMark
                 if (startingPosition == STARTING_POSITION.RELIC) {
                     switch (vuMarkIdentified) {
                         case RIGHT:
                             driveStatus = true;
                             break;
                         case CENTER:
-                            // TODO: add 7.5 distance
-                            driveStatus = true;
+                            driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                                    -CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC,
+                                    calculateTimeout(CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC,
+                                            CargoBotConstants.APPROACH_SPEED), 0);
                             break;
                         case LEFT:
-                            // TODO: add 15 distance
-                            driveStatus = true;
+                            driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                                    -CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC,
+                                    calculateTimeout(CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC,
+                                            CargoBotConstants.APPROACH_SPEED), 0);
                             break;
                     }
                 }
@@ -1088,6 +1093,7 @@ public class MMAutonomousRedRelic extends LinearOpMode {
                 }
                 break;
             case STEP8:
+                // turn to face column
                 liftPosition = LiftPosition.MOVE;
                 liftStatus = blockLiftController();
                 driveStatus = navxRotateToAngle(CargoBotConstants.ANGLE_TO_FACE_BOX_RED_RELIC, yawKp);
@@ -1096,6 +1102,7 @@ public class MMAutonomousRedRelic extends LinearOpMode {
                 }
                 break;
             case STEP9:
+                // move into a column
                 driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
                         CargoBotConstants.CRYPTO_BOX_DISTANCE_RED_RELIC,
                         calculateTimeout(CargoBotConstants.CRYPTO_BOX_DISTANCE_RED_RELIC, CargoBotConstants.APPROACH_SPEED),
@@ -1105,6 +1112,7 @@ public class MMAutonomousRedRelic extends LinearOpMode {
                 }
                 break;
             case STEP10:
+                // release block
                 gripperPosition = GripperPosition.OPEN;
                 grabberController();
                 driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
