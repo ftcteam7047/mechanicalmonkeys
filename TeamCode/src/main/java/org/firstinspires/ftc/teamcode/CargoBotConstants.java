@@ -37,12 +37,13 @@ public interface CargoBotConstants {
     // Increased due to possible slip when on platform
     double DRIVE_OFF_PLATFORM_LESS_OFFSET = -3.75;
     double DRIVE_OFF_PLATFORM_DISTANCE_WITHOUT_OFFSET = 26;
+    double DRIVE_OFF_TIP_PLATFORM_DISTANCE_WITHOUT_OFFSET = 25;
     double DRIVING_OFF_PLATFORM_SPEED = 0.3;
 
     double RED_TURN_ANGLE = -35;
-    double BLUE_TURN_ANGLE = 70;
+    double BLUE_TURN_ANGLE = 60;
 
-    double VU_MARK_DETECTION_TIMEOUT = 3.0;
+    double VU_MARK_DETECTION_TIMEOUT = 5.0;
 
     double TELEOP_SLOW_MODE_TOP_SPEED = 0.3;
     boolean USE_Y_BUTTON_FOR_LOW_SPEED_MODE = true;
@@ -73,5 +74,20 @@ public interface CargoBotConstants {
     double ANGLE_TO_FACE_BOX_RED_RELIC = 90.0;
     double CRYPTO_BOX_DISTANCE_RED_RELIC = 7.0;
     double APPROACH_SPEED = 0.2;
-    double BACKUP_DISTANCE = -1.0;
+    double BACKUP_DISTANCE = -4.5;
+    double MOVE_TO_CENTER_DISTANCE_RELIC = 7.5;
+    double MOVE_TO_LEFT_DISTANCE_RELIC = MOVE_TO_CENTER_DISTANCE_RELIC * 2;
+
+    // cryptoBox for tip
+
+    double BACKUP_OFFSET_TO_APPROACH_TIP_BOX = 2.75;
+    double ANGLE_TO_FACE_BOX_RED_TIP = 180.0;
+
+    // cryptoBox for blue relic
+
+    double BLUE_RELIC_COLUMN_OFFSET = 7.5;
+    double DRIVE_BLUE_OFF_PLATFORM_MORE_OFFSET = 1.75;
+    double CRYPTO_BOX_DISTANCE_BLUE_RELIC = 8.5;
+
+
 }

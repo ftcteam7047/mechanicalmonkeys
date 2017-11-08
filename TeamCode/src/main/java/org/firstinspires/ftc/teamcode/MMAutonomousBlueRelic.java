@@ -95,9 +95,9 @@ import static java.lang.StrictMath.sin;
  * is explained in {@link ConceptVuforiaNavigation}.
  */
 
-@Autonomous(name="Red Relic Autonomous", group ="Concept")
+@Autonomous(name="Blue Relic Autonomous", group ="Concept")
 //@Disabled
-public class MMAutonomousRedRelic extends LinearOpMode {
+public class MMAutonomousBlueRelic extends LinearOpMode {
 
     public static final String TAG = "Vuforia VuMark Sample";
 
@@ -174,7 +174,7 @@ public class MMAutonomousRedRelic extends LinearOpMode {
         BLUE
     }
 
-    ALLIANCE_COLOR alliance = ALLIANCE_COLOR.RED;
+    ALLIANCE_COLOR alliance = ALLIANCE_COLOR.BLUE;
 
     enum STARTING_POSITION {
         RELIC,
@@ -966,7 +966,7 @@ public class MMAutonomousRedRelic extends LinearOpMode {
                                         calculateTimeout(CargoBotConstants.BALL_DISTANCE,
                                                 CargoBotConstants.BALL_SPEED),
                                         0);
-                                drivingOffPlatformOffset = CargoBotConstants.DRIVE_OFF_PLATFORM_MORE_OFFSET;
+                                drivingOffPlatformOffset = CargoBotConstants.DRIVE_BLUE_OFF_PLATFORM_MORE_OFFSET;
 //                                driveStatus = encoderDrive(CargoBotConstants.BALL_SPEED,
 //                                        -CargoBotConstants.BALL_DISTANCE,
 //                                        -CargoBotConstants.BALL_DISTANCE,
@@ -1071,19 +1071,26 @@ public class MMAutonomousRedRelic extends LinearOpMode {
                 // move to the column specified by vuMark
                 if (startingPosition == STARTING_POSITION.RELIC) {
                     switch (vuMarkIdentified) {
-                        case RIGHT:
-                            driveStatus = true;
+                        case LEFT:
+                            driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                                    CargoBotConstants.BLUE_RELIC_COLUMN_OFFSET,
+                                    calculateTimeout(CargoBotConstants.BLUE_RELIC_COLUMN_OFFSET,
+                                            CargoBotConstants.APPROACH_SPEED), 0);
                             break;
                         case CENTER:
                             driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
-                                    -CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC,
-                                    calculateTimeout(CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC,
+                                    CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC
+                                            + CargoBotConstants.BLUE_RELIC_COLUMN_OFFSET,
+                                    calculateTimeout(CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC
+                                                    + CargoBotConstants.BLUE_RELIC_COLUMN_OFFSET,
                                             CargoBotConstants.APPROACH_SPEED), 0);
                             break;
-                        case LEFT:
+                        case RIGHT:
                             driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
-                                    -CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC,
-                                    calculateTimeout(CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC,
+                                    CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC
+                                            + CargoBotConstants.BLUE_RELIC_COLUMN_OFFSET,
+                                    calculateTimeout(CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC
+                                                    + CargoBotConstants.BLUE_RELIC_COLUMN_OFFSET,
                                             CargoBotConstants.APPROACH_SPEED), 0);
                             break;
                     }
@@ -1104,8 +1111,8 @@ public class MMAutonomousRedRelic extends LinearOpMode {
             case STEP9:
                 // move into a column
                 driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
-                        CargoBotConstants.CRYPTO_BOX_DISTANCE_RED_RELIC,
-                        calculateTimeout(CargoBotConstants.CRYPTO_BOX_DISTANCE_RED_RELIC, CargoBotConstants.APPROACH_SPEED),
+                        CargoBotConstants.CRYPTO_BOX_DISTANCE_BLUE_RELIC,
+                        calculateTimeout(CargoBotConstants.CRYPTO_BOX_DISTANCE_BLUE_RELIC, CargoBotConstants.APPROACH_SPEED),
                         CargoBotConstants.ANGLE_TO_FACE_BOX_RED_RELIC);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP10;
