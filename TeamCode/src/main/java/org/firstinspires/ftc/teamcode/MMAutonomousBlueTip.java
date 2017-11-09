@@ -95,9 +95,9 @@ import static java.lang.StrictMath.sin;
  * is explained in {@link ConceptVuforiaNavigation}.
  */
 
-@Autonomous(name="Red Tip Autonomous", group ="Concept")
+@Autonomous(name="Blue Tip Autonomous", group ="Concept")
 //@Disabled
-public class MMAutonomousRedTip extends LinearOpMode {
+public class MMAutonomousBlueTip extends LinearOpMode {
 
     public static final String TAG = "Vuforia VuMark Sample";
 
@@ -174,7 +174,7 @@ public class MMAutonomousRedTip extends LinearOpMode {
         BLUE
     }
 
-    ALLIANCE_COLOR alliance = ALLIANCE_COLOR.RED;
+    ALLIANCE_COLOR alliance = ALLIANCE_COLOR.BLUE;
 
     enum STARTING_POSITION {
         RELIC,
@@ -243,7 +243,7 @@ public class MMAutonomousRedTip extends LinearOpMode {
     double timeNavxDataTestTimeout = 0.0;
     private boolean calibration_complete = false;
     double Kp                   = 0.005;
-	
+
 	private boolean isDoneRunningAuto = false;
 
     int target;
@@ -966,7 +966,7 @@ public class MMAutonomousRedTip extends LinearOpMode {
                                         calculateTimeout(CargoBotConstants.BALL_DISTANCE,
                                                 CargoBotConstants.BALL_SPEED),
                                         0);
-                                drivingOffPlatformOffset = CargoBotConstants.DRIVE_OFF_PLATFORM_MORE_OFFSET;
+                                drivingOffPlatformOffset = CargoBotConstants.DRIVE_BLUE_OFF_PLATFORM_MORE_OFFSET;
 //                                driveStatus = encoderDrive(CargoBotConstants.BALL_SPEED,
 //                                        -CargoBotConstants.BALL_DISTANCE,
 //                                        -CargoBotConstants.BALL_DISTANCE,
@@ -1002,14 +1002,14 @@ public class MMAutonomousRedTip extends LinearOpMode {
                 // leaving platform always use negative for red and leaving platform for blue always use positive
                 if (alliance == ALLIANCE_COLOR.RED) {
                     driveStatus = navxDrive(CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED,
-                            -CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_DISTANCE_WITHOUT_OFFSET - drivingOffPlatformOffset,
-                            calculateTimeout(CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_DISTANCE_WITHOUT_OFFSET +
+                            -CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_WITHOUT_OFFSET - drivingOffPlatformOffset,
+                            calculateTimeout(CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_WITHOUT_OFFSET +
                                             drivingOffPlatformOffset,
                                     CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
                 } else {
                     driveStatus = navxDrive(CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED,
-                            CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_DISTANCE_WITHOUT_OFFSET + drivingOffPlatformOffset,
-                            calculateTimeout(CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_DISTANCE_WITHOUT_OFFSET +
+                            CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_WITHOUT_OFFSET + drivingOffPlatformOffset,
+                            calculateTimeout(CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_WITHOUT_OFFSET +
                                             drivingOffPlatformOffset,
                                     CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
                 }
@@ -1071,29 +1071,26 @@ public class MMAutonomousRedTip extends LinearOpMode {
                 // move to the column specified by vuMark
                 if (startingPosition == STARTING_POSITION.RELIC) {
                     switch (vuMarkIdentified) {
-                        case RIGHT:
-                            // TODO: Move back 3.75
+                        case LEFT:
                             driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
-                                    -CargoBotConstants.BACKUP_OFFSET_TO_APPROACH_TIP_BOX,
-                                    calculateTimeout(-CargoBotConstants.BACKUP_OFFSET_TO_APPROACH_TIP_BOX,
-                                            CargoBotConstants.APPROACH_SPEED), 90);;
-                            break;
-                        case CENTER:
-                            // TODO: Move back 3.75 + 7.5
-                            driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
-                                    -CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC
-                                            - CargoBotConstants.BACKUP_OFFSET_TO_APPROACH_TIP_BOX,
-                                    calculateTimeout(-CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC
-                                                    - CargoBotConstants.BACKUP_OFFSET_TO_APPROACH_TIP_BOX,
+                                    -CargoBotConstants.BLUE_TIP_COLUMN_OFFSET,
+                                    calculateTimeout(CargoBotConstants.BLUE_TIP_COLUMN_OFFSET,
                                             CargoBotConstants.APPROACH_SPEED), 90);
                             break;
-                        case LEFT:
-                            // TODO: Move back 3.75 + 15
+                        case CENTER:
+                            driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                                    -CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC
+                                            - CargoBotConstants.BLUE_TIP_COLUMN_OFFSET,
+                                    calculateTimeout(CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC
+                                                    + CargoBotConstants.BLUE_TIP_COLUMN_OFFSET,
+                                            CargoBotConstants.APPROACH_SPEED), 90);
+                            break;
+                        case RIGHT:
                             driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
                                     -CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC
-                                            - CargoBotConstants.BACKUP_OFFSET_TO_APPROACH_TIP_BOX,
-                                    calculateTimeout(-CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC
-                                                    - CargoBotConstants.BACKUP_OFFSET_TO_APPROACH_TIP_BOX,
+                                            - CargoBotConstants.BLUE_TIP_COLUMN_OFFSET,
+                                    calculateTimeout(CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC
+                                                    + CargoBotConstants.BLUE_TIP_COLUMN_OFFSET,
                                             CargoBotConstants.APPROACH_SPEED), 90);
                             break;
                     }
@@ -1106,7 +1103,7 @@ public class MMAutonomousRedTip extends LinearOpMode {
                 // turn to face column
                 liftPosition = LiftPosition.MOVE;
                 liftStatus = blockLiftController();
-                driveStatus = navxRotateToAngle(CargoBotConstants.ANGLE_TO_FACE_BOX_RED_TIP, yawKp * 0.8);
+                driveStatus = navxRotateToAngle(CargoBotConstants.ANGLE_TO_FACE_BLUE_TIP_COLUMN, yawKp * 0.8);
                 if (driveStatus && liftStatus) {
                     opmodeState = OPMODE_STEPS.STEP9;
                 }
@@ -1115,8 +1112,8 @@ public class MMAutonomousRedTip extends LinearOpMode {
                 // move into a column
                 driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
                         CargoBotConstants.CRYPTO_BOX_DISTANCE_BLUE_RELIC,
-                        calculateTimeout(CargoBotConstants.CRYPTO_BOX_DISTANCE_RED_RELIC, CargoBotConstants.APPROACH_SPEED),
-                        CargoBotConstants.ANGLE_TO_FACE_BOX_RED_TIP);
+                        calculateTimeout(CargoBotConstants.CRYPTO_BOX_DISTANCE_BLUE_RELIC, CargoBotConstants.APPROACH_SPEED),
+                        CargoBotConstants.ANGLE_TO_FACE_BLUE_TIP_COLUMN);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP10;
                 }
@@ -1128,12 +1125,12 @@ public class MMAutonomousRedTip extends LinearOpMode {
                 driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
                         CargoBotConstants.BACKUP_DISTANCE,
                         calculateTimeout(CargoBotConstants.BACKUP_DISTANCE, CargoBotConstants.APPROACH_SPEED),
-                        CargoBotConstants.ANGLE_TO_FACE_BOX_RED_TIP);
+                        CargoBotConstants.ANGLE_TO_FACE_BLUE_TIP_COLUMN);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP11;
                 }
             case STEP11:
-                // TODO: ensure when the last step is complete, call onRobotStopOrInterrupt() to terminate properly. For now, step 7 is the conclusion of autonomous mode.
+                // TODO: ensure when the last step is complete, call onRobotStopOrInterrupt() to terminate properly. For now, step 11 is the conclusion of autonomous mode.
                 onRobotStopOrInterrupt();
                 telemetry.addData("Autonomous", "Complete");
                 telemetry.update();

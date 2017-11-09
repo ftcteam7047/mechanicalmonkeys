@@ -89,5 +89,11 @@ public interface CargoBotConstants {
     double DRIVE_BLUE_OFF_PLATFORM_MORE_OFFSET = 1.75;
     double CRYPTO_BOX_DISTANCE_BLUE_RELIC = 8.5;
 
+    // cryptoBox for blue tip
+
+    double ANGLE_TO_FACE_BLUE_TIP_COLUMN = 2;
+    double BLUE_TIP_COLUMN_OFFSET = 8.0;
+
 
 }
+
