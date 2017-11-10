@@ -369,6 +369,8 @@ public class MMAutonomousRedTip extends LinearOpMode {
                 }
 
                 waitForStart();
+                // in case the robot is idle in init for a while
+                navxDevice.zeroYaw();
 
                 double tStart = getRuntime();
                 relicTrackables.activate();
@@ -1114,8 +1116,8 @@ public class MMAutonomousRedTip extends LinearOpMode {
             case STEP9:
                 // move into a column
                 driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
-                        CargoBotConstants.CRYPTO_BOX_DISTANCE_BLUE_RELIC,
-                        calculateTimeout(CargoBotConstants.CRYPTO_BOX_DISTANCE_RED_RELIC, CargoBotConstants.APPROACH_SPEED),
+                        CargoBotConstants.CRYPTO_BOX_DISTANCE_RED_TIP,
+                        calculateTimeout(CargoBotConstants.CRYPTO_BOX_DISTANCE_RED_TIP, CargoBotConstants.APPROACH_SPEED),
                         CargoBotConstants.ANGLE_TO_FACE_BOX_RED_TIP);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP10;

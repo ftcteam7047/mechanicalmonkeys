@@ -369,6 +369,8 @@ public class MMAutonomousRedRelic extends LinearOpMode {
                 }
 
                 waitForStart();
+                // in case the robot is idle in init for a while
+                navxDevice.zeroYaw();
 
                 double tStart = getRuntime();
                 relicTrackables.activate();

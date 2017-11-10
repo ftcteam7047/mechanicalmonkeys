@@ -82,6 +82,7 @@ public interface CargoBotConstants {
 
     double BACKUP_OFFSET_TO_APPROACH_TIP_BOX = 2.75;
     double ANGLE_TO_FACE_BOX_RED_TIP = 180.0;
+    double CRYPTO_BOX_DISTANCE_RED_TIP = 5.5;
 
     // cryptoBox for blue relic
 
@@ -93,6 +94,9 @@ public interface CargoBotConstants {
 
     double ANGLE_TO_FACE_BLUE_TIP_COLUMN = 2;
     double BLUE_TIP_COLUMN_OFFSET = 8.0;
+
+    // diagonal movement
+    boolean DO_DIAGONAL = false;
 
 
 }

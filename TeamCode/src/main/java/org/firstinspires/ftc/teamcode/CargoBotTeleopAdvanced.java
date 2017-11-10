@@ -188,7 +188,7 @@ public class CargoBotTeleopAdvanced extends OpMode {
     public void driveController() {
         if (!isRotatingToNearest90Degree){
             checkForLowSpeedModeInput();
-            if (abs(gamepad1.left_stick_x) < 0.3 && abs(gamepad1.right_stick_x) < 0.3) {
+            if (abs(gamepad1.left_stick_x) < 0.35 && abs(gamepad1.right_stick_x) < 0.35) {
                 // Typical tank drive
                 double left = gamepad1.left_stick_y;
                 double right = gamepad1.right_stick_y;
@@ -207,7 +207,7 @@ public class CargoBotTeleopAdvanced extends OpMode {
                 // and within a top-bottom band around the y-axis
                 if (gamepad1.right_stick_x * gamepad1.left_stick_x > 0) {
 
-                    if (abs(gamepad1.left_stick_y) < 0.25 && abs(gamepad1.right_stick_y) < 0.25) {
+                    if (abs(gamepad1.left_stick_y) < 0.35 && abs(gamepad1.right_stick_y) < 0.35) {
                         float sideMovement = 0;
                         if (gamepad1.right_stick_x > 0) {
                             sideMovement = max(gamepad1.left_stick_x, gamepad1.right_stick_x);
@@ -224,69 +224,70 @@ public class CargoBotTeleopAdvanced extends OpMode {
                         robot.rearRightDrive.setPower(-sideMovement);
 
                     } else {
-                        float diagMovement = 0;
-                        float x = 0;
-                        float y = 0;
-                        if (gamepad1.right_stick_x > 0) {
-                            x = max(gamepad1.left_stick_x, gamepad1.right_stick_x);
+                        if (CargoBotConstants.DO_DIAGONAL){
+                            float diagMovement = 0;
+                            float x = 0;
+                            float y = 0;
+                            if (gamepad1.right_stick_x > 0) {
+                                x = max(gamepad1.left_stick_x, gamepad1.right_stick_x);
 
-                        } else {
-                            x = min(gamepad1.left_stick_x, gamepad1.right_stick_x);
+                            } else {
+                                x = min(gamepad1.left_stick_x, gamepad1.right_stick_x);
+                            }
+                            if (gamepad1.right_stick_y > 0) {
+                                y = -max(gamepad1.left_stick_y, gamepad1.right_stick_y);
+
+                            } else {
+                                y = -min(gamepad1.left_stick_y, gamepad1.right_stick_y);
+                            }
+
+                            //telemetry.addData("x", x);
+                            //telemetry.addData("y", y);
+
+                            if ((y >= (x - sqrt(2.0) * CargoBotConstants.DIAGONAL_HALF_BAND_WIDTH)) &&
+                                    (y <= (x + sqrt(2.0) * CargoBotConstants.DIAGONAL_HALF_BAND_WIDTH))) {
+
+                                diagMovement = (float) sqrt(x * x + y * y);
+                                // Limit the top speed of the robot in low speed mode
+                                if (isLowSpeedMode) {
+                                    diagMovement = (float) Range.clip(diagMovement, -CargoBotConstants.TELEOP_SLOW_MODE_TOP_SPEED, CargoBotConstants.TELEOP_SLOW_MODE_TOP_SPEED);
+                                }
+                                if (x > 0 && y > 0) {
+                                    robot.frontLeftDrive.setPower(-diagMovement);
+                                    robot.frontRightDrive.setPower(0);
+                                    robot.rearLeftDrive.setPower(0);
+                                    robot.rearRightDrive.setPower(-diagMovement);
+                                    //telemetry.addData("diag", "upper right");
+                                } else if (x < 0 && y < 0) {
+                                    robot.frontLeftDrive.setPower(diagMovement);
+                                    robot.frontRightDrive.setPower(0);
+                                    robot.rearLeftDrive.setPower(0);
+                                    robot.rearRightDrive.setPower(diagMovement);
+                                    //telemetry.addData("diag", "lower left");
+                                }
+
+                            } else if ((y >= (-x - sqrt(2.0) * CargoBotConstants.DIAGONAL_HALF_BAND_WIDTH)) &&
+                                    (y <= (-x + sqrt(2.0) * CargoBotConstants.DIAGONAL_HALF_BAND_WIDTH))){
+                                diagMovement = (float) sqrt(x * x + y * y);
+                                // Limit the top speed of the robot in low speed mode
+                                if (isLowSpeedMode) {
+                                    diagMovement = (float) Range.clip(diagMovement, -CargoBotConstants.TELEOP_SLOW_MODE_TOP_SPEED, CargoBotConstants.TELEOP_SLOW_MODE_TOP_SPEED);
+                                }
+                                if (x < 0 && y > 0) {
+                                    robot.frontLeftDrive.setPower(0);
+                                    robot.frontRightDrive.setPower(-diagMovement);
+                                    robot.rearLeftDrive.setPower(-diagMovement);
+                                    robot.rearRightDrive.setPower(0);
+                                    //telemetry.addData("diag", "upper left");
+                                } else if (x > 0 && y < 0) {
+                                    robot.frontLeftDrive.setPower(0);
+                                    robot.frontRightDrive.setPower(diagMovement);
+                                    robot.rearLeftDrive.setPower(diagMovement);
+                                    robot.rearRightDrive.setPower(0);
+                                    //telemetry.addData("diag", "lower right");
+                                }
+                            }
                         }
-                        if (gamepad1.right_stick_y > 0) {
-                            y = -max(gamepad1.left_stick_y, gamepad1.right_stick_y);
-
-                        } else {
-                            y = -min(gamepad1.left_stick_y, gamepad1.right_stick_y);
-                        }
-
-                        //telemetry.addData("x", x);
-                        //telemetry.addData("y", y);
-
-                        if ((y >= (x - sqrt(2.0) * CargoBotConstants.DIAGONAL_HALF_BAND_WIDTH)) &&
-                                (y <= (x + sqrt(2.0) * CargoBotConstants.DIAGONAL_HALF_BAND_WIDTH))) {
-
-                            diagMovement = (float) sqrt(x * x + y * y);
-                            // Limit the top speed of the robot in low speed mode
-                            if (isLowSpeedMode) {
-                                diagMovement = (float) Range.clip(diagMovement, -CargoBotConstants.TELEOP_SLOW_MODE_TOP_SPEED, CargoBotConstants.TELEOP_SLOW_MODE_TOP_SPEED);
-                            }
-                            if (x > 0 && y > 0) {
-                                robot.frontLeftDrive.setPower(-diagMovement);
-                                robot.frontRightDrive.setPower(0);
-                                robot.rearLeftDrive.setPower(0);
-                                robot.rearRightDrive.setPower(-diagMovement);
-                                //telemetry.addData("diag", "upper right");
-                            } else if (x < 0 && y < 0) {
-                                robot.frontLeftDrive.setPower(diagMovement);
-                                robot.frontRightDrive.setPower(0);
-                                robot.rearLeftDrive.setPower(0);
-                                robot.rearRightDrive.setPower(diagMovement);
-                                //telemetry.addData("diag", "lower left");
-                            }
-
-                        } else if ((y >= (-x - sqrt(2.0) * CargoBotConstants.DIAGONAL_HALF_BAND_WIDTH)) &&
-                                (y <= (-x + sqrt(2.0) * CargoBotConstants.DIAGONAL_HALF_BAND_WIDTH))){
-                            diagMovement = (float) sqrt(x * x + y * y);
-                            // Limit the top speed of the robot in low speed mode
-                            if (isLowSpeedMode) {
-                                diagMovement = (float) Range.clip(diagMovement, -CargoBotConstants.TELEOP_SLOW_MODE_TOP_SPEED, CargoBotConstants.TELEOP_SLOW_MODE_TOP_SPEED);
-                            }
-                            if (x < 0 && y > 0) {
-                                robot.frontLeftDrive.setPower(0);
-                                robot.frontRightDrive.setPower(-diagMovement);
-                                robot.rearLeftDrive.setPower(-diagMovement);
-                                robot.rearRightDrive.setPower(0);
-                                //telemetry.addData("diag", "upper left");
-                            } else if (x > 0 && y < 0) {
-                                robot.frontLeftDrive.setPower(0);
-                                robot.frontRightDrive.setPower(diagMovement);
-                                robot.rearLeftDrive.setPower(diagMovement);
-                                robot.rearRightDrive.setPower(0);
-                                //telemetry.addData("diag", "lower right");
-                            }
-                        }
-
                     }
                 }
                 //telemetry.update();
@@ -455,6 +456,7 @@ public class CargoBotTeleopAdvanced extends OpMode {
                 isLifterButtonPressed = true;
                 telemetry.addData("lift status", "to PLACE");
             }
+            isMotorStalled = false;
         } else if (gamepad1.dpad_down) {
             if (robot.liftPosition == robot.liftPosition.PLACE && !isLifterButtonPressed) {
                 robot.liftPosition = robot.liftPosition.STACK;
@@ -469,6 +471,7 @@ public class CargoBotTeleopAdvanced extends OpMode {
                 isLifterButtonPressed = true;
                 telemetry.addData("lift status", "to GRAB");
             }
+            isMotorStalled = false;
         }
 
         switch (robot.liftPosition) {
@@ -871,7 +874,7 @@ public class CargoBotTeleopAdvanced extends OpMode {
             lastEncoderPos = robot.blockLift.getCurrentPosition();
             tStart = getRuntime();
             lastTick = getRuntimeInTicks(tStart, CargoBotConstants.MOTOR_STALL_CHECKING_PERIOD);
-            isMotorStalled = false;
+            //isMotorStalled = false;
         }
 
         tick = getRuntimeInTicks(tStart, CargoBotConstants.MOTOR_STALL_CHECKING_PERIOD);
