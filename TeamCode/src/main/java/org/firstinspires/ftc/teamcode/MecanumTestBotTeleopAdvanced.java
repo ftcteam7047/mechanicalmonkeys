@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import com.kauailabs.navx.ftc.AHRS;
 import com.kauailabs.navx.ftc.navXPIDController;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -19,7 +20,7 @@ import static java.lang.Math.sqrt;
  */
 
 @TeleOp(name = "MecanumTestBotTeleopAdvanced")
-//@Disabled
+@Disabled
 
 
 public class MecanumTestBotTeleopAdvanced extends OpMode {

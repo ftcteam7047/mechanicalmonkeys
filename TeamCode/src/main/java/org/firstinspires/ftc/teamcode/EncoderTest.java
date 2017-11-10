@@ -1,19 +1,18 @@
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import android.content.Context;
+
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import android.content.Context;
-import android.view.ViewDebug;
 
 /**
  * Created by michaelchen on 10/8/17.
  */
 
 @TeleOp(name = "Encoder Test")
-//@Disabled
+@Disabled
 
 public class EncoderTest extends OpMode {
 

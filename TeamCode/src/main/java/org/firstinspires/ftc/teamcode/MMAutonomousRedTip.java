@@ -95,7 +95,7 @@ import static java.lang.StrictMath.sin;
  * is explained in {@link ConceptVuforiaNavigation}.
  */
 
-@Autonomous(name="Red Tip Autonomous", group ="Concept")
+@Autonomous(name="Red Tip Autonomous", group ="Red")
 //@Disabled
 public class MMAutonomousRedTip extends LinearOpMode {
 

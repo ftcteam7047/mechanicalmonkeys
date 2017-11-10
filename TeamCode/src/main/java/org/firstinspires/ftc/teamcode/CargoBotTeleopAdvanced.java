@@ -20,7 +20,7 @@ import static java.lang.Math.sqrt;
  * Created by chrischen on 10/21/17.
  */
 
-@TeleOp(name = "CargoBotTeleopAdvanced")
+@TeleOp(name = "CargoBot Teleop Advanced")
 //@Disabled
 
 

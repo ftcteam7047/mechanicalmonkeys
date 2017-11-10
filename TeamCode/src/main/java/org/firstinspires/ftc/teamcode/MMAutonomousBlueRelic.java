@@ -95,7 +95,7 @@ import static java.lang.StrictMath.sin;
  * is explained in {@link ConceptVuforiaNavigation}.
  */
 
-@Autonomous(name="Blue Relic Autonomous", group ="Concept")
+@Autonomous(name="Blue Relic Autonomous", group ="Blue")
 //@Disabled
 public class MMAutonomousBlueRelic extends LinearOpMode {
 

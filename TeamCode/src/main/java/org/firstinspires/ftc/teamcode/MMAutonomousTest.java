@@ -38,6 +38,7 @@ import android.util.Log;
 import com.kauailabs.navx.ftc.AHRS;
 import com.kauailabs.navx.ftc.navXPIDController;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -91,7 +92,7 @@ import java.util.concurrent.Executors;
  */
 
 @Autonomous(name="Autonomous Test", group ="Concept")
-//@Disabled
+@Disabled
 public class MMAutonomousTest extends LinearOpMode {
 
     public static final String TAG = "Vuforia VuMark Sample";
