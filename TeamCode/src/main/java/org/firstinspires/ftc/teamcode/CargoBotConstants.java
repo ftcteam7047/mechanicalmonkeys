@@ -98,6 +98,13 @@ public interface CargoBotConstants {
     // diagonal movement
     boolean DO_DIAGONAL = false;
 
+    float PI_MULTIPLIER = 1.0f;
+    float CONTROLLER_DEAD_ZONE = 0.35f;
 
+    // remap controller y value to a different output curve
+    boolean REMAP_CONTROLLER_Y = true;
+
+    // pushing both sticks in the same direction result in same motor power on left and right
+    boolean EQUALIZE_MOTOR_POWER = true;
 }
 

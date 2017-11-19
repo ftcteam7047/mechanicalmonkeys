@@ -49,6 +49,10 @@ public class MecanumTestBotTeleopAdvanced extends OpMode {
     boolean lastGamepad1LeftBumper = false;
     boolean lastGamepad1RightBumper = false;
     double  timeRotateToNearest90DegreeRequested = 0.0;
+    float leftStickX = 0;
+    float rightStickX = 0;
+    float leftStickY = 0;
+    float rightStickY = 0;
 
     private ElapsedTime period  = new ElapsedTime();
 
@@ -153,23 +157,47 @@ public class MecanumTestBotTeleopAdvanced extends OpMode {
     public void driveController() {
         if (!isRotatingToNearest90Degree){
 
-            if (abs(gamepad1.left_stick_x) < 0.3 && abs(gamepad1.right_stick_x) < 0.3) {
+            // assign gamepad stick positions to interim variables
+            // so we can do post processing on them
+            leftStickX = gamepad1.left_stick_x;
+            rightStickX = gamepad1.right_stick_x;
+            leftStickY = gamepad1.left_stick_y;
+            rightStickY = gamepad1.right_stick_y;
+
+
+            if (abs(leftStickX) < CargoBotConstants.CONTROLLER_DEAD_ZONE &&
+                    abs(rightStickX) < CargoBotConstants.CONTROLLER_DEAD_ZONE) {
+                // Optional: pushing both sticks in the same direction result in same motor power on left and right
+                if (CargoBotConstants.EQUALIZE_MOTOR_POWER){
+                    float equalizedPower = equalizeMotorPower(leftStickY, rightStickY);
+                    if (abs(equalizedPower) > 0){
+                        leftStickY = equalizedPower;
+                        rightStickY = equalizedPower;
+                    }
+                }
+                // Optional: map stick y to a different curve (sinusoidal wave) to reduce jerk
+                if (CargoBotConstants.REMAP_CONTROLLER_Y){
+                    leftStickY = mapStickY(leftStickY);
+                    rightStickY = mapStickY(rightStickY);
+                }
+
                 // Typical tank drive
-                robot.frontLeftDrive.setPower(gamepad1.left_stick_y);
-                robot.frontRightDrive.setPower(gamepad1.right_stick_y);
-                robot.rearLeftDrive.setPower(gamepad1.left_stick_y);
-                robot.rearRightDrive.setPower(gamepad1.right_stick_y);
+                robot.frontLeftDrive.setPower(leftStickY);
+                robot.frontRightDrive.setPower(rightStickY);
+                robot.rearLeftDrive.setPower(leftStickY);
+                robot.rearRightDrive.setPower(rightStickY);
             } else {
                 // check if left and right sticks move in the same direction
                 // and within a top-bottom band around the y-axis
-                if (gamepad1.right_stick_x * gamepad1.left_stick_x > 0) {
+                if (rightStickX * leftStickX > 0) {
 
-                    if (abs(gamepad1.left_stick_y) < 0.25 && abs(gamepad1.right_stick_y) < 0.25) {
+                    if (abs(leftStickY) < CargoBotConstants.CONTROLLER_DEAD_ZONE &&
+                            abs(rightStickY) < CargoBotConstants.CONTROLLER_DEAD_ZONE) {
                         float sideMovement = 0;
-                        if (gamepad1.right_stick_x > 0) {
-                            sideMovement = max(gamepad1.left_stick_x, gamepad1.right_stick_x);
+                        if (rightStickX > 0) {
+                            sideMovement = max(leftStickX, rightStickX);
                         } else {
-                            sideMovement = min(gamepad1.left_stick_x, gamepad1.right_stick_x);
+                            sideMovement = min(leftStickX, rightStickX);
                         }
                         robot.frontLeftDrive.setPower(-sideMovement);
                         robot.frontRightDrive.setPower(sideMovement);
@@ -177,63 +205,64 @@ public class MecanumTestBotTeleopAdvanced extends OpMode {
                         robot.rearRightDrive.setPower(-sideMovement);
 
                     } else {
-                        float diagMovement = 0;
-                        float x = 0;
-                        float y = 0;
-                        float sign = 1;
-                        if (gamepad1.right_stick_x > 0) {
-                            x = max(gamepad1.left_stick_x, gamepad1.right_stick_x);
+                        if (CargoBotConstants.DO_DIAGONAL){
+                            float diagMovement = 0;
+                            float x = 0;
+                            float y = 0;
+                            float sign = 1;
+                            if (rightStickX > 0) {
+                                x = max(leftStickX, rightStickX);
 
-                        } else {
-                            x = min(gamepad1.left_stick_x, gamepad1.right_stick_x);
-                            sign = -1;
-                        }
-                        if (gamepad1.right_stick_y > 0) {
-                            y = -max(gamepad1.left_stick_y, gamepad1.right_stick_y);
+                            } else {
+                                x = min(leftStickX, rightStickX);
+                                sign = -1;
+                            }
+                            if (rightStickY > 0) {
+                                y = -max(leftStickY, rightStickY);
 
-                        } else {
-                            y = -min(gamepad1.left_stick_y, gamepad1.right_stick_y);
-                        }
-
-                        telemetry.addData("x", x);
-                        telemetry.addData("y", y);
-
-                        if ((y >= (x - sqrt(2.0) * CargoBotConstants.DIAGONAL_HALF_BAND_WIDTH)) &&
-                                (y <= (x + sqrt(2.0) * CargoBotConstants.DIAGONAL_HALF_BAND_WIDTH))) {
-
-                            diagMovement = (float) sqrt(x * x + y * y);
-                            if (x > 0 && y > 0) {
-                                robot.frontLeftDrive.setPower(-diagMovement);
-                                robot.frontRightDrive.setPower(0);
-                                robot.rearLeftDrive.setPower(0);
-                                robot.rearRightDrive.setPower(-diagMovement);
-                                telemetry.addData("diag", "upper right");
-                            } else if (x < 0 && y < 0) {
-                                robot.frontLeftDrive.setPower(diagMovement);
-                                robot.frontRightDrive.setPower(0);
-                                robot.rearLeftDrive.setPower(0);
-                                robot.rearRightDrive.setPower(diagMovement);
-                                telemetry.addData("diag", "lower left");
+                            } else {
+                                y = -min(leftStickY, rightStickY);
                             }
 
-                        } else if ((y >= (-x - sqrt(2.0) * CargoBotConstants.DIAGONAL_HALF_BAND_WIDTH)) &&
-                                (y <= (-x + sqrt(2.0) * CargoBotConstants.DIAGONAL_HALF_BAND_WIDTH))){
-                            diagMovement = (float) sqrt(x * x + y * y);
-                            if (x < 0 && y > 0) {
-                                robot.frontLeftDrive.setPower(0);
-                                robot.frontRightDrive.setPower(-diagMovement);
-                                robot.rearLeftDrive.setPower(-diagMovement);
-                                robot.rearRightDrive.setPower(0);
-                                telemetry.addData("diag", "upper left");
-                            } else if (x > 0 && y < 0) {
-                                robot.frontLeftDrive.setPower(0);
-                                robot.frontRightDrive.setPower(diagMovement);
-                                robot.rearLeftDrive.setPower(diagMovement);
-                                robot.rearRightDrive.setPower(0);
-                                telemetry.addData("diag", "lower right");
+                            telemetry.addData("x", x);
+                            telemetry.addData("y", y);
+
+                            if ((y >= (x - sqrt(2.0) * CargoBotConstants.DIAGONAL_HALF_BAND_WIDTH)) &&
+                                    (y <= (x + sqrt(2.0) * CargoBotConstants.DIAGONAL_HALF_BAND_WIDTH))) {
+
+                                diagMovement = (float) sqrt(x * x + y * y);
+                                if (x > 0 && y > 0) {
+                                    robot.frontLeftDrive.setPower(-diagMovement);
+                                    robot.frontRightDrive.setPower(0);
+                                    robot.rearLeftDrive.setPower(0);
+                                    robot.rearRightDrive.setPower(-diagMovement);
+                                    telemetry.addData("diag", "upper right");
+                                } else if (x < 0 && y < 0) {
+                                    robot.frontLeftDrive.setPower(diagMovement);
+                                    robot.frontRightDrive.setPower(0);
+                                    robot.rearLeftDrive.setPower(0);
+                                    robot.rearRightDrive.setPower(diagMovement);
+                                    telemetry.addData("diag", "lower left");
+                                }
+
+                            } else if ((y >= (-x - sqrt(2.0) * CargoBotConstants.DIAGONAL_HALF_BAND_WIDTH)) &&
+                                    (y <= (-x + sqrt(2.0) * CargoBotConstants.DIAGONAL_HALF_BAND_WIDTH))){
+                                diagMovement = (float) sqrt(x * x + y * y);
+                                if (x < 0 && y > 0) {
+                                    robot.frontLeftDrive.setPower(0);
+                                    robot.frontRightDrive.setPower(-diagMovement);
+                                    robot.rearLeftDrive.setPower(-diagMovement);
+                                    robot.rearRightDrive.setPower(0);
+                                    telemetry.addData("diag", "upper left");
+                                } else if (x > 0 && y < 0) {
+                                    robot.frontLeftDrive.setPower(0);
+                                    robot.frontRightDrive.setPower(diagMovement);
+                                    robot.rearLeftDrive.setPower(diagMovement);
+                                    robot.rearRightDrive.setPower(0);
+                                    telemetry.addData("diag", "lower right");
+                                }
                             }
                         }
-
                     }
                 }
                 telemetry.update();
@@ -525,6 +554,38 @@ public class MecanumTestBotTeleopAdvanced extends OpMode {
         return setPoint;
     }
 
+    private float mapStickY(float input){
+        float output = 0;
+        if (input > 0){
+            float theta = (float) (input * Math.PI + CargoBotConstants.PI_MULTIPLIER * Math.PI);
+            float cosineWave = (float) (Math.cos(theta));
+            float scale = 0.5f;
+            float offset = 1.0f;
+            output = (cosineWave + offset) * scale;
+        } else {
+            input = abs(input);
+            float theta = (float) (input * Math.PI + CargoBotConstants.PI_MULTIPLIER * Math.PI);
+            float cosineWave = (float) (Math.cos(theta));
+            float scale = 0.5f;
+            float offset = 1.0f;
+            output = -(cosineWave + offset) * scale;
+        }
+
+        return output;
+    }
+
+    private float equalizeMotorPower(float left, float right){
+        // both left and right are positive or negative
+        float output = 0;
+        if ((left * right) > 0) {
+            if (left > 0){
+                output = max(left, right);
+            } else {
+                output = min(left, right);
+            }
+        }
+        return output;
+    }
     /*
  * Code to run ONCE after the driver hits STOP
  */
