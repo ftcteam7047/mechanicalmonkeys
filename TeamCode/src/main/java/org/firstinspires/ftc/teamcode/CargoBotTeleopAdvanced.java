@@ -71,6 +71,11 @@ public class CargoBotTeleopAdvanced extends OpMode {
     boolean isLowSpeedMode = false;
     boolean lastGamepad1YButton = false;
 
+    float leftStickX = 0;
+    float rightStickX = 0;
+    float leftStickY = 0;
+    float rightStickY = 0;
+
     private enum ENUM_GYRO_TURN {
         NOT_ARRIVED,
         ARRIVED
@@ -188,31 +193,55 @@ public class CargoBotTeleopAdvanced extends OpMode {
     public void driveController() {
         if (!isRotatingToNearest90Degree){
             checkForLowSpeedModeInput();
-            if (abs(gamepad1.left_stick_x) < 0.35 && abs(gamepad1.right_stick_x) < 0.35) {
-                // Typical tank drive
-                double left = gamepad1.left_stick_y;
-                double right = gamepad1.right_stick_y;
-
+            // assign gamepad stick positions to interim variables
+            // so we can do post processing on them
+            leftStickX = gamepad1.left_stick_x;
+            rightStickX = gamepad1.right_stick_x;
+            leftStickY = gamepad1.left_stick_y;
+            rightStickY = gamepad1.right_stick_y;
+            if (abs(leftStickX) < CargoBotConstants.CONTROLLER_DEAD_ZONE &&
+                    abs(rightStickX) < CargoBotConstants.CONTROLLER_DEAD_ZONE) {
                 // Limit the top speed of the robot in low speed mode
                 if (isLowSpeedMode) {
-                    left = Range.clip(left, -CargoBotConstants.TELEOP_SLOW_MODE_TOP_SPEED, CargoBotConstants.TELEOP_SLOW_MODE_TOP_SPEED);
-                    right = Range.clip(right, -CargoBotConstants.TELEOP_SLOW_MODE_TOP_SPEED, CargoBotConstants.TELEOP_SLOW_MODE_TOP_SPEED);
+                    double dleftStickY = leftStickY;
+                    double drightStickY = rightStickY;
+                    leftStickY = (float) Range.clip(dleftStickY, -CargoBotConstants.TELEOP_SLOW_MODE_TOP_SPEED, CargoBotConstants.TELEOP_SLOW_MODE_TOP_SPEED);
+                    rightStickY = (float) Range.clip(drightStickY, -CargoBotConstants.TELEOP_SLOW_MODE_TOP_SPEED, CargoBotConstants.TELEOP_SLOW_MODE_TOP_SPEED);
                 }
-                robot.frontLeftDrive.setPower(left);
-                robot.frontRightDrive.setPower(right);
-                robot.rearLeftDrive.setPower(left);
-                robot.rearRightDrive.setPower(right);
+
+                // Optional: pushing both sticks in the same direction result in same motor power on left and right
+                if (CargoBotConstants.EQUALIZE_MOTOR_POWER){
+                    float equalizedPower = equalizeMotorPower(leftStickY, rightStickY);
+                    if (abs(equalizedPower) > 0){
+                        leftStickY = equalizedPower;
+                        rightStickY = equalizedPower;
+                    }
+                }
+
+                // Optional: map stick y to a different curve (sinusoidal wave) to reduce jerk
+                if (CargoBotConstants.REMAP_CONTROLLER_Y && !isLowSpeedMode){
+                    leftStickY = mapStickY(leftStickY);
+                    rightStickY = mapStickY(rightStickY);
+                }
+
+                // Typical tank drive
+                robot.frontLeftDrive.setPower(leftStickY);
+                robot.frontRightDrive.setPower(rightStickY);
+                robot.rearLeftDrive.setPower(leftStickY);
+                robot.rearRightDrive.setPower(rightStickY);
             } else {
                 // check if left and right sticks move in the same direction
                 // and within a top-bottom band around the y-axis
-                if (gamepad1.right_stick_x * gamepad1.left_stick_x > 0) {
 
-                    if (abs(gamepad1.left_stick_y) < 0.35 && abs(gamepad1.right_stick_y) < 0.35) {
+                if (rightStickX * leftStickX > 0) {
+
+                    if (abs(leftStickY) < CargoBotConstants.CONTROLLER_DEAD_ZONE &&
+                            abs(rightStickY) < CargoBotConstants.CONTROLLER_DEAD_ZONE) {
                         float sideMovement = 0;
-                        if (gamepad1.right_stick_x > 0) {
-                            sideMovement = max(gamepad1.left_stick_x, gamepad1.right_stick_x);
+                        if (rightStickX > 0) {
+                            sideMovement = max(leftStickX, rightStickX);
                         } else {
-                            sideMovement = min(gamepad1.left_stick_x, gamepad1.right_stick_x);
+                            sideMovement = min(leftStickX, rightStickX);
                         }
                         // Limit the top speed of the robot in low speed mode
                         if (isLowSpeedMode) {
@@ -228,17 +257,17 @@ public class CargoBotTeleopAdvanced extends OpMode {
                             float diagMovement = 0;
                             float x = 0;
                             float y = 0;
-                            if (gamepad1.right_stick_x > 0) {
-                                x = max(gamepad1.left_stick_x, gamepad1.right_stick_x);
+                            if (rightStickX > 0) {
+                                x = max(leftStickX, rightStickX);
 
                             } else {
-                                x = min(gamepad1.left_stick_x, gamepad1.right_stick_x);
+                                x = min(leftStickX, rightStickX);
                             }
-                            if (gamepad1.right_stick_y > 0) {
-                                y = -max(gamepad1.left_stick_y, gamepad1.right_stick_y);
+                            if (rightStickY > 0) {
+                                y = -max(leftStickY, rightStickY);
 
                             } else {
-                                y = -min(gamepad1.left_stick_y, gamepad1.right_stick_y);
+                                y = -min(leftStickY, rightStickY);
                             }
 
                             //telemetry.addData("x", x);
@@ -914,6 +943,38 @@ public class CargoBotTeleopAdvanced extends OpMode {
         return maxEncoderPulsesPerTick;
     }
 
+    private float mapStickY(float input){
+        float output = 0;
+        if (input > 0){
+            float theta = (float) (input * Math.PI + CargoBotConstants.PI_MULTIPLIER * Math.PI);
+            float cosineWave = (float) (Math.cos(theta));
+            float scale = 0.5f;
+            float offset = 1.0f;
+            output = (cosineWave + offset) * scale;
+        } else {
+            input = abs(input);
+            float theta = (float) (input * Math.PI + CargoBotConstants.PI_MULTIPLIER * Math.PI);
+            float cosineWave = (float) (Math.cos(theta));
+            float scale = 0.5f;
+            float offset = 1.0f;
+            output = -(cosineWave + offset) * scale;
+        }
+
+        return output;
+    }
+
+    private float equalizeMotorPower(float left, float right){
+        // both left and right are positive or negative
+        float output = 0;
+        if ((left * right) > 0) {
+            if (left > 0){
+                output = max(left, right);
+            } else {
+                output = min(left, right);
+            }
+        }
+        return output;
+    }
     /*
      * Code to run ONCE after the driver hits STOP
      */

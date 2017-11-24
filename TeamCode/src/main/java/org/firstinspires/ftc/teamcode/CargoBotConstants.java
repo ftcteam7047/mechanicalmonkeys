@@ -21,7 +21,7 @@ public interface CargoBotConstants {
     double GRAB_DISTANCE_FROM_START = 0;
     double MOVE_HEIGHT = 2.0;
     double STACK_HEIGHT = 7.5;
-    double PLACE_HEIGHT = 13.9;
+    double PLACE_HEIGHT = 14.5; // after decreasing the lower limit of the lifter, it gains extra height
     double MOVE_DISTANCE_FROM_START = COUNTS_PER_INCH_16_TOOTH * MOVE_HEIGHT;
     double STACK_DISTANCE_FROM_START = COUNTS_PER_INCH_16_TOOTH * STACK_HEIGHT;
     double PLACE_DISTANCE_FROM_START = COUNTS_PER_INCH_16_TOOTH * PLACE_HEIGHT;
@@ -60,14 +60,14 @@ public interface CargoBotConstants {
 
     // servo position
 
-    double LEFT_OPEN = 0.0;
-    double RIGHT_OPEN = 1.0;
+    double LEFT_OPEN = 0.0; // was 0.0 because now used for half open
+    double RIGHT_OPEN = 1.0; // was 1.0 because now used for half open
 
-    double LEFT_CLOSE = 0.55;
-    double RIGHT_CLOSE = 0.45;
+    double LEFT_CLOSE = 0.5; // was .55
+    double RIGHT_CLOSE = 0.5; // was .45
 
-    double LEFT_STOW = 1.0;
-    double RIGHT_STOW = 0.0;
+    double LEFT_STOW = 1.0; // was 1.0 because now is used for open
+    double RIGHT_STOW = 0.0; // was 0.0 because now is used for open
 
     // cryptoBox for relic
 
