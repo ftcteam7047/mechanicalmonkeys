@@ -526,7 +526,13 @@ public class CargoBotTeleopAdvanced extends OpMode {
             if (!isMotorStalled) {
                 robot.blockLift.setTargetPosition(target);
                 robot.blockLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                robot.blockLift.setPower(CargoBotConstants.LIFT_SPEED);
+                if ((robot.liftPosition == HardwareMecanumCargoBot.LiftPosition.STACK) ||
+                        (robot.liftPosition == HardwareMecanumCargoBot.LiftPosition.PLACE)){
+                    robot.blockLift.setPower(CargoBotConstants.LIFT_HI_SPEED);
+                } else{
+                    robot.blockLift.setPower(CargoBotConstants.LIFT_SPEED);
+                }
+
             }
             //telemetry.addData("lift encoder pos", robot.blockLift.getCurrentPosition());
             //telemetry.update();

@@ -18,6 +18,7 @@ public interface CargoBotConstants {
     double SPROCKET_DIAMETER_INCHES_16_TOOTH = 1.3855; // for circumference
     double COUNTS_PER_INCH_16_TOOTH = COUNTS_PER_MOTOR_REV_60 / (SPROCKET_DIAMETER_INCHES_16_TOOTH * Math.PI);
     double LIFT_SPEED = 0.5;
+    double LIFT_HI_SPEED = 0.75;
     double GRAB_DISTANCE_FROM_START = 0;
     double MOVE_HEIGHT = 2.0;
     double STACK_HEIGHT = 7.5;
@@ -45,7 +46,7 @@ public interface CargoBotConstants {
 
     double VU_MARK_DETECTION_TIMEOUT = 5.0;
 
-    double TELEOP_SLOW_MODE_TOP_SPEED = 0.3;
+    double TELEOP_SLOW_MODE_TOP_SPEED = 0.45;
     boolean USE_Y_BUTTON_FOR_LOW_SPEED_MODE = true;
 
     double MOTOR_STALL_CHECKING_PERIOD = 0.3;
@@ -60,8 +61,8 @@ public interface CargoBotConstants {
 
     // servo position
 
-    double LEFT_OPEN = 0.0; // was 0.0 because now used for half open
-    double RIGHT_OPEN = 1.0; // was 1.0 because now used for half open
+    double LEFT_OPEN = 0.4; // was 0.0 because now used for half open
+    double RIGHT_OPEN = 0.6; // was 1.0 because now used for half open
 
     double LEFT_CLOSE = 0.5; // was .55
     double RIGHT_CLOSE = 0.5; // was .45
@@ -99,7 +100,7 @@ public interface CargoBotConstants {
     boolean DO_DIAGONAL = false;
 
     float PI_MULTIPLIER = 1.0f;
-    float CONTROLLER_DEAD_ZONE = 0.35f;
+    float CONTROLLER_DEAD_ZONE = 0.40f;
 
     // remap controller y value to a different output curve
     boolean REMAP_CONTROLLER_Y = true;
