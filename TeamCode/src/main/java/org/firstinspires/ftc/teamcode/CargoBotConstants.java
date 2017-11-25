@@ -107,5 +107,13 @@ public interface CargoBotConstants {
 
     // pushing both sticks in the same direction result in same motor power on left and right
     boolean EQUALIZE_MOTOR_POWER = true;
+
+    // test constants
+
+    double EXTENDED_BACKUP_DISTANCE = -16.5;
+    double BACKUP_SPEED = 0.6;
+    double FORWARD_TO_PIT_DISTANCE_RELIC = 12;
+    double TEST_ANGLE = 0;
+    double BACKUP_TO_SAFE_ZONE_SPEED = 0.8;
 }
 
