@@ -18,7 +18,7 @@ public interface CargoBotConstants {
     double SPROCKET_DIAMETER_INCHES_16_TOOTH = 1.3855; // for circumference
     double COUNTS_PER_INCH_16_TOOTH = COUNTS_PER_MOTOR_REV_60 / (SPROCKET_DIAMETER_INCHES_16_TOOTH * Math.PI);
     double LIFT_SPEED = 0.5;
-    double LIFT_HI_SPEED = 0.75;
+    double LIFT_HI_SPEED = 0.80;
     double GRAB_DISTANCE_FROM_START = 0;
     double MOVE_HEIGHT = 2.0;
     double STACK_HEIGHT = 7.5;
@@ -46,7 +46,7 @@ public interface CargoBotConstants {
 
     double VU_MARK_DETECTION_TIMEOUT = 5.0;
 
-    double TELEOP_SLOW_MODE_TOP_SPEED = 0.45;
+    double TELEOP_SLOW_MODE_TOP_SPEED = 0.42;
     boolean USE_Y_BUTTON_FOR_LOW_SPEED_MODE = true;
 
     double MOTOR_STALL_CHECKING_PERIOD = 0.3;
@@ -67,8 +67,8 @@ public interface CargoBotConstants {
     double LEFT_CLOSE = 0.5; // was .55
     double RIGHT_CLOSE = 0.5; // was .45
 
-    double LEFT_STOW = 1.0; // was 1.0 because now is used for open
-    double RIGHT_STOW = 0.0; // was 0.0 because now is used for open
+    double LEFT_WIDE_OPEN = 0.0; // was 1.0 because now is used for open
+    double RIGHT_WIDE_OPEN = 1.0; // was 0.0 because now is used for open
 
     // cryptoBox for relic
 
@@ -108,8 +108,13 @@ public interface CargoBotConstants {
     // pushing both sticks in the same direction result in same motor power on left and right
     boolean EQUALIZE_MOTOR_POWER = true;
 
-    // test constants
+    // during teleop, set motor zero power behavior
+    boolean SET_MOTOR_ZERO_POWER = true;
 
+    // set lift motor to high speed, always
+    boolean SET_LIFT_MOTOR_HIGH_SPEED = true;
+
+    // test constants
     double EXTENDED_BACKUP_DISTANCE = -16.5;
     double BACKUP_SPEED = 0.6;
     double FORWARD_TO_PIT_DISTANCE_RELIC = 12;

@@ -224,15 +224,25 @@ public class CargoBotTeleopAdvanced extends OpMode {
                     rightStickY = mapStickY(rightStickY);
                 }
 
+                // Optioinal: set motor zero power during tank drive
+                if (CargoBotConstants.SET_MOTOR_ZERO_POWER){
+                    if (!isLowSpeedMode){
+                        setChassisMotorZeroBehavior(eZeroBehavior.FLOAT);
+                    }
+                }
                 // Typical tank drive
                 robot.frontLeftDrive.setPower(leftStickY);
                 robot.frontRightDrive.setPower(rightStickY);
                 robot.rearLeftDrive.setPower(leftStickY);
                 robot.rearRightDrive.setPower(rightStickY);
             } else {
+                // Optioinal: set motor zero power other than tank drive
+                if (CargoBotConstants.SET_MOTOR_ZERO_POWER){
+                    setChassisMotorZeroBehavior(eZeroBehavior.BRAKE);
+                }
+
                 // check if left and right sticks move in the same direction
                 // and within a top-bottom band around the y-axis
-
                 if (rightStickX * leftStickX > 0) {
 
                     if (abs(leftStickY) < CargoBotConstants.CONTROLLER_DEAD_ZONE &&
@@ -368,14 +378,14 @@ public class CargoBotTeleopAdvanced extends OpMode {
             } else if (robot.grabberPosition == robot.grabberPosition.CLOSE) {
                 robot.grabberPosition = robot.grabberPosition.OPEN;
                 isGrabberButtonPressed = true;
-            } else if (robot.grabberPosition == robot.grabberPosition.STOW) {
-                robot.grabberPosition = robot.grabberPosition.OPEN;
+            } else if (robot.grabberPosition == robot.grabberPosition.WIDE_OPEN) {
+                robot.grabberPosition = robot.grabberPosition.CLOSE;
                 isGrabberButtonPressed = true;
             }
         }
 
         if (gamepad1.b && !isBlockVisible) {
-            robot.grabberPosition = robot.grabberPosition.STOW;
+            robot.grabberPosition = robot.grabberPosition.WIDE_OPEN;
         }
 
         switch (robot.grabberPosition) {
@@ -391,11 +401,11 @@ public class CargoBotTeleopAdvanced extends OpMode {
                 robot.upperLeftServo.setPosition(CargoBotConstants.LEFT_CLOSE);
                 robot.upperRightServo.setPosition(CargoBotConstants.RIGHT_CLOSE);
                 break;
-            case STOW:
-                robot.lowerLeftServo.setPosition(CargoBotConstants.LEFT_STOW);
-                robot.lowerRightServo.setPosition(CargoBotConstants.RIGHT_STOW);
-                robot.upperLeftServo.setPosition(CargoBotConstants.LEFT_STOW);
-                robot.upperRightServo.setPosition(CargoBotConstants.RIGHT_STOW);
+            case WIDE_OPEN:
+                robot.lowerLeftServo.setPosition(CargoBotConstants.LEFT_WIDE_OPEN);
+                robot.lowerRightServo.setPosition(CargoBotConstants.RIGHT_WIDE_OPEN);
+                robot.upperLeftServo.setPosition(CargoBotConstants.LEFT_WIDE_OPEN);
+                robot.upperRightServo.setPosition(CargoBotConstants.RIGHT_WIDE_OPEN);
                 break;
         }
     }
@@ -526,12 +536,19 @@ public class CargoBotTeleopAdvanced extends OpMode {
             if (!isMotorStalled) {
                 robot.blockLift.setTargetPosition(target);
                 robot.blockLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                if ((robot.liftPosition == HardwareMecanumCargoBot.LiftPosition.STACK) ||
-                        (robot.liftPosition == HardwareMecanumCargoBot.LiftPosition.PLACE)){
+                if (CargoBotConstants.SET_LIFT_MOTOR_HIGH_SPEED){
+                    // always lift up/down at high speed
                     robot.blockLift.setPower(CargoBotConstants.LIFT_HI_SPEED);
-                } else{
-                    robot.blockLift.setPower(CargoBotConstants.LIFT_SPEED);
+                } else {
+                    // only STACK and PLACE get high speed
+                    if ((robot.liftPosition == HardwareMecanumCargoBot.LiftPosition.STACK) ||
+                            (robot.liftPosition == HardwareMecanumCargoBot.LiftPosition.PLACE)){
+                        robot.blockLift.setPower(CargoBotConstants.LIFT_HI_SPEED);
+                    } else{
+                        robot.blockLift.setPower(CargoBotConstants.LIFT_SPEED);
+                    }
                 }
+
 
             }
             //telemetry.addData("lift encoder pos", robot.blockLift.getCurrentPosition());
@@ -741,10 +758,7 @@ public class CargoBotTeleopAdvanced extends OpMode {
         if (yawTurnPIDController.isNewUpdateAvailable(yawPIDResult)) {
 
             if (yawPIDResult.isOnTarget()) {
-                robot.frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                robot.frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                robot.rearRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                robot.rearLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                setChassisMotorZeroBehavior(eZeroBehavior.BRAKE);
                 turnOffDriveMotors();
                 retValue = ENUM_NAVX_GYRO_TURN.ARRIVED;
                 if (MMShooterBotConstants.displayNavXTelemetryTeleOp) {
@@ -981,6 +995,24 @@ public class CargoBotTeleopAdvanced extends OpMode {
         }
         return output;
     }
+    enum eZeroBehavior{
+        BRAKE,
+        FLOAT
+    }
+    private void setChassisMotorZeroBehavior(eZeroBehavior mode){
+        if (mode == eZeroBehavior.BRAKE){
+            robot.frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            robot.frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            robot.rearRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            robot.rearLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        } else if (mode == eZeroBehavior.FLOAT){
+            robot.frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+            robot.frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+            robot.rearRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+            robot.rearLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        }
+    }
+
     /*
      * Code to run ONCE after the driver hits STOP
      */

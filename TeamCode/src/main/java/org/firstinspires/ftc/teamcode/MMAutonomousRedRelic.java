@@ -192,7 +192,7 @@ public class MMAutonomousRedRelic extends LinearOpMode {
     enum GripperPosition {
         OPEN,
         CLOSE,
-        STOW
+        WIDE_OPEN
     }
 
     GripperPosition gripperPosition = GripperPosition.CLOSE;
@@ -1443,11 +1443,11 @@ public class MMAutonomousRedRelic extends LinearOpMode {
                 robot.upperLeftServo.setPosition(CargoBotConstants.LEFT_CLOSE);
                 robot.upperRightServo.setPosition(CargoBotConstants.RIGHT_CLOSE);
                 break;
-            case STOW:
-                robot.lowerLeftServo.setPosition(CargoBotConstants.LEFT_STOW);
-                robot.lowerRightServo.setPosition(CargoBotConstants.RIGHT_STOW);
-                robot.upperLeftServo.setPosition(CargoBotConstants.LEFT_STOW);
-                robot.upperRightServo.setPosition(CargoBotConstants.RIGHT_STOW);
+            case WIDE_OPEN:
+                robot.lowerLeftServo.setPosition(CargoBotConstants.LEFT_WIDE_OPEN);
+                robot.lowerRightServo.setPosition(CargoBotConstants.RIGHT_WIDE_OPEN);
+                robot.upperLeftServo.setPosition(CargoBotConstants.LEFT_WIDE_OPEN);
+                robot.upperRightServo.setPosition(CargoBotConstants.RIGHT_WIDE_OPEN);
                 break;
         }
     }

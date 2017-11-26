@@ -44,7 +44,7 @@ public class HardwareMecanumCargoBot {
     public enum GrabberPosition {
         OPEN,
         CLOSE,
-        STOW
+        WIDE_OPEN
     }
     GrabberPosition grabberPosition;
 
@@ -104,6 +104,12 @@ public class HardwareMecanumCargoBot {
         frontRightDrive.setPower(0);
         rearLeftDrive.setPower(0);
         rearRightDrive.setPower(0);
+
+        // Set chassis motors zero behavior
+        frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rearRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rearLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         // Encoder reset: this step seems to be necessary to allow RUN_TO_POSITION to work
         // otherwise, motor speed may not be consistent.
