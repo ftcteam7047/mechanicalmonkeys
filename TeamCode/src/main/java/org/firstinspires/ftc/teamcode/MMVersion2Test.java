@@ -210,8 +210,12 @@ public class MMVersion2Test extends OpMode {
         }
     }
 
+    /*
+     * Code to run ONCE after the driver hits STOP
+     */
     @Override
     public void stop() {
-
+        turnOffIntakeMotors();
+        // TODO: turn off lift motor
     }
 }
