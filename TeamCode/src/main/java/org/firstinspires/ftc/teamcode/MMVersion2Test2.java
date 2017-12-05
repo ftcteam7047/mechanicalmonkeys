@@ -144,8 +144,7 @@ public class MMVersion2Test2 extends OpMode {
     public void loop() {
         servoController();
         intakeController();
-        // TODO: reenable when the left chain is fixed
-        //driveController();
+        driveController();
         blockLiftController();
         try {
             waitForTick(2); // every 2ms, sample the encoder
@@ -225,7 +224,7 @@ public class MMVersion2Test2 extends OpMode {
         lastGamepad1B = gamepad1.b;
 
         if (gamepad1.x && !lastGamepad1X) {
-            // close
+            // flat
             aIsPressed = false;
             bIsPressed = false;
             xIsPressed = true;
@@ -272,6 +271,17 @@ public class MMVersion2Test2 extends OpMode {
         rightIntakeMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
 
+    private void turnOffDriveMotors(){
+        frontLeftDrive.setPower(0);
+        frontRightDrive.setPower(0);
+        rearLeftDrive.setPower(0);
+        rearRightDrive.setPower(0);
+
+        // make sure the drive motors maintain constant speed
+        frontIntakeMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        leftIntakeMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightIntakeMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    }
     private void setIntakeMotorDir(intakeDir dir){
         if (dir == intakeDir.NORMAL){
             frontIntakeMotor.setDirection(DcMotor.Direction.REVERSE);
@@ -297,8 +307,9 @@ public class MMVersion2Test2 extends OpMode {
         tick = getRuntimeInTicks(tStart, timeIncrement);
 
         if (tick > lastTick) {
+            int deltaTick = tick - lastTick;
             lastTick = tick;
-            targetPos = testServo.getPosition() + posIncrement;
+            targetPos = testServo.getPosition() + deltaTick * posIncrement;
             if (targetPos >= downTarget) {
                 targetPos = downTarget;
             }
@@ -313,8 +324,9 @@ public class MMVersion2Test2 extends OpMode {
         tick = getRuntimeInTicks(tStart, timeIncrement);
 
         if (tick > lastTick) {
+            int deltaTick = tick - lastTick;
             lastTick = tick;
-            targetPos = testServo.getPosition() - posIncrement;
+            targetPos = testServo.getPosition() - deltaTick * posIncrement;
             if (targetPos <= upTarget) {
                 targetPos = upTarget;
             }
@@ -330,16 +342,13 @@ public class MMVersion2Test2 extends OpMode {
         tick = getRuntimeInTicks(tStart, timeIncrement);
 
         if (tick > lastTick) {
+            int deltaTick = tick - lastTick;
             lastTick = tick;
             currentServoPos = testServo.getPosition();
-            if ((currentServoPos - posIncrement) > flatTarget){
-                targetPos = currentServoPos - posIncrement;
-            } else if ((currentServoPos > flatTarget) && ((currentServoPos - posIncrement) < flatTarget) ){
-                targetPos = flatTarget;
-            } else if ((currentServoPos + posIncrement) < flatTarget){
-                targetPos = currentServoPos + posIncrement;
-            } else if ((currentServoPos < flatTarget) && (currentServoPos + posIncrement) > flatTarget) {
-                targetPos = flatTarget;
+            if ((currentServoPos - deltaTick * posIncrement) > flatTarget){
+                targetPos = currentServoPos - deltaTick * posIncrement;
+            } else if ((currentServoPos + deltaTick * posIncrement) < flatTarget){
+                targetPos = currentServoPos + deltaTick * posIncrement;
             } else {
                 targetPos = flatTarget;
             }
@@ -564,7 +573,6 @@ public class MMVersion2Test2 extends OpMode {
     }
 
     public void blockLiftController() {
-        // TODO: implement stall detection/timeout near LOW(bottom) and HIGH (top) positions
         // initialization, considering offset
         if (liftPosition == liftPosition.INIT_POSITION) {
             // first determine lift position, then determine the target position depending on dpad up/down
@@ -793,6 +801,7 @@ public class MMVersion2Test2 extends OpMode {
     @Override
     public void stop() {
         turnOffIntakeMotors();
+        turnOffDriveMotors();
         blockLift.setPower(0);
         fileHandler.writeToFile("offset.txt", Integer.toString(offset + blockLift.getCurrentPosition()), context);
     }
