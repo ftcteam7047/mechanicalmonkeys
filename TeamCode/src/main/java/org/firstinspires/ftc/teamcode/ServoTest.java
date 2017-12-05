@@ -29,8 +29,8 @@ public class ServoTest extends OpMode {
     double tStart = 0;
     int lastTick = 0;
     double currentServoPos = 0.0;
-    double openTarget = 1.0;
-    double closeTarget = 0.0;
+    double downTarget = 0.85;
+    double upTarget = 0.0;
     boolean aIsPressed = false;
     boolean bIsPressed = false;
 
@@ -39,7 +39,15 @@ public class ServoTest extends OpMode {
 
         context = hardwareMap.appContext;
         testServo = hardwareMap.servo.get("testServo");
-        testServo.setPosition(0.0);
+        testServo.setPosition(downTarget);
+    }
+
+    /*
+     * Code to run ONCE when the driver hits PLAY
+     */
+    @Override
+    public void start() {
+        tStart = getRuntime();
     }
 
     @Override
@@ -95,16 +103,14 @@ public class ServoTest extends OpMode {
         if (tick > lastTick) {
             lastTick = tick;
             targetPos = testServo.getPosition() + posIncrement;
-            if (targetPos >= openTarget) {
-                targetPos = openTarget;
+            if (targetPos >= downTarget) {
+                targetPos = downTarget;
             }
             testServo.setPosition(targetPos);
         }
-        if (openTarget == testServo.getPosition()){
+        if (downTarget == testServo.getPosition()){
             aIsPressed = false;
         }
-        // without regulation
-        //testServo.setPosition(openTarget);
     }
     private void moveToClose(){
         int tick = 0;
@@ -113,16 +119,14 @@ public class ServoTest extends OpMode {
         if (tick > lastTick) {
             lastTick = tick;
             targetPos = testServo.getPosition() - posIncrement;
-            if (targetPos <= closeTarget) {
-                targetPos = closeTarget;
+            if (targetPos <= upTarget) {
+                targetPos = upTarget;
             }
             testServo.setPosition(targetPos);
         }
-        if (closeTarget == testServo.getPosition()){
+        if (upTarget == testServo.getPosition()){
             bIsPressed = false;
         }
-        // without regulation
-        //testServo.setPosition(closeTarget);
     }
 
     @Override

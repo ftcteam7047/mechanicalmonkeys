@@ -18,7 +18,7 @@ public interface CargoBotConstants {
     double SPROCKET_DIAMETER_INCHES_16_TOOTH = 1.3855; // for circumference
     double COUNTS_PER_INCH_16_TOOTH = COUNTS_PER_MOTOR_REV_60 / (SPROCKET_DIAMETER_INCHES_16_TOOTH * Math.PI);
     double LIFT_SPEED = 0.5;
-    double LIFT_HI_SPEED = 0.80;
+    double LIFT_HI_SPEED = 1.0;
     double GRAB_DISTANCE_FROM_START = 0;
     double MOVE_HEIGHT = 2.0;
     double STACK_HEIGHT = 7.5;
@@ -27,6 +27,14 @@ public interface CargoBotConstants {
     double STACK_DISTANCE_FROM_START = COUNTS_PER_INCH_16_TOOTH * STACK_HEIGHT;
     double PLACE_DISTANCE_FROM_START = COUNTS_PER_INCH_16_TOOTH * PLACE_HEIGHT;
     double DIAGONAL_HALF_BAND_WIDTH = 0.30; // max shall be less than sqrt(2)
+    // for ver 2 slider
+    double SLIDER_LOW_HEIGHT = 0.0;
+    double SLIDER_HIGH_HEIGHT = 7.0;
+    int COUNTS_PER_MOTOR_REV_20 = 560;
+    double SLIDER_PULLEY_DIAMETER_INCHES = 0.465;
+    double COUNTS_PER_INCH_SLIDER_PULLEY = COUNTS_PER_MOTOR_REV_20 / (SLIDER_PULLEY_DIAMETER_INCHES * Math.PI);
+    double LOW_DISTANCE_FROM_START = COUNTS_PER_INCH_SLIDER_PULLEY * SLIDER_LOW_HEIGHT;
+    double HIGH_DISTANCE_FROM_START = COUNTS_PER_INCH_SLIDER_PULLEY * SLIDER_HIGH_HEIGHT;
 
     double BALL_ARM_UP = 0.0;
     double BALL_ARM_DOWN = 1.0;
@@ -54,6 +62,10 @@ public interface CargoBotConstants {
     double ANDYMARK_60_COUNTS_PER_MOTOR_REV = 1680.0;
     int    ANDYMARK_60_NO_LOAD_MAX_RPM  = 105; // Andymark NeverRest 60 See http://www.andymark.com/NeveRest-60-Gearmotor-p/am-3103.htm
     int ANDYMARK_60_MAX_COUNT_PER_SEC = (int)(CargoBotConstants.ANDYMARK_60_COUNTS_PER_MOTOR_REV * CargoBotConstants.ANDYMARK_60_NO_LOAD_MAX_RPM / CargoBotConstants.secondsPerMinute);
+    double ANDYMARK_20_COUNTS_PER_MOTOR_REV = 560.0;
+    int    ANDYMARK_20_NO_LOAD_MAX_RPM  = 315;
+    int ANDYMARK_20_MAX_COUNT_PER_SEC = (int)(CargoBotConstants.ANDYMARK_20_COUNTS_PER_MOTOR_REV * CargoBotConstants.ANDYMARK_20_NO_LOAD_MAX_RPM / CargoBotConstants.secondsPerMinute);
+
     double MOTOR_TOP_SPEED = 1.0;
     double MOTOR_STALL_RATIO = 0.3;
     double MOTOR_VOLTAGE = 12.0; // Andymark performance spec, See https://www.andymark.com/NeveRest-60-Gearmotor-p/am-3103.htm
