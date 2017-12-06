@@ -132,5 +132,8 @@ public interface CargoBotConstants {
     double FORWARD_TO_PIT_DISTANCE_RELIC = 12;
     double TEST_ANGLE = 0;
     double BACKUP_TO_SAFE_ZONE_SPEED = 0.8;
+
+    // path constant
+    String pathToLiftMotorOffset = "/FTC/liftMotorOffset";
 }
 

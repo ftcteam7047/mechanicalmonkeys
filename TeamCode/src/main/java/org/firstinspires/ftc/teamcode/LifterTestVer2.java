@@ -248,10 +248,10 @@ public class LifterTestVer2 extends OpMode {
     private void initLiftMotor(){
         liftPosition = LiftPosition.LOW;
         context = hardwareMap.appContext;
-        if (fileHandler.readFromFile("offset.txt", context).equals("error")) {
+        if (fileHandler.readFromFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, context).equals("error")) {
             offset = 0;
         } else {
-            offset = fileHandler.stringToInt(fileHandler.readFromFile("offset.txt", context));
+            offset = fileHandler.stringToInt(fileHandler.readFromFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, context));
         }
 
         blockLift = hardwareMap.dcMotor.get("blockLiftVer2");
@@ -264,6 +264,6 @@ public class LifterTestVer2 extends OpMode {
     }
 
     public void stop() {
-        fileHandler.writeToFile("offset.txt", Integer.toString(offset + blockLift.getCurrentPosition()), context);
+        fileHandler.writeToFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, Integer.toString(offset + blockLift.getCurrentPosition()), context);
     }
 }

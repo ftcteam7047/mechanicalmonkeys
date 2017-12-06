@@ -31,10 +31,10 @@ public class EncoderTest extends OpMode {
         test.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         test.setPower(0.0);
         //
-        if (fileHandler.readFromFile("offset.txt", context).equals("error")){
+        if (fileHandler.readFromFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, context).equals("error")){
             offset = 0;
         } else {
-            offset = fileHandler.stringToInt(fileHandler.readFromFile("offset.txt", context));
+            offset = fileHandler.stringToInt(fileHandler.readFromFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, context));
         }
     }
 
@@ -72,6 +72,6 @@ public class EncoderTest extends OpMode {
 
     @Override
     public void stop() {
-        fileHandler.writeToFile("offset.txt", Integer.toString(offset + test.getCurrentPosition()), context);
+        fileHandler.writeToFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, Integer.toString(offset + test.getCurrentPosition()), context);
     }
 }

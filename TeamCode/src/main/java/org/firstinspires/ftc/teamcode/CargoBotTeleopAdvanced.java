@@ -98,10 +98,10 @@ public class CargoBotTeleopAdvanced extends OpMode {
 
         // data persistence: block lift motor position
         // the file is for saving and restoring the position of the block lift if the robot is powered down
-        if (robot.fileHandler.readFromFile("offset.txt", robot.context).equals("error")){
+        if (robot.fileHandler.readFromFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, robot.context).equals("error")){
             offset = 0;
         } else {
-            offset = robot.fileHandler.stringToInt(robot.fileHandler.readFromFile("offset.txt", robot.context));
+            offset = robot.fileHandler.stringToInt(robot.fileHandler.readFromFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, robot.context));
         }
 
         // Run using encoder will force the motor to run at constant speed
@@ -1027,7 +1027,7 @@ public class CargoBotTeleopAdvanced extends OpMode {
         // TODO: set other motor power to zero
         robot.blockLift.setPower(0);
         // save the block lift position for next operation
-        robot.fileHandler.writeToFile("offset.txt", Integer.toString(offset + robot.blockLift.getCurrentPosition()), robot.context);
+        robot.fileHandler.writeToFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, Integer.toString(offset + robot.blockLift.getCurrentPosition()), robot.context);
     }
 
 }

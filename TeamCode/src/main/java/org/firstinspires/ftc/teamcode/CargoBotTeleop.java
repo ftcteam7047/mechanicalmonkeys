@@ -35,10 +35,10 @@ public class CargoBotTeleop extends OpMode {
         isBlockVisible = false;
         isLifterButtonPressed = false;
 
-        if (robot.fileHandler.readFromFile("offset.txt", robot.context).equals("error")){
+        if (robot.fileHandler.readFromFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, robot.context).equals("error")){
             offset = 0;
         } else {
-            offset = robot.fileHandler.stringToInt(robot.fileHandler.readFromFile("offset.txt", robot.context));
+            offset = robot.fileHandler.stringToInt(robot.fileHandler.readFromFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, robot.context));
         }
     }
 
@@ -53,7 +53,7 @@ public class CargoBotTeleop extends OpMode {
 
     @Override
     public void stop() {
-        robot.fileHandler.writeToFile("offset.txt", Integer.toString(offset + robot.blockLift.getCurrentPosition()), robot.context);
+        robot.fileHandler.writeToFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, Integer.toString(offset + robot.blockLift.getCurrentPosition()), robot.context);
     }
 
     public void relicGripperController() {

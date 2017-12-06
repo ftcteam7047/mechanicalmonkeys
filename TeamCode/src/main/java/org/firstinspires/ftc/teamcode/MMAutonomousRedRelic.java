@@ -1457,7 +1457,7 @@ public class MMAutonomousRedRelic extends LinearOpMode {
             navxDevice.close();
         }
         // save the block lift position for next operation
-        robot.fileHandler.writeToFile("offset.txt", Integer.toString(offset + robot.blockLift.getCurrentPosition()), robot.context);
+        robot.fileHandler.writeToFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, Integer.toString(offset + robot.blockLift.getCurrentPosition()), robot.context);
     }
 
     private void localizeRobot(double robotHeading){

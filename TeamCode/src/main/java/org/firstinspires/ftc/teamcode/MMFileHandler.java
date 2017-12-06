@@ -75,12 +75,12 @@ public class MMFileHandler extends OpMode {
 
 
 
-    public String readFromFile(String filename, Context context)  {
+    public String readFromFile(String filename, String pathToFile, Context context)  {
         // The name of the file to open.
         //String fileName = "temp.txt";
         File path = context.getFilesDir();
         File sdCard = Environment.getExternalStorageDirectory();
-        File dir = new File (sdCard.getAbsolutePath() + "/FTC/liftMotorOffset");
+        File dir = new File (sdCard.getAbsolutePath() + pathToFile);
         dir.mkdirs();
         File file = null;
 
@@ -130,12 +130,12 @@ public class MMFileHandler extends OpMode {
         return returnString;
     }
 
-    public void writeToFile(String filename, String data, Context context) {
+    public void writeToFile(String filename, String pathToFile, String data, Context context) {
         // The name of the file to open.
         //String fileName = "temp.txt";
         File path = context.getFilesDir();
         File sdCard = Environment.getExternalStorageDirectory();
-        File dir = new File (sdCard.getAbsolutePath() + "/FTC/liftMotorOffset");
+        File dir = new File (sdCard.getAbsolutePath() + pathToFile);
         dir.mkdirs();
         File file = null;
 

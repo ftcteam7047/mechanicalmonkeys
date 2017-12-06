@@ -55,7 +55,7 @@ public class MMVersion2Test2 extends OpMode {
     boolean xIsPressed = false;
 
     // servo parameters
-    double downTarget = 0.85;
+    double downTarget = 0.82;
     double upTarget = 0.0;
     double flatTarget = 0.62;
     double timeIncrement = 0.025;
@@ -63,8 +63,8 @@ public class MMVersion2Test2 extends OpMode {
 
     // dcMotor parameters
     double frontIntakeMotorPower = 0.5;
-    double leftIntakeMotorPower = 0.75;
-    double rightIntakeMotorPower = 0.75;
+    double leftIntakeMotorPower = 0.85;
+    double rightIntakeMotorPower = 0.85;
     double lrIntakeMotorDeltaPower = 0.1;
 
     enum intakeDir {
@@ -188,7 +188,7 @@ public class MMVersion2Test2 extends OpMode {
     }
 
     private void intakeController() {
-        if (gamepad2.x) {
+        if (gamepad2.a) {
             // normal intake
             setIntakeMotorDir(intakeDir.NORMAL);
             activateIntakeMotors();
@@ -759,10 +759,10 @@ public class MMVersion2Test2 extends OpMode {
     private void initLiftMotor(){
         liftPosition = LiftPosition.LOW;
         context = hardwareMap.appContext;
-        if (fileHandler.readFromFile("offset.txt", context).equals("error")) {
+        if (fileHandler.readFromFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, context).equals("error")) {
             offset = 0;
         } else {
-            offset = fileHandler.stringToInt(fileHandler.readFromFile("offset.txt", context));
+            offset = fileHandler.stringToInt(fileHandler.readFromFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, context));
         }
 
         blockLift = hardwareMap.dcMotor.get("blockLiftVer2");
@@ -803,6 +803,6 @@ public class MMVersion2Test2 extends OpMode {
         turnOffIntakeMotors();
         turnOffDriveMotors();
         blockLift.setPower(0);
-        fileHandler.writeToFile("offset.txt", Integer.toString(offset + blockLift.getCurrentPosition()), context);
+        fileHandler.writeToFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, Integer.toString(offset + blockLift.getCurrentPosition()), context);
     }
 }
