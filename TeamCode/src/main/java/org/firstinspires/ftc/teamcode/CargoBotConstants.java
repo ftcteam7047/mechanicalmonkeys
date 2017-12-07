@@ -51,6 +51,8 @@ public interface CargoBotConstants {
 
     double RED_TURN_ANGLE = -35;
     double BLUE_TURN_ANGLE = 60;
+    double RED_TURN_ANGLE_V2 = -30; // since phone mount is at an angle in Curious George V2
+    double BLUE_TURN_ANGLE_V2 = 55; // since phone mount is at an angle in Curious George V2
 
     double VU_MARK_DETECTION_TIMEOUT = 5.0;
 
@@ -135,5 +137,20 @@ public interface CargoBotConstants {
 
     // path constant
     String pathToLiftMotorOffset = "/FTC/liftMotorOffset";
+
+    // back up distance to the platform for parking
+    double BACKUP_ONTO_PLATFORM_DISTANCE = -6.9;
+    double CONTROL_STICK_THRESHOLD_FOR_BACKUP_TO_PLATFORM = 0.1;
+    double BACKUP_ONTO_PLATFORM_SPEED = 0.7;
+
+    // lift position telerance, to check how close the lift is to the target
+    // if it's close enough, then stop requesting the moveRampToFlat or moaveRampToDown functions
+    int LIFT_TARGET_TOLERANCE = 30;
+
+    // intake motors
+    double INTAKE_MOTOR_ACTIVATION_TIME = 2;
+    double FRONT_INTAKE_POWER = 0.5;
+    double LEFT_INTAKE_POWER = 0.85;
+    double RIGHT_INTAKE_POWER = 0.85;
 }
 
