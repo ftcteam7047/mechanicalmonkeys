@@ -99,6 +99,7 @@ public interface CargoBotConstants {
     // for curious george v2
     double CRYPTO_BOX_DISTANCE_V2_RED_RELIC = 4.0;
     double BACKUP_DISTANCE_V2 = -5.5; // need to back up enough so that there is enough room to turn around without hitting the cryptoBox
+    double ANGLE_TO_FACE_FIELD_CENTER_RED_BLUE_RELIC = ANGLE_TO_FACE_BOX_RED_RELIC + 180.0;
 
     // cryptoBox for tip
 

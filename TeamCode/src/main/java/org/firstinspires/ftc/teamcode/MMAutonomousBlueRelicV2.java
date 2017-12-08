@@ -1138,7 +1138,7 @@ public class MMAutonomousBlueRelicV2 extends LinearOpMode {
                 break;
             case STEP12:
                 // turn 180 to get ready for teleOp or try to pick up extra block from the center pile
-                driveStatus = navxRotateToAngle(CargoBotConstants.ANGLE_TO_FACE_BOX_RED_RELIC + 180, 0.8 * yawKp);
+                driveStatus = navxRotateToAngle(CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_RED_BLUE_RELIC, 0.8 * yawKp);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP13;
                 }
