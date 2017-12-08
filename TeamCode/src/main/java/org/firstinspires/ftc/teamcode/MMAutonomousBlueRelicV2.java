@@ -229,7 +229,7 @@ public class MMAutonomousBlueRelicV2 extends LinearOpMode {
     }
     OPMODE_STEPS opmodeState = OPMODE_STEPS.STEP1;
 
-    private final int NAVX_DIM_I2C_PORT = 5;
+    private final int NAVX_DIM_I2C_PORT = 1;
     private AHRS navxDevice = null;
     private navXPIDController yawTurnPIDController = null;
     private navXPIDController yawDrivePIDController = null;
@@ -238,7 +238,6 @@ public class MMAutonomousBlueRelicV2 extends LinearOpMode {
     double yawKp = MMShooterBotConstants.YAW_PID_P;
     boolean isNavxDeviceConnected = false;
     boolean timeoutNavxConnection = false;
-    boolean didRetryIngnterceptingWhiteLine = false;
     boolean isNavxMicroDataTimeout = false;
     double timeNavxDataTestTimeout = 0.0;
     private boolean calibration_complete = false;
@@ -259,7 +258,7 @@ public class MMAutonomousBlueRelicV2 extends LinearOpMode {
 
     boolean isNavxRotateInitialized = false;
 
-    double stepFiveStartTime;
+    double readVuMarkStartTime;
 
     double tX = 0;
     double tY = 0;
@@ -1028,7 +1027,7 @@ public class MMAutonomousBlueRelicV2 extends LinearOpMode {
                 }
 
                 if (driveStatus) {
-                    stepFiveStartTime = getRuntime();
+                    readVuMarkStartTime = getRuntime();
                     opmodeState = OPMODE_STEPS.STEP5;
                 }
                 break;
@@ -1041,7 +1040,7 @@ public class MMAutonomousBlueRelicV2 extends LinearOpMode {
                 } else {
                     driveStatus = false;
                     // timeout and default to center
-                    if ((getRuntime() - stepFiveStartTime) > CargoBotConstants.VU_MARK_DETECTION_TIMEOUT) {
+                    if ((getRuntime() - readVuMarkStartTime) > CargoBotConstants.VU_MARK_DETECTION_TIMEOUT) {
                         vuMarkIdentified = VU_MARK_TYPE.CENTER;
                         driveStatus = true;
                     }
