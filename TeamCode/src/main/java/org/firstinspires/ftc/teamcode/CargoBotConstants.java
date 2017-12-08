@@ -111,6 +111,8 @@ public interface CargoBotConstants {
     double BLUE_RELIC_COLUMN_OFFSET = 7.5;
     double DRIVE_BLUE_OFF_PLATFORM_MORE_OFFSET = 1.75;
     double CRYPTO_BOX_DISTANCE_BLUE_RELIC = 8.5;
+    // for curious george v2
+    double CRYPTO_BOX_DISTANCE_V2_BLUE_RELIC = 5.5;
 
     // cryptoBox for blue tip
 
