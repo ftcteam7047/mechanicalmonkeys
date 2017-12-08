@@ -924,11 +924,11 @@ public class MMAutonomousRedRelicV2 extends LinearOpMode {
                 // Lowers ball arm
                 robot.ballArm.setPosition(CargoBotConstants.BALL_ARM_DOWN);
                 // create a delay so the ball arm has time to go down, just to be on the safe side
-                if (!isStep1Started){
+                if (!isStep1Started) {
                     isStep1Started = true;
                     lowerBallArmStartTime = getRuntime();
                 }
-                if ((getRuntime() - lowerBallArmStartTime) < CargoBotConstants.LOWER_BALL_ARM_DELAY){
+                if ((getRuntime() - lowerBallArmStartTime) < CargoBotConstants.LOWER_BALL_ARM_DELAY) {
                     driveStatus = false;
                 } else {
                     driveStatus = true;
@@ -1016,10 +1016,19 @@ public class MMAutonomousRedRelicV2 extends LinearOpMode {
                     }
 
                 }
-                if (driveStatus && intakeStatus) {
-                    opmodeState = OPMODE_STEPS.STEP4;
-                    // reset the intake status before going to the next step
-                    intakeStatus = false;
+                // since the robot drive in reverse to get off the platform, intake motor does not need to be activated
+                if (alliance == ALLIANCE_COLOR.RED) {
+                    if (driveStatus) {
+                        opmodeState = OPMODE_STEPS.STEP4;
+                        // reset the intake status before going to the next step
+                        intakeStatus = false;
+                    }
+                } else {
+                    if (driveStatus && intakeStatus) {
+                        opmodeState = OPMODE_STEPS.STEP4;
+                        // reset the intake status before going to the next step
+                        intakeStatus = false;
+                    }
                 }
                 break;
             case STEP4:
@@ -1123,6 +1132,9 @@ public class MMAutonomousRedRelicV2 extends LinearOpMode {
             case STEP12:
                 // turn 180 to get ready for teleOp or try to pick up extra block from the center pile
                 driveStatus = navxRotateToAngle(CargoBotConstants.ANGLE_TO_FACE_BOX_RED_RELIC + 180, 0.8 * yawKp);
+                if (driveStatus) {
+                    opmodeState = OPMODE_STEPS.STEP13;
+                }
                 break;
             case STEP13:
                 // TODO: ensure when the last step is complete, call onRobotStopOrInterrupt() to terminate properly. For now, step 13 is the conclusion of autonomous mode.
