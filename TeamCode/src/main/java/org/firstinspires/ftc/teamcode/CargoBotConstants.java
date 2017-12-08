@@ -54,8 +54,9 @@ public interface CargoBotConstants {
 
     double RED_TURN_ANGLE = -35;
     double BLUE_TURN_ANGLE = 60;
-    double RED_TURN_ANGLE_V2 = -30; // since phone mount is at an angle in Curious George V2
-    double BLUE_TURN_ANGLE_V2 = 55; // since phone mount is at an angle in Curious George V2
+    double PHONE_MOUNT_V2_ANGLE = 5; // since phone mount is at an angle in Curious George V2
+    double RED_TURN_ANGLE_V2 = RED_TURN_ANGLE + PHONE_MOUNT_V2_ANGLE;
+    double BLUE_TURN_ANGLE_V2 = BLUE_TURN_ANGLE + PHONE_MOUNT_V2_ANGLE;
 
     double VU_MARK_DETECTION_TIMEOUT = 5.0;
 

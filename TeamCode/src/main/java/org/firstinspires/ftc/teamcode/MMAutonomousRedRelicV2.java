@@ -689,7 +689,6 @@ public class MMAutonomousRedRelicV2 extends LinearOpMode {
         ArrayList<String> detectedObjects = new ArrayList<String>();
 
         for(String result : results) {
-            //if(result.equals("keyboard") || result.equals("laptop") || result.equals("mouse") || result.equals("person")) {
             if (!result.equals("???")){
                 detectedObjects.add(result);
             }
@@ -1026,9 +1025,9 @@ public class MMAutonomousRedRelicV2 extends LinearOpMode {
             case STEP4:
                 // Turn towards the VuMark
                 if (alliance == ALLIANCE_COLOR.RED) {
-                    driveStatus = navxRotateToAngle(CargoBotConstants.RED_TURN_ANGLE_V2, yawKp);
+                    driveStatus = navxRotateToAngle(CargoBotConstants.RED_TURN_ANGLE_V2, 0.8 * yawKp);
                 } else {
-                    driveStatus = navxRotateToAngle(CargoBotConstants.BLUE_TURN_ANGLE_V2, yawKp);
+                    driveStatus = navxRotateToAngle(CargoBotConstants.BLUE_TURN_ANGLE_V2, 0.8 * yawKp);
                 }
 
                 if (driveStatus) {
@@ -1122,11 +1121,11 @@ public class MMAutonomousRedRelicV2 extends LinearOpMode {
                 }
                 break;
             case STEP12:
-                // turn 180 to get ready for teleOp or trying to pick up extra block from the center pile
+                // turn 180 to get ready for teleOp or try to pick up extra block from the center pile
                 driveStatus = navxRotateToAngle(CargoBotConstants.ANGLE_TO_FACE_BOX_RED_RELIC + 180, 0.8 * yawKp);
                 break;
             case STEP13:
-                // TODO: ensure when the last step is complete, call onRobotStopOrInterrupt() to terminate properly. For now, step 12 is the conclusion of autonomous mode.
+                // TODO: ensure when the last step is complete, call onRobotStopOrInterrupt() to terminate properly. For now, step 13 is the conclusion of autonomous mode.
                 onRobotStopOrInterrupt();
                 telemetry.addData("Autonomous", "Complete");
                 telemetry.update();
