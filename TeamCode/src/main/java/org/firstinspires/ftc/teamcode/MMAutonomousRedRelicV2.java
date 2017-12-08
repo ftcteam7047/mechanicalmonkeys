@@ -213,6 +213,7 @@ public class MMAutonomousRedRelicV2 extends LinearOpMode {
     ENCODER_DRIVE state = ENCODER_DRIVE.START;
     boolean driveStatus = false;
     boolean liftStatus = false;
+    boolean intakeStatus = false;
 
     enum OPMODE_STEPS {
         STEP1,
@@ -820,6 +821,11 @@ public class MMAutonomousRedRelicV2 extends LinearOpMode {
         IN,
         OUT
     }
+    enum INTAKE_MOTOR {
+        PRIMARY,
+        SECONDARY,
+        BOTH
+    }
 
     enum ENUM_INTAKE_CONTROLLER_STATE {
         START,
@@ -1023,9 +1029,19 @@ public class MMAutonomousRedRelicV2 extends LinearOpMode {
                             calculateTimeout(CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_WITHOUT_OFFSET +
                                             drivingOffPlatformOffset,
                                     CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
+                    // getting off the blue platform requires primary intake motor to "paddle" the robot off the platform
+                    // because there is not enough height clearance
+                    if (!intakeStatus) {
+                        intakeStatus = intakeController(CargoBotConstants.PRIMARY_INTAKE_MOTOR_ACTIVATION_TIME,
+                                INTAKE_DIR.IN,
+                                INTAKE_MOTOR.PRIMARY);
+                    }
+
                 }
-                if (driveStatus) {
+                if (driveStatus && intakeStatus) {
                     opmodeState = OPMODE_STEPS.STEP4;
+                    // reset the intake status before going to the next step
+                    intakeStatus = false;
                 }
                 break;
             case STEP4:
@@ -1112,9 +1128,11 @@ public class MMAutonomousRedRelicV2 extends LinearOpMode {
                 break;
             case STEP10:
                 // release block
-                driveStatus = intakeController(CargoBotConstants.INTAKE_MOTOR_ACTIVATION_TIME, INTAKE_DIR.OUT);
-                if (driveStatus) {
+                intakeStatus = intakeController(CargoBotConstants.BOTH_INTAKE_MOTOR_ACTIVATION_TIME, INTAKE_DIR.OUT, INTAKE_MOTOR.BOTH);
+                if (intakeStatus) {
                     opmodeState = OPMODE_STEPS.STEP11;
+                    // reset the status before going to the next step
+                    intakeStatus = false;
                 }
                 break;
             case STEP11:
@@ -1433,7 +1451,7 @@ public class MMAutonomousRedRelicV2 extends LinearOpMode {
     }
 
 
-    private boolean intakeController(double activationTime, INTAKE_DIR dir) {
+    private boolean intakeController(double activationTime, INTAKE_DIR dir, INTAKE_MOTOR motor) {
         boolean isDone = false;
 
         switch (intakeControllerState){
@@ -1447,9 +1465,9 @@ public class MMAutonomousRedRelicV2 extends LinearOpMode {
             case RUN:
                 // run the motors for the length of activation time
                 if ((getRuntime() - intakeMotorRunTime) < activationTime){
-                    activateIntakeMotors();
+                    activateIntakeMotorWithChoice(motor);
                 } else {
-                    intakeControllerState = ENUM_INTAKE_CONTROLLER_STATE.RUN;
+                    intakeControllerState = ENUM_INTAKE_CONTROLLER_STATE.END;
                 }
                 break;
 
@@ -1463,14 +1481,26 @@ public class MMAutonomousRedRelicV2 extends LinearOpMode {
         return isDone;
     }
 
-    private void activateIntakeMotors(){
-        // activate primary intake motor
-        robot.frontIntakeMotor.setPower(CargoBotConstants.FRONT_INTAKE_POWER);
 
-        // activate equal power on both left and right intake motors
-        robot.leftIntakeMotor.setPower(CargoBotConstants.LEFT_INTAKE_POWER);
-        robot.rightIntakeMotor.setPower(CargoBotConstants.RIGHT_INTAKE_POWER);
-
+    private void activateIntakeMotorWithChoice(INTAKE_MOTOR motor){
+        switch (motor){
+            case PRIMARY:
+                // activate primary intake motor
+                robot.frontIntakeMotor.setPower(CargoBotConstants.FRONT_INTAKE_POWER);
+                break;
+            case SECONDARY:
+                // activate equal power on both left and right intake motors
+                robot.leftIntakeMotor.setPower(CargoBotConstants.LEFT_INTAKE_POWER);
+                robot.rightIntakeMotor.setPower(CargoBotConstants.RIGHT_INTAKE_POWER);
+                break;
+            case BOTH:
+                // activate primary intake motor
+                robot.frontIntakeMotor.setPower(CargoBotConstants.FRONT_INTAKE_POWER);
+                // activate equal power on both left and right intake motors
+                robot.leftIntakeMotor.setPower(CargoBotConstants.LEFT_INTAKE_POWER);
+                robot.rightIntakeMotor.setPower(CargoBotConstants.RIGHT_INTAKE_POWER);
+                break;
+        }
     }
 
     private void turnOffIntakeMotors(){
@@ -1502,6 +1532,8 @@ public class MMAutonomousRedRelicV2 extends LinearOpMode {
         if (navxDevice != null) {
             navxDevice.close();
         }
+        turnOffIntakeMotors();
+        turnOffDriveMotors();
         // save the block lift position for next operation
         robot.fileHandler.writeToFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, Integer.toString(offset + robot.blockLift.getCurrentPosition()), robot.context);
     }

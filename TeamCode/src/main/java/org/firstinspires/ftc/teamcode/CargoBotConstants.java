@@ -143,14 +143,15 @@ public interface CargoBotConstants {
     double CONTROL_STICK_THRESHOLD_FOR_BACKUP_TO_PLATFORM = 0.1;
     double BACKUP_ONTO_PLATFORM_SPEED = 0.7;
 
-    // lift position telerance, to check how close the lift is to the target
+    // lift position tolerance, to check how close the lift is to the target
     // if it's close enough, then stop requesting the moveRampToFlat or moaveRampToDown functions
     int LIFT_TARGET_TOLERANCE = 30;
 
     // intake motors
-    double INTAKE_MOTOR_ACTIVATION_TIME = 2;
+    double BOTH_INTAKE_MOTOR_ACTIVATION_TIME = 2;
     double FRONT_INTAKE_POWER = 0.5;
     double LEFT_INTAKE_POWER = 0.85;
     double RIGHT_INTAKE_POWER = 0.85;
+    double PRIMARY_INTAKE_MOTOR_ACTIVATION_TIME = 3;
 }
 
