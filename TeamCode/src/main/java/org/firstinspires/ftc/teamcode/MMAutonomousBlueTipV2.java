@@ -975,7 +975,7 @@ public class MMAutonomousBlueTipV2 extends LinearOpMode {
                                     calculateTimeout(CargoBotConstants.BALL_DISTANCE,
                                             CargoBotConstants.BALL_SPEED),
                                     0);
-                            drivingOffPlatformOffset = CargoBotConstants.DRIVE_BLUE_OFF_PLATFORM_MORE_OFFSET;
+                            drivingOffPlatformOffset = CargoBotConstants.DRIVE_OFF_PLATFORM_MORE_OFFSET;
                         } else {
                             // move back
                             driveStatus = navxDrive(CargoBotConstants.BALL_SPEED,
@@ -1007,14 +1007,14 @@ public class MMAutonomousBlueTipV2 extends LinearOpMode {
                 // leaving platform always use negative for red and leaving platform for blue always use positive
                 if (alliance == ALLIANCE_COLOR.RED) {
                     driveStatus = navxDrive(CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED,
-                            -CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET - drivingOffPlatformOffset,
-                            calculateTimeout(CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET +
+                            -CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_DISTANCE_WITHOUT_OFFSET - drivingOffPlatformOffset,
+                            calculateTimeout(CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_DISTANCE_WITHOUT_OFFSET +
                                             drivingOffPlatformOffset,
                                     CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
                 } else {
                     driveStatus = navxDrive(CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED,
-                            CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET + drivingOffPlatformOffset,
-                            calculateTimeout(CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET +
+                            CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_DISTANCE_WITHOUT_OFFSET + drivingOffPlatformOffset,
+                            calculateTimeout(CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_DISTANCE_WITHOUT_OFFSET +
                                             drivingOffPlatformOffset,
                                     CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
                     // getting off the blue platform requires primary intake motor to "paddle" the robot off the platform

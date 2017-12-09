@@ -50,7 +50,6 @@ public interface CargoBotConstants {
     double DRIVING_OFF_PLATFORM_SPEED = 0.3;
     // drive off platform parameters for V2
     double DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET = 27; // this has to be adjusted from V1, because the intake is in the center whereas the gripper is off-centered
-    double DRIVE_OFF_TIP_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET = 26;
 
     double RED_TURN_ANGLE = -35;
     double BLUE_TURN_ANGLE = 60;
@@ -104,15 +103,15 @@ public interface CargoBotConstants {
     double AWAY_FROM_BLOCK_DISTANCE = 3.0;
 
     // cryptoBox for tip
-
     double BACKUP_OFFSET_TO_APPROACH_TIP_BOX = 2.75;
     double ANGLE_TO_FACE_BOX_RED_TIP = 180.0;
     double CRYPTO_BOX_DISTANCE_RED_TIP = 5.5;
     // for curious george v2
     double ANGLE_TO_FACE_FIELD_CENTER_RED_BLUE_TIP = -179.99;
+    double CRYPTO_BOX_DISTANCE_V2_RED_TIP = 2.5;
+    double BACKUP_OFFSET_V2_TO_APPROACH_TIP_BOX = 3.75;
 
     // cryptoBox for blue relic
-
     double BLUE_RELIC_COLUMN_OFFSET = 7.5;
     double DRIVE_BLUE_OFF_PLATFORM_MORE_OFFSET = 1.75;
     double CRYPTO_BOX_DISTANCE_BLUE_RELIC = 8.5;
@@ -120,11 +119,11 @@ public interface CargoBotConstants {
     double CRYPTO_BOX_DISTANCE_V2_BLUE_RELIC = 5.5;
 
     // cryptoBox for blue tip
-
-    double ANGLE_TO_FACE_BLUE_TIP_COLUMN = 2;
+    double ANGLE_TO_FACE_BLUE_TIP_COLUMN = 1;
     double BLUE_TIP_COLUMN_OFFSET = 8.0;
     // for curious george v2
     double BLUE_TIP_COLUMN_V2_OFFSET = 7.0; // this has to be adjusted from V1, because the intake is in the center whereas the gripper is off-centered
+
 
     // diagonal movement
     boolean DO_DIAGONAL = false;
