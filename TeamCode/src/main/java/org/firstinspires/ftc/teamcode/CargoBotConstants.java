@@ -108,6 +108,8 @@ public interface CargoBotConstants {
     double BACKUP_OFFSET_TO_APPROACH_TIP_BOX = 2.75;
     double ANGLE_TO_FACE_BOX_RED_TIP = 180.0;
     double CRYPTO_BOX_DISTANCE_RED_TIP = 5.5;
+    // for curious george v2
+    double ANGLE_TO_FACE_FIELD_CENTER_RED_BLUE_TIP = -179.99;
 
     // cryptoBox for blue relic
 
