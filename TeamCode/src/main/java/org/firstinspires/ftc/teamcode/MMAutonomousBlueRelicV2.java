@@ -213,7 +213,8 @@ public class MMAutonomousBlueRelicV2 extends LinearOpMode {
         STEP11,
         STEP12,
         STEP13,
-        STEP14
+        STEP14,
+        STEP15
     }
     OPMODE_STEPS opmodeState = OPMODE_STEPS.STEP1;
 
@@ -260,12 +261,16 @@ public class MMAutonomousBlueRelicV2 extends LinearOpMode {
     boolean isRobotPositionAvailable = false;
 
     double lowerBallArmStartTime = 0.0;
+    double ballDetectionStartTime = 0.0;
 
     @Override public void runOpMode() throws InterruptedException {
         try {
             while (!isDoneRunningAuto && !Thread.currentThread().isInterrupted()) {
 
                 robot.init(hardwareMap);
+
+                // init servo position
+                robot.liftServo.setPosition(CargoBotConstants.DOWN_TARGET);
 
                 //this initializes the navx gyro
                 navxDevice = AHRS.getInstance(hardwareMap.deviceInterfaceModule.get("dim"),
@@ -935,6 +940,7 @@ public class MMAutonomousBlueRelicV2 extends LinearOpMode {
                 }
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP2;
+                    ballDetectionStartTime = getRuntime();
                 }
                 break;
             case STEP2:
@@ -983,6 +989,10 @@ public class MMAutonomousBlueRelicV2 extends LinearOpMode {
 
                 } else {
                     telemetry.addData("detection result", "unknown");
+                    if ((getRuntime() - ballDetectionStartTime) >= CargoBotConstants.BALL_DETECTION_TIMEOUT){
+                        driveStatus = true;
+                        drivingOffPlatformOffset = 0;
+                    }
                 }
                 telemetry.addData("detection list", predictions.toString());
                 telemetry.update();
@@ -1144,6 +1154,26 @@ public class MMAutonomousBlueRelicV2 extends LinearOpMode {
                 }
                 break;
             case STEP13:
+                // drive backwards to push the block further into the box
+                driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                        CargoBotConstants.BACKUP_PUSH_BLOCK_DISTANCE,
+                        calculateTimeout(CargoBotConstants.BACKUP_PUSH_BLOCK_DISTANCE, CargoBotConstants.APPROACH_SPEED),
+                        CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_RED_BLUE_RELIC);
+                if (driveStatus) {
+                    opmodeState = OPMODE_STEPS.STEP14;
+                }
+                break;
+            case STEP14:
+                // drive forward so the robot is not in contact with the block
+                driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                        CargoBotConstants.AWAY_FROM_BLOCK_DISTANCE,
+                        calculateTimeout(CargoBotConstants.AWAY_FROM_BLOCK_DISTANCE, CargoBotConstants.APPROACH_SPEED),
+                        CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_RED_BLUE_RELIC);
+                if (driveStatus) {
+                    opmodeState = OPMODE_STEPS.STEP15;
+                }
+                break;
+            case STEP15:
                 // TODO: ensure when the last step is complete, call onRobotStopOrInterrupt() to terminate properly. For now, step 13 is the conclusion of autonomous mode.
                 onRobotStopOrInterrupt();
                 telemetry.addData("Autonomous", "Complete");
@@ -1437,6 +1467,7 @@ public class MMAutonomousBlueRelicV2 extends LinearOpMode {
                 break;
 
             case END:
+                turnOffIntakeMotors();
                 intakeControllerState = INTAKE_CONTROLLER_STATE.START;
                 isDone = true;
                 break;
