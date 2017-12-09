@@ -109,7 +109,7 @@ interface MMShooterBotConstants {
     double     ANGLE_TO_TIP_THE_CAP_BALL            = -30;
     double     ANGLE_TO_TIP_THE_BALL_VARIANT_1_2    = 30;
     double     TIME_PER_11_INCH                     = 1.5;
-    double     TIMEOUT_SCALING_FACTOR               = TIME_PER_11_INCH * (MMShooterBotConstants.DRIVE_SPEED * 2)/11.0; // reference distance is 11 inches; reference speed is 2x DIRVE_SPEED
+    double     TIMEOUT_SCALING_FACTOR               = TIME_PER_11_INCH * (MMShooterBotConstants.DRIVE_SPEED * 2.2)/11.0; // reference distance is 11 inches; reference speed is 2x DIRVE_SPEED
     double     TIMEOUT_DIAGONAL_DISTANCE            = 3.6; // 3.6 for field; 4.0 for home
     double     TIMEOUT_DIAGONAL_DISTANCE_VAR_SPEED  = 3.7; // home carpet use 3.0, field matt measure at 2.62
     double     DIAGONAL_DECELERATION_TIME           = 1.7;

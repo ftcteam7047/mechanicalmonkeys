@@ -29,6 +29,7 @@ public class HardwareMecanumCargoBotV2 {
 
     // declaration of all robot servos
     public Servo ballArm;
+    public Servo liftServo;
 
 
     // enum for relic arm
@@ -82,7 +83,7 @@ public class HardwareMecanumCargoBotV2 {
         frontRightDrive = hwMap.dcMotor.get("frontRightDrive");
         rearLeftDrive = hwMap.dcMotor.get("rearLeftDrive");
         rearRightDrive = hwMap.dcMotor.get("rearRightDrive");
-        blockLift = hwMap.dcMotor.get("blockLift");
+        blockLift = hwMap.dcMotor.get("blockLiftVer2");
         frontIntakeMotor = hwMap.dcMotor.get("frontIntakeMotor");
         leftIntakeMotor = hwMap.dcMotor.get("leftIntakeMotor");
         rightIntakeMotor = hwMap.dcMotor.get("rightIntakeMotor");
@@ -90,7 +91,7 @@ public class HardwareMecanumCargoBotV2 {
 
         //relicServo = hwMap.servo.get("relicServo");
         ballArm = hwMap.servo.get("ballArm");
-
+        liftServo = hwMap.servo.get("testServo");
 
         // Set motor initial direction
         frontLeftDrive.setDirection(DcMotor.Direction.FORWARD); // Set to FORWARD if using AndyMark motors Neverest 40

@@ -99,7 +99,9 @@ public interface CargoBotConstants {
     // for curious george v2
     double CRYPTO_BOX_DISTANCE_V2_RED_RELIC = 4.0;
     double BACKUP_DISTANCE_V2 = -5.5; // need to back up enough so that there is enough room to turn around without hitting the cryptoBox
-    double ANGLE_TO_FACE_FIELD_CENTER_RED_BLUE_RELIC = ANGLE_TO_FACE_BOX_RED_RELIC + 180.0;
+    double BACKUP_PUSH_BLOCK_DISTANCE = -11.0;
+    double ANGLE_TO_FACE_FIELD_CENTER_RED_BLUE_RELIC = -90.0;
+    double AWAY_FROM_BLOCK_DISTANCE = 3.0;
 
     // cryptoBox for tip
 
@@ -166,5 +168,16 @@ public interface CargoBotConstants {
 
     // Delay for lowering the ball arm
     double LOWER_BALL_ARM_DELAY = 0.5;
+
+    // lift servo parameters
+    // servo parameters
+    double DOWN_TARGET = 0.82;
+    double UP_TARGET = 0.0;
+    double FLAT_TARGET = 0.62;
+    double TIME_INCREMENT = 0.025;
+    double POS_INCREMENT = 0.02;
+
+    // ball detection timeout
+    double BALL_DETECTION_TIMEOUT = 10.0;
 }
 
