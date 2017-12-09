@@ -1084,24 +1084,24 @@ public class MMAutonomousBlueTipV2 extends LinearOpMode {
                 switch (vuMarkIdentified) {
                     case LEFT:
                         driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
-                                -CargoBotConstants.BLUE_TIP_COLUMN_OFFSET,
-                                calculateTimeout(CargoBotConstants.BLUE_TIP_COLUMN_OFFSET,
+                                -CargoBotConstants.BLUE_TIP_COLUMN_V2_OFFSET,
+                                calculateTimeout(CargoBotConstants.BLUE_TIP_COLUMN_V2_OFFSET,
                                         CargoBotConstants.APPROACH_SPEED), 90);
                         break;
                     case CENTER:
                         driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
                                 -CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC
-                                        - CargoBotConstants.BLUE_TIP_COLUMN_OFFSET,
+                                        - CargoBotConstants.BLUE_TIP_COLUMN_V2_OFFSET,
                                 calculateTimeout(CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC
-                                                + CargoBotConstants.BLUE_TIP_COLUMN_OFFSET,
+                                                + CargoBotConstants.BLUE_TIP_COLUMN_V2_OFFSET,
                                         CargoBotConstants.APPROACH_SPEED), 90);
                         break;
                     case RIGHT:
                         driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
                                 -CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC
-                                        - CargoBotConstants.BLUE_TIP_COLUMN_OFFSET,
+                                        - CargoBotConstants.BLUE_TIP_COLUMN_V2_OFFSET,
                                 calculateTimeout(CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC
-                                                + CargoBotConstants.BLUE_TIP_COLUMN_OFFSET,
+                                                + CargoBotConstants.BLUE_TIP_COLUMN_V2_OFFSET,
                                         CargoBotConstants.APPROACH_SPEED), 90);
                         break;
                 }

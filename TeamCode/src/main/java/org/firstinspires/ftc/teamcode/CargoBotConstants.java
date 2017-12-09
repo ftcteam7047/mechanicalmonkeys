@@ -123,6 +123,8 @@ public interface CargoBotConstants {
 
     double ANGLE_TO_FACE_BLUE_TIP_COLUMN = 2;
     double BLUE_TIP_COLUMN_OFFSET = 8.0;
+    // for curious george v2
+    double BLUE_TIP_COLUMN_V2_OFFSET = 7.0; // this has to be adjusted from V1, because the intake is in the center whereas the gripper is off-centered
 
     // diagonal movement
     boolean DO_DIAGONAL = false;
