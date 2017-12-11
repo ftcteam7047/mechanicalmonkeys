@@ -49,13 +49,13 @@ public interface CargoBotConstants {
     double DRIVE_OFF_TIP_PLATFORM_DISTANCE_WITHOUT_OFFSET = 25;
     double DRIVING_OFF_PLATFORM_SPEED = 0.3;
     // drive off platform parameters for V2
-    double DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET = 24; // this has to be adjusted from V1, because the intake is in the center whereas the gripper is off-centered
+    double DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET = 27; // this has to be adjusted from V1, because the intake is in the center whereas the gripper is off-centered
 
     double RED_TURN_ANGLE = -35;
     double BLUE_TURN_ANGLE = 60;
     double PHONE_MOUNT_V2_ANGLE = -12; // since phone mount is at an angle in Curious George V2
     double RED_TURN_ANGLE_V2 = RED_TURN_ANGLE + PHONE_MOUNT_V2_ANGLE;
-    double BLUE_TURN_ANGLE_V2 = BLUE_TURN_ANGLE + PHONE_MOUNT_V2_ANGLE;
+    double BLUE_TURN_ANGLE_V2 = 10;
 
     double VU_MARK_DETECTION_TIMEOUT = 5.0;
 
