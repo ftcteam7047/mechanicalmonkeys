@@ -127,6 +127,18 @@ public class HardwareMecanumCargoBotV2 {
         frontRightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rearLeftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rearRightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        // It must have "RUN_USING_ENCODER" to drive, or motor controller will not
+        // send power to the motor
+        frontLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rearLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rearRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        leftIntakeMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightIntakeMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftIntakeMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightIntakeMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
         liftPosition = LiftPosition.INIT_POSITION;
         blockLift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         blockLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
