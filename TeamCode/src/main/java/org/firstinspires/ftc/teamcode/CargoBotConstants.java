@@ -50,6 +50,7 @@ public interface CargoBotConstants {
     double DRIVING_OFF_PLATFORM_SPEED = 0.3;
     // drive off platform parameters for V2
     double DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET = 27; // this has to be adjusted from V1, because the intake is in the center whereas the gripper is off-centered
+    double DRIVE_OFF_BLUE_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET = 24;
 
     double RED_TURN_ANGLE = -35;
     double BLUE_TURN_ANGLE = 60;
