@@ -827,6 +827,13 @@ public class MMAutonomousBlueRelicV2 extends LinearOpMode {
     boolean isStep1Started = false;
     double intakeMotorRunTime = 0.0;
 
+    DRIVE_STATE driveState = DRIVE_STATE.START;
+    navXPIDController.PIDResult yawPIDResult = new navXPIDController.PIDResult();
+    int     newLeftTarget;
+    int     newRightTarget;
+    int     moveCounts;
+    double navxDriveStartTime;
+
     /*
  *  Method to perfmorm a relative move, based on encoder counts.
  *  Encoders are not reset as the move is based on the current position.
@@ -1321,108 +1328,126 @@ public class MMAutonomousBlueRelicV2 extends LinearOpMode {
         }
     }
 
+    enum DRIVE_STATE {
+        START,
+        RUN,
+        END
+    }
     public boolean navxDrive( double speed,
-                           double distance,
-                           double timeoutS,
-                           double angle) throws InterruptedException {
+                              double distance,
+                              double timeoutS,
+                              double angle) throws InterruptedException {
 
-        int     newLeftTarget;
-        int     newRightTarget;
-        int     moveCounts;
+
         boolean driveComplete = false;
         // negation for mecanum drive arrangement
         distance = -distance;
-
         // set up navx stuff
         double angleNormalized = -angle; // reverse the angle's direction: since positive is for CCW, negative is for CW
-        // set the parameters before enabling the PID controller
-        yawDrivePIDController.enable(true);
-        yawDrivePIDController.setSetpoint(angleNormalized);
-        yawDrivePIDController.setPID(Kp, MMShooterBotConstants.YAW_PID_I, MMShooterBotConstants.YAW_PID_D);
 
-        navXPIDController.PIDResult yawPIDResult = new navXPIDController.PIDResult();
 
-        DecimalFormat df = new DecimalFormat("#.##");
-
-        Thread.sleep(MMShooterBotConstants.SLEEP_MS);
         // according to documentation, this instruction blocks the thread, and won't return immediately
         // it returns true if new data is available; false if it times out.
-        if (yawDrivePIDController.waitForNewUpdate(yawPIDResult, MMShooterBotConstants.WAIT_FOR_UPDATE_TIMEOUT_MS)) {
-            // proceed to keep using data from navx-micro
-            // Ensure that the opmode is still active
-            if (opModeIsActive()) {
 
-                // Determine new target position, and pass to motor controller
-                moveCounts = (int)(distance * MMShooterBotConstants.COUNTS_PER_INCH);
-                newLeftTarget = robot.frontLeftDrive.getCurrentPosition() + moveCounts;
-                newRightTarget = robot.frontRightDrive.getCurrentPosition() + moveCounts;
-                newLeftTarget = robot.rearLeftDrive.getCurrentPosition() + moveCounts;
-                newRightTarget = robot.rearRightDrive.getCurrentPosition() + moveCounts;
+        // proceed to keep using data from navx-micro
+        // Ensure that the opmode is still active
+        if (opModeIsActive()) {
+            switch (driveState) {
+                case START:
+                    // set the parameters before enabling the PID controller
+                    yawDrivePIDController.enable(true);
+                    yawDrivePIDController.setSetpoint(angleNormalized);
+                    yawDrivePIDController.setPID(Kp, MMShooterBotConstants.YAW_PID_I, MMShooterBotConstants.YAW_PID_D);
 
-                // Set Target and Turn On RUN_TO_POSITION
-                robot.frontLeftDrive.setTargetPosition(newLeftTarget);
-                robot.frontRightDrive.setTargetPosition(newRightTarget);
-                robot.rearLeftDrive.setTargetPosition(newLeftTarget);
-                robot.rearRightDrive.setTargetPosition(newRightTarget);
+                    DecimalFormat df = new DecimalFormat("#.##");
 
-                robot.frontLeftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                robot.frontRightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                robot.rearLeftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                robot.rearRightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    Thread.sleep(MMShooterBotConstants.SLEEP_MS);
+                    if (yawDrivePIDController.waitForNewUpdate(yawPIDResult, MMShooterBotConstants.WAIT_FOR_UPDATE_TIMEOUT_MS)) {
 
-                // start motion.
-                speed = Range.clip(Math.abs(speed), 0.0, 1.0);
+                    } else {
+                        // time out occurs, fall back to use modern robotics gyro and change the mission route
+                        RobotLog.vv("navXRotateOp", "Yaw PID waitForNewUpdate() TIMEOUT.");
+                        isNavxMicroDataTimeout = true;
+                        yawDrivePIDController.enable(false);
+                    }
+                    // Determine new target position, and pass to motor controller
+                    moveCounts = (int)(distance * MMShooterBotConstants.COUNTS_PER_INCH);
+                    newLeftTarget = robot.frontLeftDrive.getCurrentPosition() + moveCounts;
+                    newRightTarget = robot.frontRightDrive.getCurrentPosition() + moveCounts;
+                    newLeftTarget = robot.rearLeftDrive.getCurrentPosition() + moveCounts;
+                    newRightTarget = robot.rearRightDrive.getCurrentPosition() + moveCounts;
 
-                runtime.reset();
-                // for debugging only, activate it when necessary
-                //RobotLog.vv(MMShooterBotConstants.GYRO_DRIVE_TAG, ",run time after reset =,%5.2f, seconds", runtime.seconds());
+                    // Set Target and Turn On RUN_TO_POSITION
+                    robot.frontLeftDrive.setTargetPosition(newLeftTarget);
+                    robot.frontRightDrive.setTargetPosition(newRightTarget);
+                    robot.rearLeftDrive.setTargetPosition(newLeftTarget);
+                    robot.rearRightDrive.setTargetPosition(newRightTarget);
 
-                // keep looping while we are still active, and either motors are running.
-                while (opModeIsActive() && robot.frontLeftDrive.isBusy() && robot.frontRightDrive.isBusy()
-                        && robot.rearLeftDrive.isBusy() && robot.rearRightDrive.isBusy() &&
-                        (runtime.seconds() < timeoutS)){
-                    if (yawDrivePIDController.isNewUpdateAvailable(yawPIDResult)) {
-                        if (yawPIDResult.isOnTarget()) {
-                            robot.frontLeftDrive.setPower(speed);
-                            robot.frontRightDrive.setPower(speed);
-                            robot.rearLeftDrive.setPower(speed);
-                            robot.rearRightDrive.setPower(speed);
+                    robot.frontLeftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    robot.frontRightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    robot.rearLeftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    robot.rearRightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+                    // start motion.
+                    speed = Range.clip(Math.abs(speed), 0.0, 1.0);
+
+                    navxDriveStartTime = getRuntime();
+                    // for debugging only, activate it when necessary
+                    //RobotLog.vv(MMShooterBotConstants.GYRO_DRIVE_TAG, ",run time after reset =,%5.2f, seconds", runtime.seconds());
+
+                    driveState = DRIVE_STATE.RUN;
+
+                    break;
+                case RUN:
+                    // keep looping while we are still active, and either motors are running.
+                    if (robot.frontLeftDrive.isBusy() && robot.frontRightDrive.isBusy()
+                            && robot.rearLeftDrive.isBusy() && robot.rearRightDrive.isBusy() &&
+                            ((getRuntime() - navxDriveStartTime) < timeoutS)){
+                        if (yawDrivePIDController.isNewUpdateAvailable(yawPIDResult)) {
+                            if (yawPIDResult.isOnTarget()) {
+                                robot.frontLeftDrive.setPower(speed);
+                                robot.frontRightDrive.setPower(speed);
+                                robot.rearLeftDrive.setPower(speed);
+                                robot.rearRightDrive.setPower(speed);
 //                            telemetry.addData("PIDOutput", df.format(speed) + ", " +
 //                                    df.format(speed));
-                        } else {
-                            double output = yawPIDResult.getOutput();
-                            // if driving in reverse, the motor correction also needs to be reversed
-                            if (distance < 0)
-                                output *= -1.0;
+                            } else {
+                                double output = yawPIDResult.getOutput();
+                                // if driving in reverse, the motor correction also needs to be reversed
+                                if (distance < 0)
+                                    output *= -1.0;
 
-                            robot.frontLeftDrive.setPower(speed + output);
-                            robot.frontRightDrive.setPower(speed - output);
-                            robot.rearLeftDrive.setPower(speed + output);
-                            robot.rearRightDrive.setPower(speed - output);
+                                robot.frontLeftDrive.setPower(speed + output);
+                                robot.frontRightDrive.setPower(speed - output);
+                                robot.rearLeftDrive.setPower(speed + output);
+                                robot.rearRightDrive.setPower(speed - output);
 //                            telemetry.addData("PIDOutput", df.format(limit(speed + output)) + ", " +
 //                                    df.format(limit(speed - output)));
-                        }
+                            }
+
 //                        telemetry.addData("Yaw", df.format(navxDevice.getYaw()));
-                    }
+                        }
 //                    telemetry.update();
 
-                    // for debugging only, activate it when necessary
-                    //RobotLog.vv(MMShooterBotConstants.GYRO_DRIVE_TAG, ",run time =,%5.2f, seconds", runtime.seconds());
-                }
-
-                // stop the momentum of the robot
-                turnOffDriveMotors();
-                driveComplete = true;
+                        // for debugging only, activate it when necessary
+                        //RobotLog.vv(MMShooterBotConstants.GYRO_DRIVE_TAG, ",run time =,%5.2f, seconds", runtime.seconds());
+                    } else {
+                        driveState = DRIVE_STATE.END;
+                    }
+                    break;
+                case END:
+                    // stop the momentum of the robot
+                    turnOffDriveMotors();
+                    driveComplete = true;
+                    yawDrivePIDController.enable(false);
+                    driveState = DRIVE_STATE.START;
+                    break;
             }
-
-        } else {
-            // time out occurs, fall back to use modern robotics gyro and change the mission route
-            RobotLog.vv("navXRotateOp", "Yaw PID waitForNewUpdate() TIMEOUT.");
-            isNavxMicroDataTimeout = true;
         }
-        yawDrivePIDController.enable(false);
+
         return driveComplete;
     }
+
 
     public void turnOffDriveMotors() {
         // Stop all motion;
