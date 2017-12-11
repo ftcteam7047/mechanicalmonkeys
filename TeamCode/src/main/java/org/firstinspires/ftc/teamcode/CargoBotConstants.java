@@ -176,7 +176,7 @@ public interface CargoBotConstants {
     // servo parameters
     double DOWN_TARGET = 0.82;
     double UP_TARGET = 0.0;
-    double FLAT_TARGET = 0.62;
+    double FLAT_TARGET = 0.66;
     double TIME_INCREMENT = 0.025;
     double POS_INCREMENT = 0.02;
 

@@ -62,7 +62,7 @@ public class MMVersion2Test2 extends OpMode {
     // servo parameters
     double downTarget = 0.82;
     double upTarget = 0.0;
-    double flatTarget = 0.62;
+    double flatTarget = 0.66;
     double timeIncrement = 0.025;
     double posIncrement = 0.02;
 
