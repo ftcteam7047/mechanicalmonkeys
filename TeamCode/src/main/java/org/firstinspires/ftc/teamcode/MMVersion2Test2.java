@@ -29,7 +29,7 @@ import static java.lang.Math.sqrt;
  * 1 MakeBlock servo for rotating the ramp/placing the block
  */
 
-@TeleOp(name = "MM Version2 Test 2")
+@TeleOp(name = "CargoBotAdvanced V2")
 //@Disabled
 
 public class MMVersion2Test2 extends OpMode {
