@@ -38,6 +38,7 @@ import android.util.Log;
 import com.kauailabs.navx.ftc.AHRS;
 import com.kauailabs.navx.ftc.navXPIDController;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -96,7 +97,7 @@ import static java.lang.StrictMath.sin;
  */
 
 @Autonomous(name="Blue Relic V2_1", group ="Blue")
-//@Disabled
+@Disabled
 public class MMAutonomousBlueRelicV2_1 extends LinearOpMode {
 
     public static final String TAG = "Vuforia VuMark Sample";
