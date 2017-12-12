@@ -38,7 +38,6 @@ import android.util.Log;
 import com.kauailabs.navx.ftc.AHRS;
 import com.kauailabs.navx.ftc.navXPIDController;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -96,9 +95,9 @@ import static java.lang.StrictMath.sin;
  * is explained in {@link ConceptVuforiaNavigation}.
  */
 
-@Autonomous(name="Red Relic Autonomous Test", group ="Red")
-@Disabled
-public class MMAutonomousRedRelicTest extends LinearOpMode {
+@Autonomous(name="Red Relic V2 Test", group ="Red")
+//@Disabled
+public class MMAutonomousRedRelicV2Test extends LinearOpMode {
 
     public static final String TAG = "Vuforia VuMark Sample";
 
@@ -152,7 +151,8 @@ public class MMAutonomousRedRelicTest extends LinearOpMode {
     private static final float MINIMUM_CONFIDENCE_YOLO = 0.15f;
     private Classifier detector;
     ArrayList<String> detectionResult = new ArrayList<String>();
-    private static final int MINIMUM_NUM_LOOPS = 50; // approximately 2 frame/sec, since 1 loop per 10ms
+    private static final int MINIMUM_NUM_LOOPS = 16142; // approximately 2 frame/sec
+    private int pseudoSecond = 0;
     int cropSize;
     float minimumConfidence;
     private enum BALL_PREDICTION_RESULT {
@@ -168,7 +168,7 @@ public class MMAutonomousRedRelicTest extends LinearOpMode {
     boolean isFirstLoop = true;
 
 
-    HardwareMecanumCargoBot robot = new HardwareMecanumCargoBot();
+    HardwareMecanumCargoBotV2 robot = new HardwareMecanumCargoBotV2();
 
     enum ALLIANCE_COLOR {
         RED,
@@ -177,11 +177,6 @@ public class MMAutonomousRedRelicTest extends LinearOpMode {
 
     ALLIANCE_COLOR alliance = ALLIANCE_COLOR.RED;
 
-    enum STARTING_POSITION {
-        RELIC,
-        TIP
-    }
-
     public enum LiftPosition {
         GRAB,
         MOVE,
@@ -189,16 +184,6 @@ public class MMAutonomousRedRelicTest extends LinearOpMode {
         PLACE
     }
     LiftPosition liftPosition = LiftPosition.GRAB;
-
-    enum GripperPosition {
-        OPEN,
-        CLOSE,
-        WIDE_OPEN
-    }
-
-    GripperPosition gripperPosition = GripperPosition.CLOSE;
-
-    STARTING_POSITION startingPosition = STARTING_POSITION.RELIC;
 
     private ElapsedTime runtime = new ElapsedTime();
 
@@ -213,7 +198,7 @@ public class MMAutonomousRedRelicTest extends LinearOpMode {
 
     ENCODER_DRIVE state = ENCODER_DRIVE.START;
     boolean driveStatus = false;
-    boolean liftStatus = false;
+    boolean intakeStatus = false;
 
     enum OPMODE_STEPS {
         STEP1,
@@ -230,14 +215,11 @@ public class MMAutonomousRedRelicTest extends LinearOpMode {
         STEP12,
         STEP13,
         STEP14,
-        STEP15,
-        STEP16,
-        STEP17,
-        STEP18
+        STEP15
     }
     OPMODE_STEPS opmodeState = OPMODE_STEPS.STEP1;
 
-    private final int NAVX_DIM_I2C_PORT = 5;
+    private final int NAVX_DIM_I2C_PORT = 1;
     private AHRS navxDevice = null;
     private navXPIDController yawTurnPIDController = null;
     private navXPIDController yawDrivePIDController = null;
@@ -246,13 +228,12 @@ public class MMAutonomousRedRelicTest extends LinearOpMode {
     double yawKp = MMShooterBotConstants.YAW_PID_P;
     boolean isNavxDeviceConnected = false;
     boolean timeoutNavxConnection = false;
-    boolean didRetryIngnterceptingWhiteLine = false;
     boolean isNavxMicroDataTimeout = false;
     double timeNavxDataTestTimeout = 0.0;
     private boolean calibration_complete = false;
     double Kp                   = 0.005;
-	
-	private boolean isDoneRunningAuto = false;
+
+    private boolean isDoneRunningAuto = false;
 
     int target;
     int offset = 0;
@@ -267,7 +248,7 @@ public class MMAutonomousRedRelicTest extends LinearOpMode {
 
     boolean isNavxRotateInitialized = false;
 
-    double stepFiveStartTime;
+    double readVuMarkStartTime;
 
     double tX = 0;
     double tY = 0;
@@ -280,11 +261,21 @@ public class MMAutonomousRedRelicTest extends LinearOpMode {
 
     boolean isRobotPositionAvailable = false;
 
+    double lowerBallArmStartTime = 0.0;
+    double ballDetectionStartTime = 0.0;
+    int frameCounter = 0;
+    // set up counters to be use for object detection
+    int loopCounter = 0;
+    boolean isBallDetetectionDoneDuringInit = false;
+
     @Override public void runOpMode() throws InterruptedException {
         try {
             while (!isDoneRunningAuto && !Thread.currentThread().isInterrupted()) {
 
                 robot.init(hardwareMap);
+
+                // init servo position
+                robot.liftServo.setPosition(CargoBotConstants.DOWN_TARGET);
 
                 //this initializes the navx gyro
                 navxDevice = AHRS.getInstance(hardwareMap.deviceInterfaceModule.get("dim"),
@@ -316,37 +307,7 @@ public class MMAutonomousRedRelicTest extends LinearOpMode {
                 // if it times out, display the warning for 3 seconds to tell the driver to re-activate the configuration
                 navxTestDataTimeout();
 
-        /*
-         * To start up Vuforia, tell it the view that we wish to use for camera monitor (on the RC phone);
-         * If no camera monitor is desired, use the parameterless constructor instead (commented out below).
-         */
-                int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-                VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
 
-                // OR...  Do Not Activate the Camera Monitor View, to save power
-                // VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
-
-        /*
-         * IMPORTANT: You need to obtain your own license key to use Vuforia. The string below with which
-         * 'parameters.vuforiaLicenseKey' is initialized is for illustration only, and will not function.
-         * A Vuforia 'Development' license key, can be obtained free of charge from the Vuforia developer
-         * web site at https://developer.vuforia.com/license-manager.
-         *
-         * Vuforia license keys are always 380 characters long, and look as if they contain mostly
-         * random data. As an example, here is a example of a fragment of a valid key:
-         *      ... yIgIzTqZ4mWjk9wd3cZO9T1axEqzuhxoGlfOOI2dRzKS4T0hQ8kT ...
-         * Once you've obtained a license key, copy the string from the Vuforia web site
-         * and paste it in to your code onthe next line, between the double quotes.
-         */
-                parameters.vuforiaLicenseKey = "AaukgGT/////AAAAGWkWAT0TG0LEo/kIYGHRbONkJEGTvNn6Q1Urj56aIj3ewuw2apA6gNe8KvZxdfL42j2CQo+4CAp0xeKL1zXwrc7wJjNeyavmXD0dUI32L8ssp5QiCAtPXF7uwqLm+Q/1vWD5w5NpD+2l1yCpsZgwhF0IKBlgJmwTZpouOzjSMcGFz5H3ERq/n8b405blFDI4unS6C1BMUIQVhQgFZe2PUrslIMeopgc3MyHIzW5nNhwX161k99VxXCdMPp+qKwP0N4Wj+aVwdGSXzwnX4pwzLdDTh4IsQNHlNaWzT/mv8hIQ703Cxf/L5DiI8KBnLjG9jOtlPXxu9NULXMFZf9qBB8tDnqY5EvkF+gt8n0BHUmNq";
-
-        /*
-         * We also indicate which camera on the RC that we wish to use.
-         * Here we chose the back (HiRes) camera (for greater range), but
-         * for a competition robot, the front camera might be more convenient.
-         */
-                parameters.cameraDirection = VuforiaLocalizer.CameraDirection.BACK;
-                this.vuforia = ClassFactory.createVuforiaLocalizer(parameters);
 
                 // create context to be used with threads
                 Context context;
@@ -354,7 +315,7 @@ public class MMAutonomousRedRelicTest extends LinearOpMode {
                 appContext = context;
 
                 // initialize tensor flow object detection
-                 initDetection(context);
+                initDetection(context);
 
                 // time management
                 int tick = 0;
@@ -369,10 +330,17 @@ public class MMAutonomousRedRelicTest extends LinearOpMode {
                 VuforiaTrackable relicTemplate = relicTrackables.get(0);
                 relicTemplate.setName("relicVuMarkTemplate"); // can help in debugging; otherwise not necessary
 
+                // init vuforia to prepare for ball detection
+                relicTrackables.activate();
+                // set up frame format to be used for object detection
+                vuforia.setFrameQueueCapacity(1);
+                Vuforia.setFrameFormat(PIXEL_FORMAT.RGB565, true);
+
+                VuforiaLocalizer.CloseableFrame frame = null;
+
                 // Wait for the game to start (Display Gyro value), and reset gyro before we move..
-                while (!isStarted()) {
-                    telemetry.addData(">", "Robot Ready. Press Start.");
-                    telemetry.update();
+                while (!isStarted() && !isBallDetetectionDoneDuringInit) {
+                    isBallDetetectionDoneDuringInit = runBallDetectionOnInit(frame);
                     idle();
                 }
 
@@ -381,58 +349,14 @@ public class MMAutonomousRedRelicTest extends LinearOpMode {
                 navxDevice.zeroYaw();
 
                 double tStart = getRuntime();
-                relicTrackables.activate();
 
-                // set up frame format to be used for object detection
-                vuforia.setFrameQueueCapacity(1);
-                Vuforia.setFrameFormat(PIXEL_FORMAT.RGB565, true);
 
-                // set up counters to be use for object detection
-                int loopCounter = 0;
-                int frameCounter = 0;
+
 //                ExecutorService cameraExecutorService = Executors.newFixedThreadPool(1);
 
                 while (opModeIsActive()) {
-                    VuforiaLocalizer.CloseableFrame frame = null;
+
                     tick = getRuntimeInTicks(tStart, PERIOD_PER_TICK);
-                    if ((tick > lastTick) || isFirstLoop) {
-                        // update for comparison in the next loop
-                        lastTick = tick;
-                        isFirstLoop = false;
-
-                        frame = vuforia.getFrameQueue().take();
-                        if (frame != null) {
-                            Image img = getImageFromFrame(frame, PIXEL_FORMAT.RGB565);
-                            if (img != null) {
-                                frameCounter++;
-                                final Bitmap bm = getBitmapFromImage(img);
-
-                                if (!isProcessingFrame) {
-                                    cameraExecutorService.execute(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            isProcessingFrame = true;
-                                            processBitmap(bm);
-                                            isProcessingFrame = false;
-                                        }
-                                    });
-                                }
-
-
-                                RobotLog.vv("detection status", ",%s,", detectionResult.toString());
-                                telemetry.addData("detection status", detectionResult.toString());
-                                telemetry.addData("prediction", predictionString);
-                                telemetry.addData("frame counter", frameCounter);
-                                telemetry.update();
-//                        String absPath = saveToInternalStorage(bm, context, imgCounter);
-//                        imgCounter++;
-//                        telemetry.addData("vuforia image saved path", absPath);
-//                        telemetry.update();
-                            }
-
-                        }
-                    }
-                    loopCounter++;
 
 
                     /**
@@ -708,7 +632,6 @@ public class MMAutonomousRedRelicTest extends LinearOpMode {
         ArrayList<String> detectedObjects = new ArrayList<String>();
 
         for(String result : results) {
-            //if(result.equals("keyboard") || result.equals("laptop") || result.equals("mouse") || result.equals("person")) {
             if (!result.equals("???")){
                 detectedObjects.add(result);
             }
@@ -823,6 +746,26 @@ public class MMAutonomousRedRelicTest extends LinearOpMode {
     VU_MARK_TYPE vuMarkIdentified = VU_MARK_TYPE.UNKNOWN;
     ArrayList<Double> yaws = new ArrayList<Double>();
 
+    enum INTAKE_DIR {
+        IN,
+        OUT
+    }
+    enum INTAKE_MOTOR {
+        PRIMARY,
+        SECONDARY,
+        BOTH
+    }
+
+    enum INTAKE_CONTROLLER_STATE {
+        START,
+        RUN,
+        END
+    }
+    INTAKE_CONTROLLER_STATE intakeControllerState = INTAKE_CONTROLLER_STATE.START;
+    boolean isStep1Started = false;
+    double intakeMotorRunTime = 0.0;
+
+
     /*
  *  Method to perfmorm a relative move, based on encoder counts.
  *  Encoders are not reset as the move is based on the current position.
@@ -832,8 +775,8 @@ public class MMAutonomousRedRelicTest extends LinearOpMode {
  *  3) Driver stops the opmode running.
  */
     public boolean encoderDrive(double speed,
-                             double leftInches, double rightInches,
-                             double timeoutS) {
+                                double leftInches, double rightInches,
+                                double timeoutS) {
         int newLeftTarget = 0;
         int newRightTarget = 0;
         boolean driveComplete = false;
@@ -922,82 +865,73 @@ public class MMAutonomousRedRelicTest extends LinearOpMode {
     private void linearOpModeSteps() throws InterruptedException {
         switch (opmodeState) {
             case STEP1:
-                // Lowers ball arm and raises block
-                grabberController();
-                liftPosition = LiftPosition.STACK;
+                // Lowers ball arm
                 robot.ballArm.setPosition(CargoBotConstants.BALL_ARM_DOWN);
-                driveStatus = blockLiftController();
+                // create a delay so the ball arm has time to go down, just to be on the safe side
+                if (!isStep1Started) {
+                    isStep1Started = true;
+                    lowerBallArmStartTime = getRuntime();
+                }
+                if ((getRuntime() - lowerBallArmStartTime) < CargoBotConstants.LOWER_BALL_ARM_DELAY) {
+                    driveStatus = false;
+                } else {
+                    driveStatus = true;
+                }
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP2;
+                    ballDetectionStartTime = getRuntime();
                 }
                 break;
             case STEP2:
                 // Move backwards or forwards to knock off ball
                 driveStatus = false;
                 if (prediction != BALL_PREDICTION_RESULT.UNKNOWN) {
-                    if (startingPosition == STARTING_POSITION.RELIC) {
-                        if (alliance == ALLIANCE_COLOR.RED) {
-                            if (prediction == BALL_PREDICTION_RESULT.RED_ON_LEFT) {
-                                // move forward or turn right
-                                //telemetry.addData("detection result", "red on left");
-                                //sleep(5000);
-                                predictions.add(prediction);
-                                driveStatus = navxDrive(CargoBotConstants.BALL_SPEED,
-                                        CargoBotConstants.BALL_DISTANCE,
-                                        calculateTimeout(CargoBotConstants.BALL_DISTANCE,
-                                                CargoBotConstants.BALL_SPEED),
-                                        0);
-                                drivingOffPlatformOffset = CargoBotConstants.DRIVE_OFF_PLATFORM_MORE_OFFSET;
-//                                driveStatus = encoderDrive(CargoBotConstants.BALL_SPEED,
-//                                        CargoBotConstants.BALL_DISTANCE,
-//                                        CargoBotConstants.BALL_DISTANCE,
-//                                        5);
-                            } else {
-                                // move back or turn left
-                                //telemetry.addData("detection result", "red on right");
-                                //sleep(5000);
-                                predictions.add(prediction);
-                                driveStatus = navxDrive(CargoBotConstants.BALL_SPEED,
-                                        -CargoBotConstants.BALL_DISTANCE,
-                                        calculateTimeout(CargoBotConstants.BALL_DISTANCE,
-                                                CargoBotConstants.BALL_SPEED),
-                                        0);
-                                drivingOffPlatformOffset = CargoBotConstants.DRIVE_OFF_PLATFORM_LESS_OFFSET;
-//                                driveStatus = encoderDrive(CargoBotConstants.BALL_SPEED,
-//                                        -CargoBotConstants.BALL_DISTANCE,
-//                                        -CargoBotConstants.BALL_DISTANCE,
-//                                        5);
-                            }
+                    if (alliance == ALLIANCE_COLOR.RED) {
+                        if (prediction == BALL_PREDICTION_RESULT.RED_ON_LEFT) {
+                            // move forward
+                            predictions.add(prediction);
+                            driveStatus = navxDrive(CargoBotConstants.BALL_SPEED,
+                                    CargoBotConstants.BALL_DISTANCE,
+                                    calculateTimeout(CargoBotConstants.BALL_DISTANCE,
+                                            CargoBotConstants.BALL_SPEED),
+                                    0);
+                            drivingOffPlatformOffset = CargoBotConstants.DRIVE_OFF_PLATFORM_MORE_OFFSET;
                         } else {
-                            if (prediction == BALL_PREDICTION_RESULT.RED_ON_LEFT) {
-                                // move forward or turn right
-                                driveStatus = navxDrive(CargoBotConstants.BALL_SPEED,
-                                        -CargoBotConstants.BALL_DISTANCE,
-                                        calculateTimeout(CargoBotConstants.BALL_DISTANCE,
-                                                CargoBotConstants.BALL_SPEED),
-                                        0);
-                                drivingOffPlatformOffset = CargoBotConstants.DRIVE_OFF_PLATFORM_MORE_OFFSET;
-//                                driveStatus = encoderDrive(CargoBotConstants.BALL_SPEED,
-//                                        -CargoBotConstants.BALL_DISTANCE,
-//                                        -CargoBotConstants.BALL_DISTANCE,
-//                                        5);
-                            } else {
-                                // move back or turn left
-                                driveStatus = navxDrive(CargoBotConstants.BALL_SPEED,
-                                        CargoBotConstants.BALL_DISTANCE,
-                                        calculateTimeout(CargoBotConstants.BALL_DISTANCE,
-                                                CargoBotConstants.BALL_SPEED),
-                                        0);
-                                drivingOffPlatformOffset = CargoBotConstants.DRIVE_OFF_PLATFORM_LESS_OFFSET;
-//                                driveStatus = encoderDrive(CargoBotConstants.BALL_SPEED,
-//                                        CargoBotConstants.BALL_DISTANCE,
-//                                        CargoBotConstants.BALL_DISTANCE,
-//                                        5);
-                            }
+                            // move back
+                            predictions.add(prediction);
+                            driveStatus = navxDrive(CargoBotConstants.BALL_SPEED,
+                                    -CargoBotConstants.BALL_DISTANCE,
+                                    calculateTimeout(CargoBotConstants.BALL_DISTANCE,
+                                            CargoBotConstants.BALL_SPEED),
+                                    0);
+                            drivingOffPlatformOffset = CargoBotConstants.DRIVE_OFF_PLATFORM_LESS_OFFSET;
+                        }
+                    } else {
+                        if (prediction == BALL_PREDICTION_RESULT.RED_ON_LEFT) {
+                            // move forward
+                            driveStatus = navxDrive(CargoBotConstants.BALL_SPEED,
+                                    -CargoBotConstants.BALL_DISTANCE,
+                                    calculateTimeout(CargoBotConstants.BALL_DISTANCE,
+                                            CargoBotConstants.BALL_SPEED),
+                                    0);
+                            drivingOffPlatformOffset = CargoBotConstants.DRIVE_OFF_PLATFORM_MORE_OFFSET;
+                        } else {
+                            // move back
+                            driveStatus = navxDrive(CargoBotConstants.BALL_SPEED,
+                                    CargoBotConstants.BALL_DISTANCE,
+                                    calculateTimeout(CargoBotConstants.BALL_DISTANCE,
+                                            CargoBotConstants.BALL_SPEED),
+                                    0);
+                            drivingOffPlatformOffset = CargoBotConstants.DRIVE_OFF_PLATFORM_LESS_OFFSET;
                         }
                     }
+
                 } else {
                     telemetry.addData("detection result", "unknown");
+                    if ((getRuntime() - ballDetectionStartTime) >= CargoBotConstants.BALL_DETECTION_TIMEOUT) {
+                        driveStatus = true;
+                        drivingOffPlatformOffset = 0;
+                    }
                 }
                 telemetry.addData("detection list", predictions.toString());
                 telemetry.update();
@@ -1012,65 +946,72 @@ public class MMAutonomousRedRelicTest extends LinearOpMode {
                 // leaving platform always use negative for red and leaving platform for blue always use positive
                 if (alliance == ALLIANCE_COLOR.RED) {
                     driveStatus = navxDrive(CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED,
-                            -CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_WITHOUT_OFFSET - drivingOffPlatformOffset,
-                            calculateTimeout(CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_WITHOUT_OFFSET +
+                            -CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET - drivingOffPlatformOffset,
+                            calculateTimeout(CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET +
                                             drivingOffPlatformOffset,
                                     CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
                 } else {
                     driveStatus = navxDrive(CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED,
-                            CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_WITHOUT_OFFSET + drivingOffPlatformOffset,
-                            calculateTimeout(CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_WITHOUT_OFFSET +
+                            CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET + drivingOffPlatformOffset,
+                            calculateTimeout(CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET +
                                             drivingOffPlatformOffset,
                                     CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
+                    // getting off the blue platform requires primary intake motor to "paddle" the robot off the platform
+                    // because there is not enough height clearance
+                    if (!intakeStatus) {
+                        intakeStatus = intakeController(CargoBotConstants.PRIMARY_INTAKE_MOTOR_ACTIVATION_TIME,
+                                INTAKE_DIR.IN,
+                                INTAKE_MOTOR.PRIMARY);
+                    }
+
                 }
-                if (driveStatus) {
-                    opmodeState = OPMODE_STEPS.STEP4;
+                // since the robot drive in reverse to get off the platform, intake motor does not need to be activated
+                if (alliance == ALLIANCE_COLOR.RED) {
+                    if (driveStatus) {
+                        opmodeState = OPMODE_STEPS.STEP4;
+                        // reset the intake status before going to the next step
+                        intakeStatus = false;
+                    }
+                } else {
+                    if (driveStatus && intakeStatus) {
+                        opmodeState = OPMODE_STEPS.STEP4;
+                        // reset the intake status before going to the next step
+                        intakeStatus = false;
+                    }
                 }
                 break;
             case STEP4:
                 // Turn towards the VuMark
                 if (alliance == ALLIANCE_COLOR.RED) {
-                    driveStatus = navxRotateToAngle(CargoBotConstants.RED_TURN_ANGLE, yawKp);
+                    driveStatus = navxRotateToAngle(CargoBotConstants.RED_TURN_ANGLE_V2, 0.8 * yawKp);
                 } else {
-                    driveStatus = navxRotateToAngle(CargoBotConstants.BLUE_TURN_ANGLE, yawKp);
+                    driveStatus = navxRotateToAngle(CargoBotConstants.BLUE_TURN_ANGLE_V2, 0.8 * yawKp);
                 }
 
                 if (driveStatus) {
-                    stepFiveStartTime = getRuntime();
+                    readVuMarkStartTime = getRuntime();
                     opmodeState = OPMODE_STEPS.STEP5;
                 }
                 break;
             case STEP5:
-                // Lower ball arm (so the camera can focus on the VuMark) and detect VuMark
+                // wait for VuMark detection, no need to lower the ball arm since it's no longer in the way of the camera
                 driveStatus = false;
-                robot.ballArm.setPosition(CargoBotConstants.BALL_ARM_DOWN);
                 if (vuMarkIdentified != VU_MARK_TYPE.UNKNOWN) {
                     driveStatus = true;
                 } else {
                     driveStatus = false;
                     // timeout and default to center
-                    if ((getRuntime() - stepFiveStartTime) > CargoBotConstants.VU_MARK_DETECTION_TIMEOUT) {
+                    if ((getRuntime() - readVuMarkStartTime) > CargoBotConstants.VU_MARK_DETECTION_TIMEOUT) {
                         vuMarkIdentified = VU_MARK_TYPE.CENTER;
                         driveStatus = true;
                     }
                 }
 
                 if (driveStatus) {
-                    robot.ballArm.setPosition(CargoBotConstants.BALL_ARM_UP);
                     opmodeState = OPMODE_STEPS.STEP6;
                 }
                 break;
             case STEP6:
-                // Localize robot using VuMark
-//                if (isRobotPositionAvailable) {
-//                    // Todo: Create robot localizing algorithm
-//                    double medianYaw = getMedianValue(abs(navxDevice.getYaw()));
-//                    if (medianYaw != 0) {
-//                        localizeRobot(medianYaw);
-//                    } else {
-//                        telemetry.addData("yaw", "not available");
-//                    }
-//                }
                 // Turn away from VuMark
                 driveStatus = navxRotateToAngle(0, yawKp);
                 if (driveStatus) {
@@ -1079,43 +1020,40 @@ public class MMAutonomousRedRelicTest extends LinearOpMode {
                 break;
             case STEP7:
                 // move to the column specified by vuMark
-                if (startingPosition == STARTING_POSITION.RELIC) {
-                    switch (vuMarkIdentified) {
-                        case RIGHT:
-                            driveStatus = true;
-                            break;
-                        case CENTER:
-                            driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
-                                    -CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC,
-                                    calculateTimeout(CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC,
-                                            CargoBotConstants.APPROACH_SPEED), 0);
-                            break;
-                        case LEFT:
-                            driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
-                                    -CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC,
-                                    calculateTimeout(CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC,
-                                            CargoBotConstants.APPROACH_SPEED), 0);
-                            break;
-                    }
+                switch (vuMarkIdentified) {
+                    case RIGHT:
+                        driveStatus = true;
+                        break;
+                    case CENTER:
+                        driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                                -CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC,
+                                calculateTimeout(CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC,
+                                        CargoBotConstants.APPROACH_SPEED), 0);
+                        break;
+                    case LEFT:
+                        driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                                -CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC,
+                                calculateTimeout(CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC,
+                                        CargoBotConstants.APPROACH_SPEED), 0);
+                        break;
                 }
+
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP8;
                 }
                 break;
             case STEP8:
                 // turn to face column
-                liftPosition = LiftPosition.MOVE;
-                liftStatus = blockLiftController();
                 driveStatus = navxRotateToAngle(CargoBotConstants.ANGLE_TO_FACE_BOX_RED_RELIC, yawKp);
-                if (driveStatus && liftStatus) {
+                if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP9;
                 }
                 break;
             case STEP9:
                 // move into a column
                 driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
-                        CargoBotConstants.CRYPTO_BOX_DISTANCE_RED_RELIC,
-                        calculateTimeout(CargoBotConstants.CRYPTO_BOX_DISTANCE_RED_RELIC, CargoBotConstants.APPROACH_SPEED),
+                        CargoBotConstants.CRYPTO_BOX_DISTANCE_V2_RED_RELIC,
+                        calculateTimeout(CargoBotConstants.CRYPTO_BOX_DISTANCE_V2_RED_RELIC, CargoBotConstants.APPROACH_SPEED),
                         CargoBotConstants.ANGLE_TO_FACE_BOX_RED_RELIC);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP10;
@@ -1123,62 +1061,52 @@ public class MMAutonomousRedRelicTest extends LinearOpMode {
                 break;
             case STEP10:
                 // release block
-                gripperPosition = GripperPosition.OPEN;
-                grabberController();
-                driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
-                        CargoBotConstants.BACKUP_DISTANCE,
-                        calculateTimeout(CargoBotConstants.BACKUP_DISTANCE, CargoBotConstants.APPROACH_SPEED),
-                        CargoBotConstants.ANGLE_TO_FACE_BOX_RED_RELIC);
-                if (driveStatus) {
+                intakeStatus = intakeController(CargoBotConstants.BOTH_INTAKE_MOTOR_ACTIVATION_TIME, INTAKE_DIR.OUT, INTAKE_MOTOR.BOTH);
+                if (intakeStatus) {
                     opmodeState = OPMODE_STEPS.STEP11;
+                    // reset the status before going to the next step
+                    intakeStatus = false;
                 }
+                break;
             case STEP11:
-                double backupDistance = CargoBotConstants.EXTENDED_BACKUP_DISTANCE - CargoBotConstants.BACKUP_DISTANCE;
-                driveStatus = navxDrive(CargoBotConstants.BACKUP_SPEED,
-                        backupDistance,
-                        calculateTimeout(backupDistance, CargoBotConstants.BACKUP_SPEED),
-                        CargoBotConstants.ANGLE_TO_FACE_BOX_RED_RELIC - CargoBotConstants.TEST_ANGLE);
+                // drive backwards so robot is not in contact with the block
+                driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                        CargoBotConstants.BACKUP_DISTANCE_V2,
+                        calculateTimeout(CargoBotConstants.BACKUP_DISTANCE_V2, CargoBotConstants.APPROACH_SPEED),
+                        CargoBotConstants.ANGLE_TO_FACE_BOX_RED_RELIC);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP12;
                 }
                 break;
             case STEP12:
-                liftPosition = LiftPosition.GRAB;
-                liftStatus = blockLiftController();
-                driveStatus = navxRotateToAngle(CargoBotConstants.ANGLE_TO_FACE_BOX_RED_RELIC - 180 - CargoBotConstants.TEST_ANGLE, yawKp);
-                if (driveStatus && liftStatus) {
+                // turn 180 to get ready for teleOp or try to pick up extra block from the center pile
+                driveStatus = navxRotateToAngle(CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_RED_BLUE_RELIC, 0.8 * yawKp);
+                if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP13;
                 }
                 break;
             case STEP13:
-                driveStatus = navxDrive(CargoBotConstants.BACKUP_SPEED,
-                        CargoBotConstants.FORWARD_TO_PIT_DISTANCE_RELIC,
-                        calculateTimeout(CargoBotConstants.FORWARD_TO_PIT_DISTANCE_RELIC, CargoBotConstants.BACKUP_SPEED),
-                        CargoBotConstants.ANGLE_TO_FACE_BOX_RED_RELIC - 180 - CargoBotConstants.TEST_ANGLE);
+                // drive backwards to push the block further into the box
+                driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                        CargoBotConstants.BACKUP_PUSH_BLOCK_DISTANCE,
+                        calculateTimeout(CargoBotConstants.BACKUP_PUSH_BLOCK_DISTANCE, CargoBotConstants.APPROACH_SPEED),
+                        CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_RED_BLUE_RELIC);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP14;
                 }
                 break;
             case STEP14:
-                gripperPosition = GripperPosition.CLOSE;
-                grabberController();
-                liftPosition = LiftPosition.MOVE;
-                liftStatus = blockLiftController();
-                if (liftStatus) {
+                // drive forward so the robot is not in contact with the block
+                driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                        CargoBotConstants.AWAY_FROM_BLOCK_DISTANCE,
+                        calculateTimeout(CargoBotConstants.AWAY_FROM_BLOCK_DISTANCE, CargoBotConstants.APPROACH_SPEED),
+                        CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_RED_BLUE_RELIC);
+                if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP15;
                 }
                 break;
             case STEP15:
-                driveStatus = navxDrive(CargoBotConstants.BACKUP_TO_SAFE_ZONE_SPEED,
-                        CargoBotConstants.EXTENDED_BACKUP_DISTANCE,
-                        calculateTimeout(CargoBotConstants.EXTENDED_BACKUP_DISTANCE, CargoBotConstants.BACKUP_TO_SAFE_ZONE_SPEED),
-                        CargoBotConstants.ANGLE_TO_FACE_BOX_RED_RELIC - 180 - CargoBotConstants.TEST_ANGLE);
-                if (driveStatus) {
-                    opmodeState = OPMODE_STEPS.STEP18;
-                }
-                break;
-            case STEP18:
-                // TODO: ensure when the last step is complete, call onRobotStopOrInterrupt() to terminate properly. For now, step 11 is the conclusion of autonomous mode.
+                // TODO: ensure when the last step is complete, call onRobotStopOrInterrupt() to terminate properly. For now, step 13 is the conclusion of autonomous mode.
                 onRobotStopOrInterrupt();
                 telemetry.addData("Autonomous", "Complete");
                 telemetry.update();
@@ -1326,9 +1254,9 @@ public class MMAutonomousRedRelicTest extends LinearOpMode {
     }
 
     public boolean navxDrive( double speed,
-                           double distance,
-                           double timeoutS,
-                           double angle) throws InterruptedException {
+                              double distance,
+                              double timeoutS,
+                              double angle) throws InterruptedException {
 
         int     newLeftTarget;
         int     newRightTarget;
@@ -1450,67 +1378,147 @@ public class MMAutonomousRedRelicTest extends LinearOpMode {
         return Math.abs(timeoutS);
     }
 
-    private boolean blockLiftController() {
-
+    private boolean intakeController(double activationTime, INTAKE_DIR dir, INTAKE_MOTOR motor) {
         boolean isDone = false;
 
-        switch (liftPosition) {
-            case GRAB:
-                target = (int) CargoBotConstants.GRAB_DISTANCE_FROM_START - offset;
+        switch (intakeControllerState){
+            case START:
+                // reset timer
+                intakeMotorRunTime = getRuntime();
+                setIntakeMotorDir(dir);
+                intakeControllerState = INTAKE_CONTROLLER_STATE.RUN;
                 break;
-            case MOVE:
-                target = (int) CargoBotConstants.MOVE_DISTANCE_FROM_START - offset;
+
+            case RUN:
+                // run the motors for the length of activation time
+                if ((getRuntime() - intakeMotorRunTime) < activationTime){
+                    activateIntakeMotorWithChoice(motor);
+                } else {
+                    intakeControllerState = INTAKE_CONTROLLER_STATE.END;
+                }
                 break;
-            case STACK:
-                target = (int) CargoBotConstants.STACK_DISTANCE_FROM_START - offset;
-                break;
-            case PLACE:
-                target = (int) CargoBotConstants.PLACE_DISTANCE_FROM_START - offset;
+
+            case END:
+                turnOffIntakeMotors();
+                intakeControllerState = INTAKE_CONTROLLER_STATE.START;
+                isDone = true;
                 break;
         }
 
-        robot.blockLift.setTargetPosition(target);
-        robot.blockLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        robot.blockLift.setPower(CargoBotConstants.LIFT_SPEED);
-        telemetry.addData("pos", robot.blockLift.getCurrentPosition());
-        telemetry.update();
-        if (!robot.blockLift.isBusy()) {
-            robot.blockLift.setPower(0.0);
-            robot.blockLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            isDone = true;
-        }
+        // TODO: create motor stall detection for each of the 3 intake motors, during RUN state
         return isDone;
     }
 
-    private void grabberController() {
-        switch (gripperPosition) {
-            case OPEN:
-                robot.lowerLeftServo.setPosition(CargoBotConstants.LEFT_OPEN);
-                robot.lowerRightServo.setPosition(CargoBotConstants.RIGHT_OPEN);
-                robot.upperLeftServo.setPosition(CargoBotConstants.LEFT_OPEN);
-                robot.upperRightServo.setPosition(CargoBotConstants.RIGHT_OPEN);
+
+    private void activateIntakeMotorWithChoice(INTAKE_MOTOR motor){
+        switch (motor){
+            case PRIMARY:
+                // activate primary intake motor
+                robot.frontIntakeMotor.setPower(CargoBotConstants.FRONT_INTAKE_POWER);
                 break;
-            case CLOSE:
-                robot.lowerLeftServo.setPosition(CargoBotConstants.LEFT_CLOSE);
-                robot.lowerRightServo.setPosition(CargoBotConstants.RIGHT_CLOSE);
-                robot.upperLeftServo.setPosition(CargoBotConstants.LEFT_CLOSE);
-                robot.upperRightServo.setPosition(CargoBotConstants.RIGHT_CLOSE);
+            case SECONDARY:
+                // activate equal power on both left and right intake motors
+                robot.leftIntakeMotor.setPower(CargoBotConstants.LEFT_INTAKE_POWER);
+                robot.rightIntakeMotor.setPower(CargoBotConstants.RIGHT_INTAKE_POWER);
                 break;
-            case WIDE_OPEN:
-                robot.lowerLeftServo.setPosition(CargoBotConstants.LEFT_WIDE_OPEN);
-                robot.lowerRightServo.setPosition(CargoBotConstants.RIGHT_WIDE_OPEN);
-                robot.upperLeftServo.setPosition(CargoBotConstants.LEFT_WIDE_OPEN);
-                robot.upperRightServo.setPosition(CargoBotConstants.RIGHT_WIDE_OPEN);
+            case BOTH:
+                // activate primary intake motor
+                robot.frontIntakeMotor.setPower(CargoBotConstants.FRONT_INTAKE_POWER);
+                // activate equal power on both left and right intake motors
+                robot.leftIntakeMotor.setPower(CargoBotConstants.LEFT_INTAKE_POWER);
+                robot.rightIntakeMotor.setPower(CargoBotConstants.RIGHT_INTAKE_POWER);
                 break;
         }
     }
+
+    private void turnOffIntakeMotors(){
+        robot.frontIntakeMotor.setPower(0);
+        robot.leftIntakeMotor.setPower(0);
+        robot.rightIntakeMotor.setPower(0);
+
+        // make sure intake motors maintain constant speed
+        robot.frontIntakeMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        robot.leftIntakeMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        robot.rightIntakeMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    }
+
+    private void setIntakeMotorDir(INTAKE_DIR dir){
+        if (dir == INTAKE_DIR.IN){
+            robot.frontIntakeMotor.setDirection(DcMotor.Direction.REVERSE);
+            robot.leftIntakeMotor.setDirection(DcMotor.Direction.FORWARD);
+            robot.rightIntakeMotor.setDirection(DcMotor.Direction.REVERSE);
+        } else {
+            robot.frontIntakeMotor.setDirection(DcMotor.Direction.FORWARD);
+            robot.leftIntakeMotor.setDirection(DcMotor.Direction.REVERSE);
+            robot.rightIntakeMotor.setDirection(DcMotor.Direction.FORWARD);
+        }
+
+    }
+
     private void onRobotStopOrInterrupt(){
         isDoneRunningAuto = true;
         if (navxDevice != null) {
             navxDevice.close();
         }
+        turnOffIntakeMotors();
+        turnOffDriveMotors();
         // save the block lift position for next operation
         robot.fileHandler.writeToFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, Integer.toString(offset + robot.blockLift.getCurrentPosition()), robot.context);
+    }
+
+    private boolean runBallDetectionOnInit(VuforiaLocalizer.CloseableFrame frame) throws InterruptedException {
+        boolean isBallDetectionAvailableOrTimeout = false;
+        if (loopCounter % MINIMUM_NUM_LOOPS == 0) {
+            // only take a new frame every MINIMUM_NUM_LOOPS loops
+            loopCounter = 0;
+            pseudoSecond++;
+
+            frame = vuforia.getFrameQueue().take();
+            if (frame != null) {
+                Image img = getImageFromFrame(frame, PIXEL_FORMAT.RGB565);
+                if (img != null) {
+                    frameCounter++;
+                    final Bitmap bm = getBitmapFromImage(img);
+
+                    if (!isProcessingFrame) {
+                        cameraExecutorService.execute(new Runnable() {
+                            @Override
+                            public void run() {
+                                isProcessingFrame = true;
+                                processBitmap(bm);
+                                isProcessingFrame = false;
+                            }
+                        });
+                    }
+
+
+                    //RobotLog.vv("detection status", ",%s,", detectionResult.toString());
+                    telemetry.addData("detection status", detectionResult.toString());
+                    telemetry.addData("prediction", predictionString);
+                    telemetry.addData("frame counter", frameCounter);
+                    telemetry.update();
+//                        String absPath = saveToInternalStorage(bm, context, imgCounter);
+//                        imgCounter++;
+//                        telemetry.addData("vuforia image saved path", absPath);
+//                        telemetry.update();
+                }
+
+            }
+
+        }
+        loopCounter++;
+
+        if (prediction != BALL_PREDICTION_RESULT.UNKNOWN) {
+            telemetry.addData(">", "Robot Ready. Press Start.");
+            telemetry.addData("prediction", predictionString);
+            telemetry.update();
+            isBallDetectionAvailableOrTimeout = true;
+        } else {
+            if (pseudoSecond > CargoBotConstants.PRE_INIT_BALL_DETECTION_TIMEOUT) {
+                isBallDetectionAvailableOrTimeout = true;
+            }
+        }
+        return isBallDetectionAvailableOrTimeout;
     }
 
     private void localizeRobot(double robotHeading){

@@ -185,5 +185,6 @@ public interface CargoBotConstants {
 
     // ball detection timeout
     double BALL_DETECTION_TIMEOUT = 10.0;
+    double PRE_INIT_BALL_DETECTION_TIMEOUT = 5.0;
 }
 
