@@ -108,9 +108,10 @@ public interface CargoBotConstants {
     double ANGLE_TO_FACE_BOX_RED_TIP = 180.0;
     double CRYPTO_BOX_DISTANCE_RED_TIP = 5.5;
     // for curious george v2
-    double ANGLE_TO_FACE_FIELD_CENTER_RED_BLUE_TIP = 0;
+    double ANGLE_TO_FACE_FIELD_CENTER_RED_TIP = 0;
     double CRYPTO_BOX_DISTANCE_V2_RED_TIP = 2.5;
     double BACKUP_OFFSET_V2_TO_APPROACH_TIP_BOX = 4.25;
+    double ANGLE_TO_FACE_FIELD_CENTER_BlUE_TIP = 180;
 
     // cryptoBox for blue relic
     double BLUE_RELIC_COLUMN_OFFSET = 7.5;
@@ -123,7 +124,7 @@ public interface CargoBotConstants {
     double ANGLE_TO_FACE_BLUE_TIP_COLUMN = 1;
     double BLUE_TIP_COLUMN_OFFSET = 8.0;
     // for curious george v2
-    double BLUE_TIP_COLUMN_V2_OFFSET = 7.0; // this has to be adjusted from V1, because the intake is in the center whereas the gripper is off-centered
+    double BLUE_TIP_COLUMN_V2_OFFSET = 6.0; // this has to be adjusted from V1, because the intake is in the center whereas the gripper is off-centered
 
 
     // diagonal movement

@@ -1148,7 +1148,7 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
                 break;
             case STEP12:
                 // turn 180 to get ready for teleOp or try to pick up extra block from the center pile
-                driveStatus = navxRotateToAngle(CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_RED_BLUE_TIP, 0.8 * yawKp);
+                driveStatus = navxRotateToAngle(CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_RED_TIP, 0.8 * yawKp);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP13;
                 }
@@ -1158,7 +1158,7 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
                 driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
                         CargoBotConstants.BACKUP_PUSH_BLOCK_DISTANCE,
                         calculateTimeout(CargoBotConstants.BACKUP_PUSH_BLOCK_DISTANCE, CargoBotConstants.APPROACH_SPEED),
-                        CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_RED_BLUE_TIP);
+                        CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_RED_TIP);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP14;
                 }
@@ -1168,7 +1168,7 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
                 driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
                         CargoBotConstants.AWAY_FROM_BLOCK_DISTANCE,
                         calculateTimeout(CargoBotConstants.AWAY_FROM_BLOCK_DISTANCE, CargoBotConstants.APPROACH_SPEED),
-                        CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_RED_BLUE_TIP);
+                        CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_RED_TIP);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP15;
                 }

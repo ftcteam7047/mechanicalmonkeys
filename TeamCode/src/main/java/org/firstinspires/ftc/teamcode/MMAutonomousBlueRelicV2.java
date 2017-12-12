@@ -996,7 +996,7 @@ public class MMAutonomousBlueRelicV2 extends LinearOpMode {
 
                 } else {
                     telemetry.addData("detection result", "unknown");
-                    if ((getRuntime() - ballDetectionStartTime) >= CargoBotConstants.BALL_DETECTION_TIMEOUT){
+                    if ((getRuntime() - ballDetectionStartTime) >= CargoBotConstants.BALL_DETECTION_TIMEOUT) {
                         driveStatus = true;
                         drivingOffPlatformOffset = 0;
                     }
