@@ -163,6 +163,7 @@ public interface CargoBotConstants {
     // lift position tolerance, to check how close the lift is to the target
     // if it's close enough, then stop requesting the moveRampToFlat or moaveRampToDown functions
     int LIFT_TARGET_TOLERANCE = 30;
+    double LIFT_MOTOR_TIMEOUT = 3.0;
 
     // intake motors
     double BOTH_INTAKE_MOTOR_ACTIVATION_TIME = 2;
