@@ -1006,6 +1006,7 @@ public class MMAutonomousBlueRelicV2 extends LinearOpMode {
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP3;
                     robot.ballArm.setPosition(CargoBotConstants.BALL_ARM_UP);
+                    driveStatus = false;
                 }
                 break;
             case STEP3:
@@ -1019,11 +1020,13 @@ public class MMAutonomousBlueRelicV2 extends LinearOpMode {
                                             drivingOffPlatformOffset,
                                     CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
                 } else {
-                    driveStatus = navxDrive(CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED,
-                            CargoBotConstants.DRIVE_OFF_BLUE_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET + drivingOffPlatformOffset,
-                            calculateTimeout(CargoBotConstants.DRIVE_OFF_BLUE_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET +
-                                            drivingOffPlatformOffset,
-                                    CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
+                    if (!driveStatus) {
+                        driveStatus = navxDrive(CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED,
+                                CargoBotConstants.DRIVE_OFF_BLUE_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET + drivingOffPlatformOffset,
+                                calculateTimeout(CargoBotConstants.DRIVE_OFF_BLUE_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET +
+                                                drivingOffPlatformOffset,
+                                        CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
+                    }
                     // getting off the blue platform requires primary intake motor to "paddle" the robot off the platform
                     // because there is not enough height clearance
                     if (!intakeStatus) {
@@ -1059,6 +1062,7 @@ public class MMAutonomousBlueRelicV2 extends LinearOpMode {
                 if (driveStatus) {
                     readVuMarkStartTime = getRuntime();
                     opmodeState = OPMODE_STEPS.STEP5;
+                    //CameraDevice.getInstance().setFocusMode(CameraDevice.FOCUS_MODE.FOCUS_MODE_TRIGGERAUTO);
                 }
                 break;
             case STEP5:

@@ -50,13 +50,13 @@ public interface CargoBotConstants {
     double DRIVING_OFF_PLATFORM_SPEED = 0.3;
     // drive off platform parameters for V2
     double DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET = 27; // this has to be adjusted from V1, because the intake is in the center whereas the gripper is off-centered
-    double DRIVE_OFF_BLUE_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET = 24;
+    double DRIVE_OFF_BLUE_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET = 21.5;
 
     double RED_TURN_ANGLE = -35;
     double BLUE_TURN_ANGLE = 60;
     double PHONE_MOUNT_V2_ANGLE = -12; // since phone mount is at an angle in Curious George V2
     double RED_TURN_ANGLE_V2 = RED_TURN_ANGLE + PHONE_MOUNT_V2_ANGLE;
-    double BLUE_TURN_ANGLE_V2 = 10;
+    double BLUE_TURN_ANGLE_V2 = BLUE_TURN_ANGLE + PHONE_MOUNT_V2_ANGLE;
 
     double VU_MARK_DETECTION_TIMEOUT = 5.0;
 
@@ -101,7 +101,7 @@ public interface CargoBotConstants {
     double BACKUP_DISTANCE_V2 = -5.5; // need to back up enough so that there is enough room to turn around without hitting the cryptoBox
     double BACKUP_PUSH_BLOCK_DISTANCE = -11.0;
     double ANGLE_TO_FACE_FIELD_CENTER_RED_BLUE_RELIC = -90.0;
-    double AWAY_FROM_BLOCK_DISTANCE = 5.0;
+    double AWAY_FROM_BLOCK_DISTANCE = 6.0;
 
     // cryptoBox for tip
     double BACKUP_OFFSET_TO_APPROACH_TIP_BOX = 2.75;
