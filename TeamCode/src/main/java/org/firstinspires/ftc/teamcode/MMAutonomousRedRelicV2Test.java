@@ -199,6 +199,7 @@ public class MMAutonomousRedRelicV2Test extends LinearOpMode {
     ENCODER_DRIVE state = ENCODER_DRIVE.START;
     boolean driveStatus = false;
     boolean intakeStatus = false;
+    boolean vumarkStatus = false;
 
     enum OPMODE_STEPS {
         STEP1,
@@ -263,10 +264,10 @@ public class MMAutonomousRedRelicV2Test extends LinearOpMode {
 
     double lowerBallArmStartTime = 0.0;
     double ballDetectionStartTime = 0.0;
+    // counters to be use for object detection
     int frameCounter = 0;
-    // set up counters to be use for object detection
     int loopCounter = 0;
-    boolean isBallDetetectionDoneDuringInit = false;
+    boolean isBallDetectionDoneDuringInit = false;
 
     @Override public void runOpMode() throws InterruptedException {
         try {
@@ -307,7 +308,37 @@ public class MMAutonomousRedRelicV2Test extends LinearOpMode {
                 // if it times out, display the warning for 3 seconds to tell the driver to re-activate the configuration
                 navxTestDataTimeout();
 
+        /*
+         * To start up Vuforia, tell it the view that we wish to use for camera monitor (on the RC phone);
+         * If no camera monitor is desired, use the parameterless constructor instead (commented out below).
+         */
+                int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+                VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
 
+                // OR...  Do Not Activate the Camera Monitor View, to save power
+                // VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
+
+        /*
+         * IMPORTANT: You need to obtain your own license key to use Vuforia. The string below with which
+         * 'parameters.vuforiaLicenseKey' is initialized is for illustration only, and will not function.
+         * A Vuforia 'Development' license key, can be obtained free of charge from the Vuforia developer
+         * web site at https://developer.vuforia.com/license-manager.
+         *
+         * Vuforia license keys are always 380 characters long, and look as if they contain mostly
+         * random data. As an example, here is a example of a fragment of a valid key:
+         *      ... yIgIzTqZ4mWjk9wd3cZO9T1axEqzuhxoGlfOOI2dRzKS4T0hQ8kT ...
+         * Once you've obtained a license key, copy the string from the Vuforia web site
+         * and paste it in to your code onthe next line, between the double quotes.
+         */
+                parameters.vuforiaLicenseKey = "AaukgGT/////AAAAGWkWAT0TG0LEo/kIYGHRbONkJEGTvNn6Q1Urj56aIj3ewuw2apA6gNe8KvZxdfL42j2CQo+4CAp0xeKL1zXwrc7wJjNeyavmXD0dUI32L8ssp5QiCAtPXF7uwqLm+Q/1vWD5w5NpD+2l1yCpsZgwhF0IKBlgJmwTZpouOzjSMcGFz5H3ERq/n8b405blFDI4unS6C1BMUIQVhQgFZe2PUrslIMeopgc3MyHIzW5nNhwX161k99VxXCdMPp+qKwP0N4Wj+aVwdGSXzwnX4pwzLdDTh4IsQNHlNaWzT/mv8hIQ703Cxf/L5DiI8KBnLjG9jOtlPXxu9NULXMFZf9qBB8tDnqY5EvkF+gt8n0BHUmNq";
+
+        /*
+         * We also indicate which camera on the RC that we wish to use.
+         * Here we chose the back (HiRes) camera (for greater range), but
+         * for a competition robot, the front camera might be more convenient.
+         */
+                parameters.cameraDirection = VuforiaLocalizer.CameraDirection.BACK;
+                this.vuforia = ClassFactory.createVuforiaLocalizer(parameters);
 
                 // create context to be used with threads
                 Context context;
@@ -330,7 +361,7 @@ public class MMAutonomousRedRelicV2Test extends LinearOpMode {
                 VuforiaTrackable relicTemplate = relicTrackables.get(0);
                 relicTemplate.setName("relicVuMarkTemplate"); // can help in debugging; otherwise not necessary
 
-                // init vuforia to prepare for ball detection
+                // set up vuforia to prepare for ball detection during init phase
                 relicTrackables.activate();
                 // set up frame format to be used for object detection
                 vuforia.setFrameQueueCapacity(1);
@@ -339,8 +370,8 @@ public class MMAutonomousRedRelicV2Test extends LinearOpMode {
                 VuforiaLocalizer.CloseableFrame frame = null;
 
                 // Wait for the game to start (Display Gyro value), and reset gyro before we move..
-                while (!isStarted() && !isBallDetetectionDoneDuringInit) {
-                    isBallDetetectionDoneDuringInit = runBallDetectionOnInit(frame);
+                while (!isStarted() && !isBallDetectionDoneDuringInit) {
+                    isBallDetectionDoneDuringInit = runBallDetectionOnInit(frame);
                     idle();
                 }
 
@@ -357,6 +388,47 @@ public class MMAutonomousRedRelicV2Test extends LinearOpMode {
                 while (opModeIsActive()) {
 
                     tick = getRuntimeInTicks(tStart, PERIOD_PER_TICK);
+                    // only do ball detection if the result is unknown
+                    if (prediction == BALL_PREDICTION_RESULT.UNKNOWN) {
+                        if ((tick > lastTick) || isFirstLoop) {
+                            // update for comparison in the next loop
+                            lastTick = tick;
+                            isFirstLoop = false;
+
+                            frame = vuforia.getFrameQueue().take();
+                            if (frame != null) {
+                                Image img = getImageFromFrame(frame, PIXEL_FORMAT.RGB565);
+                                if (img != null) {
+                                    frameCounter++;
+                                    final Bitmap bm = getBitmapFromImage(img);
+
+                                    if (!isProcessingFrame) {
+                                        cameraExecutorService.execute(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                isProcessingFrame = true;
+                                                processBitmap(bm);
+                                                isProcessingFrame = false;
+                                            }
+                                        });
+                                    }
+
+
+                                    RobotLog.vv("detection status", ",%s,", detectionResult.toString());
+                                    telemetry.addData("detection status", detectionResult.toString());
+                                    telemetry.addData("prediction", predictionString);
+                                    telemetry.addData("frame counter", frameCounter);
+                                    telemetry.update();
+//                        String absPath = saveToInternalStorage(bm, context, imgCounter);
+//                        imgCounter++;
+//                        telemetry.addData("vuforia image saved path", absPath);
+//                        telemetry.update();
+                                }
+
+                            }
+                        }
+                        loopCounter++;
+                    }
 
 
                     /**
@@ -765,7 +837,6 @@ public class MMAutonomousRedRelicV2Test extends LinearOpMode {
     boolean isStep1Started = false;
     double intakeMotorRunTime = 0.0;
 
-
     /*
  *  Method to perfmorm a relative move, based on encoder counts.
  *  Encoders are not reset as the move is based on the current position.
@@ -871,13 +942,25 @@ public class MMAutonomousRedRelicV2Test extends LinearOpMode {
                 if (!isStep1Started) {
                     isStep1Started = true;
                     lowerBallArmStartTime = getRuntime();
+                    readVuMarkStartTime = getRuntime();
                 }
                 if ((getRuntime() - lowerBallArmStartTime) < CargoBotConstants.LOWER_BALL_ARM_DELAY) {
                     driveStatus = false;
                 } else {
                     driveStatus = true;
                 }
-                if (driveStatus) {
+                // ensure there is enough time to read VuMark
+                if (vuMarkIdentified != VU_MARK_TYPE.UNKNOWN) {
+                    vumarkStatus = true;
+                } else {
+                    vumarkStatus = false;
+                    // timeout reading VuMark, will try again in a later step
+                    if ((getRuntime() - readVuMarkStartTime) > CargoBotConstants.VU_MARK_DETECTION_TIMEOUT) {
+                        vumarkStatus = true;
+                    }
+                }
+
+                if (driveStatus && vumarkStatus) {
                     opmodeState = OPMODE_STEPS.STEP2;
                     ballDetectionStartTime = getRuntime();
                 }
@@ -914,7 +997,7 @@ public class MMAutonomousRedRelicV2Test extends LinearOpMode {
                                     calculateTimeout(CargoBotConstants.BALL_DISTANCE,
                                             CargoBotConstants.BALL_SPEED),
                                     0);
-                            drivingOffPlatformOffset = CargoBotConstants.DRIVE_OFF_PLATFORM_MORE_OFFSET;
+                            drivingOffPlatformOffset = CargoBotConstants.DRIVE_BLUE_OFF_PLATFORM_MORE_OFFSET;
                         } else {
                             // move back
                             driveStatus = navxDrive(CargoBotConstants.BALL_SPEED,
@@ -938,6 +1021,7 @@ public class MMAutonomousRedRelicV2Test extends LinearOpMode {
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP3;
                     robot.ballArm.setPosition(CargoBotConstants.BALL_ARM_UP);
+                    driveStatus = false;
                 }
                 break;
             case STEP3:
@@ -951,11 +1035,13 @@ public class MMAutonomousRedRelicV2Test extends LinearOpMode {
                                             drivingOffPlatformOffset,
                                     CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
                 } else {
-                    driveStatus = navxDrive(CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED,
-                            CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET + drivingOffPlatformOffset,
-                            calculateTimeout(CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET +
-                                            drivingOffPlatformOffset,
-                                    CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
+                    if (!driveStatus) {
+                        driveStatus = navxDrive(CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED,
+                                CargoBotConstants.DRIVE_OFF_BLUE_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET + drivingOffPlatformOffset,
+                                calculateTimeout(CargoBotConstants.DRIVE_OFF_BLUE_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET +
+                                                drivingOffPlatformOffset,
+                                        CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
+                    }
                     // getting off the blue platform requires primary intake motor to "paddle" the robot off the platform
                     // because there is not enough height clearance
                     if (!intakeStatus) {
@@ -981,16 +1067,23 @@ public class MMAutonomousRedRelicV2Test extends LinearOpMode {
                 }
                 break;
             case STEP4:
-                // Turn towards the VuMark
-                if (alliance == ALLIANCE_COLOR.RED) {
-                    driveStatus = navxRotateToAngle(CargoBotConstants.RED_TURN_ANGLE_V2, 0.8 * yawKp);
-                } else {
-                    driveStatus = navxRotateToAngle(CargoBotConstants.BLUE_TURN_ANGLE_V2, 0.8 * yawKp);
-                }
+                // Turn towards the VuMark if it has not been identified in earlier step
+                if (vuMarkIdentified == VU_MARK_TYPE.UNKNOWN){
+                    if (alliance == ALLIANCE_COLOR.RED) {
+                        driveStatus = navxRotateToAngle(CargoBotConstants.RED_TURN_ANGLE_V2, 0.8 * yawKp);
+                    } else {
+                        driveStatus = navxRotateToAngle(CargoBotConstants.BLUE_TURN_ANGLE_V2, 0.8 * yawKp);
+                    }
 
-                if (driveStatus) {
-                    readVuMarkStartTime = getRuntime();
-                    opmodeState = OPMODE_STEPS.STEP5;
+                    if (driveStatus) {
+                        readVuMarkStartTime = getRuntime();
+                        opmodeState = OPMODE_STEPS.STEP5;
+                        //CameraDevice.getInstance().setFocusMode(CameraDevice.FOCUS_MODE.FOCUS_MODE_TRIGGERAUTO);
+                    }
+                } else {
+                    // VuMark has been identified
+                    // skip the rotation toward VuMark and just go to the column
+                    opmodeState = OPMODE_STEPS.STEP7;
                 }
                 break;
             case STEP5:
@@ -1106,7 +1199,7 @@ public class MMAutonomousRedRelicV2Test extends LinearOpMode {
                 }
                 break;
             case STEP15:
-                // TODO: ensure when the last step is complete, call onRobotStopOrInterrupt() to terminate properly. For now, step 13 is the conclusion of autonomous mode.
+                // TODO: ensure when the last step is complete, call onRobotStopOrInterrupt() to terminate properly. For now, step 15 is the conclusion of autonomous mode.
                 onRobotStopOrInterrupt();
                 telemetry.addData("Autonomous", "Complete");
                 telemetry.update();
