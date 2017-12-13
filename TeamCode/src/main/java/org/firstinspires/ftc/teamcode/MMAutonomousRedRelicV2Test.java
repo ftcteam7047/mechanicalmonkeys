@@ -38,6 +38,7 @@ import android.util.Log;
 import com.kauailabs.navx.ftc.AHRS;
 import com.kauailabs.navx.ftc.navXPIDController;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -95,8 +96,8 @@ import static java.lang.StrictMath.sin;
  * is explained in {@link ConceptVuforiaNavigation}.
  */
 
-@Autonomous(name="Red Relic V2 Test", group ="Red")
-//@Disabled
+@Autonomous(name="Red Relic V2 Pre-init Ball Detection Test", group ="Red")
+@Disabled
 public class MMAutonomousRedRelicV2Test extends LinearOpMode {
 
     public static final String TAG = "Vuforia VuMark Sample";
@@ -151,7 +152,7 @@ public class MMAutonomousRedRelicV2Test extends LinearOpMode {
     private static final float MINIMUM_CONFIDENCE_YOLO = 0.15f;
     private Classifier detector;
     ArrayList<String> detectionResult = new ArrayList<String>();
-    private static final int MINIMUM_NUM_LOOPS = 16142; // approximately 2 frame/sec
+    private static final int MINIMUM_NUM_LOOPS = 6000; // was 16142 approximately 2 frame/sec
     private int pseudoSecond = 0;
     int cropSize;
     float minimumConfidence;
@@ -369,8 +370,8 @@ public class MMAutonomousRedRelicV2Test extends LinearOpMode {
 
                 VuforiaLocalizer.CloseableFrame frame = null;
 
-                // Wait for the game to start (Display Gyro value), and reset gyro before we move..
-                while (!isStarted() && !isBallDetectionDoneDuringInit) {
+                // Wait for the game to start, while displaying ball detection status...
+                while (!isStarted()) {
                     isBallDetectionDoneDuringInit = runBallDetectionOnInit(frame);
                     idle();
                 }
@@ -388,47 +389,45 @@ public class MMAutonomousRedRelicV2Test extends LinearOpMode {
                 while (opModeIsActive()) {
 
                     tick = getRuntimeInTicks(tStart, PERIOD_PER_TICK);
-                    // only do ball detection if the result is unknown
-                    if (prediction == BALL_PREDICTION_RESULT.UNKNOWN) {
-                        if ((tick > lastTick) || isFirstLoop) {
-                            // update for comparison in the next loop
-                            lastTick = tick;
-                            isFirstLoop = false;
 
-                            frame = vuforia.getFrameQueue().take();
-                            if (frame != null) {
-                                Image img = getImageFromFrame(frame, PIXEL_FORMAT.RGB565);
-                                if (img != null) {
-                                    frameCounter++;
-                                    final Bitmap bm = getBitmapFromImage(img);
+                    if ((tick > lastTick) || isFirstLoop) {
+                        // update for comparison in the next loop
+                        lastTick = tick;
+                        isFirstLoop = false;
 
-                                    if (!isProcessingFrame) {
-                                        cameraExecutorService.execute(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                isProcessingFrame = true;
-                                                processBitmap(bm);
-                                                isProcessingFrame = false;
-                                            }
-                                        });
-                                    }
+                        frame = vuforia.getFrameQueue().take();
+                        if (frame != null) {
+                            Image img = getImageFromFrame(frame, PIXEL_FORMAT.RGB565);
+                            if (img != null) {
+                                frameCounter++;
+                                final Bitmap bm = getBitmapFromImage(img);
+
+                                if (!isProcessingFrame) {
+                                    cameraExecutorService.execute(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            isProcessingFrame = true;
+                                            processBitmap(bm);
+                                            isProcessingFrame = false;
+                                        }
+                                    });
+                                }
 
 
-                                    RobotLog.vv("detection status", ",%s,", detectionResult.toString());
-                                    telemetry.addData("detection status", detectionResult.toString());
-                                    telemetry.addData("prediction", predictionString);
-                                    telemetry.addData("frame counter", frameCounter);
-                                    telemetry.update();
+                                RobotLog.vv("detection status", ",%s,", detectionResult.toString());
+                                telemetry.addData("detection status", detectionResult.toString());
+                                telemetry.addData("prediction", predictionString);
+                                telemetry.addData("frame counter", frameCounter);
+                                telemetry.update();
 //                        String absPath = saveToInternalStorage(bm, context, imgCounter);
 //                        imgCounter++;
 //                        telemetry.addData("vuforia image saved path", absPath);
 //                        telemetry.update();
-                                }
-
                             }
+
                         }
-                        loopCounter++;
                     }
+                    loopCounter++;
 
 
                     /**
@@ -1560,7 +1559,7 @@ public class MMAutonomousRedRelicV2Test extends LinearOpMode {
     }
 
     private boolean runBallDetectionOnInit(VuforiaLocalizer.CloseableFrame frame) throws InterruptedException {
-        boolean isBallDetectionAvailableOrTimeout = false;
+        boolean isBallDetectionAvailable = false;
         if (loopCounter % MINIMUM_NUM_LOOPS == 0) {
             // only take a new frame every MINIMUM_NUM_LOOPS loops
             loopCounter = 0;
@@ -1584,11 +1583,10 @@ public class MMAutonomousRedRelicV2Test extends LinearOpMode {
                         });
                     }
 
-
                     //RobotLog.vv("detection status", ",%s,", detectionResult.toString());
-                    telemetry.addData("detection status", detectionResult.toString());
-                    telemetry.addData("prediction", predictionString);
-                    telemetry.addData("frame counter", frameCounter);
+//                    telemetry.addData("detection status", detectionResult.toString());
+//                    telemetry.addData("prediction", predictionString);
+//                    telemetry.addData("frame counter", frameCounter);
                     telemetry.update();
 //                        String absPath = saveToInternalStorage(bm, context, imgCounter);
 //                        imgCounter++;
@@ -1603,15 +1601,13 @@ public class MMAutonomousRedRelicV2Test extends LinearOpMode {
 
         if (prediction != BALL_PREDICTION_RESULT.UNKNOWN) {
             telemetry.addData(">", "Robot Ready. Press Start.");
-            telemetry.addData("prediction", predictionString);
-            telemetry.update();
-            isBallDetectionAvailableOrTimeout = true;
-        } else {
-            if (pseudoSecond > CargoBotConstants.PRE_INIT_BALL_DETECTION_TIMEOUT) {
-                isBallDetectionAvailableOrTimeout = true;
-            }
+            isBallDetectionAvailable = true;
         }
-        return isBallDetectionAvailableOrTimeout;
+
+        telemetry.addData("prediction", predictionString);
+        telemetry.addData("time", pseudoSecond);
+        telemetry.update();
+        return isBallDetectionAvailable;
     }
 
     private void localizeRobot(double robotHeading){

@@ -49,7 +49,7 @@ public interface CargoBotConstants {
     double DRIVE_OFF_TIP_PLATFORM_DISTANCE_WITHOUT_OFFSET = 25;
     double DRIVING_OFF_PLATFORM_SPEED = 0.3;
     // drive off platform parameters for V2
-    double DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET = 27; // this has to be adjusted from V1, because the intake is in the center whereas the gripper is off-centered
+    double DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET = 28; // this has to be adjusted from V1, because the intake is in the center whereas the gripper is off-centered
     double DRIVE_OFF_BLUE_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET = 21.5;
 
     double RED_TURN_ANGLE = -35;
@@ -97,7 +97,7 @@ public interface CargoBotConstants {
     double MOVE_TO_CENTER_DISTANCE_RELIC = 7.5;
     double MOVE_TO_LEFT_DISTANCE_RELIC = MOVE_TO_CENTER_DISTANCE_RELIC * 2;
     // for curious george v2
-    double CRYPTO_BOX_DISTANCE_V2_RED_RELIC = 4.0;
+    double CRYPTO_BOX_DISTANCE_V2_RED_RELIC = 6.0;
     double BACKUP_DISTANCE_V2 = -5.5; // need to back up enough so that there is enough room to turn around without hitting the cryptoBox
     double BACKUP_PUSH_BLOCK_DISTANCE = -11.0;
     double ANGLE_TO_FACE_FIELD_CENTER_RED_BLUE_RELIC = -90.0;
