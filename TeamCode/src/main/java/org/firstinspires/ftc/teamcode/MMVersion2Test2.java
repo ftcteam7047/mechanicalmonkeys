@@ -4,6 +4,7 @@ import android.content.Context;
 
 import com.kauailabs.navx.ftc.AHRS;
 import com.kauailabs.navx.ftc.navXPIDController;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -30,7 +31,7 @@ import static java.lang.Math.sqrt;
  */
 
 @TeleOp(name = "CargoBotAdvanced V2")
-//@Disabled
+@Disabled
 
 public class MMVersion2Test2 extends OpMode {
 
