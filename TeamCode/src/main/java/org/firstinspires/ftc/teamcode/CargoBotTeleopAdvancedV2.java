@@ -436,18 +436,9 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     private void activateIntakeMotors(){
         // activate primary intake motor
         frontIntakeMotor.setPower(frontIntakeMotorPower);
-        // use dpad left / right to add power to left or right intake motor
-        if (gamepad1.dpad_left) {
-            leftIntakeMotor.setPower(leftIntakeMotorPower + lrIntakeMotorDeltaPower);
-            rightIntakeMotor.setPower(rightIntakeMotorPower);
-        } else if (gamepad1.dpad_right) {
-            leftIntakeMotor.setPower(leftIntakeMotorPower);
-            rightIntakeMotor.setPower(rightIntakeMotorPower + lrIntakeMotorDeltaPower);
-        } else {
-            // activate equal power on both left and right intake motors
-            leftIntakeMotor.setPower(leftIntakeMotorPower);
-            rightIntakeMotor.setPower(rightIntakeMotorPower);
-        }
+        // activate equal power on both left and right intake motors
+        leftIntakeMotor.setPower(leftIntakeMotorPower);
+        rightIntakeMotor.setPower(rightIntakeMotorPower);
     }
 
     private void turnOffIntakeMotors(){
