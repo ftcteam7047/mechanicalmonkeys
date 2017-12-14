@@ -198,6 +198,7 @@ public class MMAutonomousBlueTipV2 extends LinearOpMode {
     ENCODER_DRIVE state = ENCODER_DRIVE.START;
     boolean driveStatus = false;
     boolean intakeStatus = false;
+    boolean vumarkStatus = false;
 
     enum OPMODE_STEPS {
         STEP1,
@@ -939,13 +940,25 @@ public class MMAutonomousBlueTipV2 extends LinearOpMode {
                 if (!isStep1Started) {
                     isStep1Started = true;
                     lowerBallArmStartTime = getRuntime();
+                    readVuMarkStartTime = getRuntime();
                 }
                 if ((getRuntime() - lowerBallArmStartTime) < CargoBotConstants.LOWER_BALL_ARM_DELAY) {
                     driveStatus = false;
                 } else {
                     driveStatus = true;
                 }
-                if (driveStatus) {
+                // ensure there is enough time to read VuMark
+                if (vuMarkIdentified != VU_MARK_TYPE.UNKNOWN) {
+                    vumarkStatus = true;
+                } else {
+                    vumarkStatus = false;
+                    // timeout reading VuMark, will try again in a later step
+                    if ((getRuntime() - readVuMarkStartTime) > CargoBotConstants.VU_MARK_DETECTION_TIMEOUT) {
+                        vumarkStatus = true;
+                    }
+                }
+
+                if (driveStatus && vumarkStatus) {
                     opmodeState = OPMODE_STEPS.STEP2;
                     ballDetectionStartTime = getRuntime();
                 }
@@ -1015,15 +1028,15 @@ public class MMAutonomousBlueTipV2 extends LinearOpMode {
                 // leaving platform always use negative for red and leaving platform for blue always use positive
                 if (alliance == ALLIANCE_COLOR.RED) {
                     driveStatus = navxDrive(CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED,
-                            -CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_DISTANCE_WITHOUT_OFFSET - drivingOffPlatformOffset,
-                            calculateTimeout(CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_DISTANCE_WITHOUT_OFFSET +
+                            -CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_V2_DISTANCE_WITHOUT_OFFSET - drivingOffPlatformOffset,
+                            calculateTimeout(CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_V2_DISTANCE_WITHOUT_OFFSET +
                                             drivingOffPlatformOffset,
                                     CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
                 } else {
                     if (!driveStatus) {
                         driveStatus = navxDrive(CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED,
-                                CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_DISTANCE_WITHOUT_OFFSET + drivingOffPlatformOffset,
-                                calculateTimeout(CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_DISTANCE_WITHOUT_OFFSET +
+                                CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_V2_DISTANCE_WITHOUT_OFFSET + drivingOffPlatformOffset,
+                                calculateTimeout(CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_V2_DISTANCE_WITHOUT_OFFSET +
                                                 drivingOffPlatformOffset,
                                         CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
                     }
@@ -1052,16 +1065,23 @@ public class MMAutonomousBlueTipV2 extends LinearOpMode {
                 }
                 break;
             case STEP4:
-                // Turn towards the VuMark
-                if (alliance == ALLIANCE_COLOR.RED) {
-                    driveStatus = navxRotateToAngle(CargoBotConstants.RED_TURN_ANGLE_V2, 0.8 * yawKp);
-                } else {
-                    driveStatus = navxRotateToAngle(CargoBotConstants.BLUE_TURN_ANGLE_V2, 0.8 * yawKp);
-                }
+                // Turn towards the VuMark if it has not been identified in earlier step
+                if (vuMarkIdentified == VU_MARK_TYPE.UNKNOWN){
+                    if (alliance == ALLIANCE_COLOR.RED) {
+                        driveStatus = navxRotateToAngle(CargoBotConstants.RED_TURN_ANGLE_V2, 0.8 * yawKp);
+                    } else {
+                        driveStatus = navxRotateToAngle(CargoBotConstants.BLUE_TURN_ANGLE_V2, 0.8 * yawKp);
+                    }
 
-                if (driveStatus) {
-                    readVuMarkStartTime = getRuntime();
-                    opmodeState = OPMODE_STEPS.STEP5;
+                    if (driveStatus) {
+                        readVuMarkStartTime = getRuntime();
+                        opmodeState = OPMODE_STEPS.STEP5;
+                        //CameraDevice.getInstance().setFocusMode(CameraDevice.FOCUS_MODE.FOCUS_MODE_TRIGGERAUTO);
+                    }
+                } else {
+                    // VuMark has been identified
+                    // skip the rotation toward VuMark and just go to the column
+                    opmodeState = OPMODE_STEPS.STEP6;
                 }
                 break;
             case STEP5:

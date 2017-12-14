@@ -46,11 +46,12 @@ public interface CargoBotConstants {
     // Increased due to possible slip when on platform
     double DRIVE_OFF_PLATFORM_LESS_OFFSET = -3.75;
     double DRIVE_OFF_PLATFORM_DISTANCE_WITHOUT_OFFSET = 26;
-    double DRIVE_OFF_TIP_PLATFORM_DISTANCE_WITHOUT_OFFSET = 25;
+    double DRIVE_OFF_TIP_PLATFORM_DISTANCE_WITHOUT_OFFSET = 26;
     double DRIVING_OFF_PLATFORM_SPEED = 0.3;
     // drive off platform parameters for V2
     double DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET = 28; // this has to be adjusted from V1, because the intake is in the center whereas the gripper is off-centered
-    double DRIVE_OFF_BLUE_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET = 21.5;
+    double DRIVE_OFF_BLUE_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET = 22.5;
+    double DRIVE_OFF_TIP_PLATFORM_V2_DISTANCE_WITHOUT_OFFSET = 27;
 
     double RED_TURN_ANGLE = -35;
     double BLUE_TURN_ANGLE = 60;
@@ -124,7 +125,7 @@ public interface CargoBotConstants {
     double ANGLE_TO_FACE_BLUE_TIP_COLUMN = 1;
     double BLUE_TIP_COLUMN_OFFSET = 8.0;
     // for curious george v2
-    double BLUE_TIP_COLUMN_V2_OFFSET = 6.0; // this has to be adjusted from V1, because the intake is in the center whereas the gripper is off-centered
+    double BLUE_TIP_COLUMN_V2_OFFSET = 4.5; // this has to be adjusted from V1, because the intake is in the center whereas the gripper is off-centered
 
 
     // diagonal movement

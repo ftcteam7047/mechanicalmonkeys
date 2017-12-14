@@ -198,6 +198,7 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
     ENCODER_DRIVE state = ENCODER_DRIVE.START;
     boolean driveStatus = false;
     boolean intakeStatus = false;
+    boolean vumarkStatus = false;
 
     enum OPMODE_STEPS {
         STEP1,
@@ -232,7 +233,7 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
     private boolean calibration_complete = false;
     double Kp                   = 0.005;
 
-	private boolean isDoneRunningAuto = false;
+    private boolean isDoneRunningAuto = false;
 
     int target;
     int offset = 0;
@@ -340,7 +341,7 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
                 appContext = context;
 
                 // initialize tensor flow object detection
-                 initDetection(context);
+                initDetection(context);
 
                 // time management
                 int tick = 0;
@@ -836,8 +837,8 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
  *  3) Driver stops the opmode running.
  */
     public boolean encoderDrive(double speed,
-                             double leftInches, double rightInches,
-                             double timeoutS) {
+                                double leftInches, double rightInches,
+                                double timeoutS) {
         int newLeftTarget = 0;
         int newRightTarget = 0;
         boolean driveComplete = false;
@@ -932,13 +933,25 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
                 if (!isStep1Started) {
                     isStep1Started = true;
                     lowerBallArmStartTime = getRuntime();
+                    readVuMarkStartTime = getRuntime();
                 }
                 if ((getRuntime() - lowerBallArmStartTime) < CargoBotConstants.LOWER_BALL_ARM_DELAY) {
                     driveStatus = false;
                 } else {
                     driveStatus = true;
                 }
-                if (driveStatus) {
+                // ensure there is enough time to read VuMark
+                if (vuMarkIdentified != VU_MARK_TYPE.UNKNOWN) {
+                    vumarkStatus = true;
+                } else {
+                    vumarkStatus = false;
+                    // timeout reading VuMark, will try again in a later step
+                    if ((getRuntime() - readVuMarkStartTime) > CargoBotConstants.VU_MARK_DETECTION_TIMEOUT) {
+                        vumarkStatus = true;
+                    }
+                }
+
+                if (driveStatus && vumarkStatus) {
                     opmodeState = OPMODE_STEPS.STEP2;
                     ballDetectionStartTime = getRuntime();
                 }
@@ -975,7 +988,7 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
                                     calculateTimeout(CargoBotConstants.BALL_DISTANCE,
                                             CargoBotConstants.BALL_SPEED),
                                     0);
-                            drivingOffPlatformOffset = CargoBotConstants.DRIVE_OFF_PLATFORM_MORE_OFFSET;
+                            drivingOffPlatformOffset = CargoBotConstants.DRIVE_BLUE_OFF_PLATFORM_MORE_OFFSET;
                         } else {
                             // move back
                             driveStatus = navxDrive(CargoBotConstants.BALL_SPEED,
@@ -999,6 +1012,7 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP3;
                     robot.ballArm.setPosition(CargoBotConstants.BALL_ARM_UP);
+                    driveStatus = false;
                 }
                 break;
             case STEP3:
@@ -1007,16 +1021,18 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
                 // leaving platform always use negative for red and leaving platform for blue always use positive
                 if (alliance == ALLIANCE_COLOR.RED) {
                     driveStatus = navxDrive(CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED,
-                            -CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_DISTANCE_WITHOUT_OFFSET - drivingOffPlatformOffset,
-                            calculateTimeout(CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_DISTANCE_WITHOUT_OFFSET +
+                            -CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_V2_DISTANCE_WITHOUT_OFFSET - drivingOffPlatformOffset,
+                            calculateTimeout(CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_V2_DISTANCE_WITHOUT_OFFSET +
                                             drivingOffPlatformOffset,
                                     CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
                 } else {
-                    driveStatus = navxDrive(CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED,
-                            CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_DISTANCE_WITHOUT_OFFSET + drivingOffPlatformOffset,
-                            calculateTimeout(CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_DISTANCE_WITHOUT_OFFSET +
-                                            drivingOffPlatformOffset,
-                                    CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
+                    if (!driveStatus) {
+                        driveStatus = navxDrive(CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED,
+                                CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_V2_DISTANCE_WITHOUT_OFFSET + drivingOffPlatformOffset,
+                                calculateTimeout(CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_V2_DISTANCE_WITHOUT_OFFSET +
+                                                drivingOffPlatformOffset,
+                                        CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
+                    }
                     // getting off the blue platform requires primary intake motor to "paddle" the robot off the platform
                     // because there is not enough height clearance
                     if (!intakeStatus) {
@@ -1042,16 +1058,23 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
                 }
                 break;
             case STEP4:
-                // Turn towards the VuMark
-                if (alliance == ALLIANCE_COLOR.RED) {
-                    driveStatus = navxRotateToAngle(CargoBotConstants.RED_TURN_ANGLE_V2, 0.8 * yawKp);
-                } else {
-                    driveStatus = navxRotateToAngle(CargoBotConstants.BLUE_TURN_ANGLE_V2, 0.8 * yawKp);
-                }
+                // Turn towards the VuMark if it has not been identified in earlier step
+                if (vuMarkIdentified == VU_MARK_TYPE.UNKNOWN){
+                    if (alliance == ALLIANCE_COLOR.RED) {
+                        driveStatus = navxRotateToAngle(CargoBotConstants.RED_TURN_ANGLE_V2, 0.8 * yawKp);
+                    } else {
+                        driveStatus = navxRotateToAngle(CargoBotConstants.BLUE_TURN_ANGLE_V2, 0.8 * yawKp);
+                    }
 
-                if (driveStatus) {
-                    readVuMarkStartTime = getRuntime();
-                    opmodeState = OPMODE_STEPS.STEP5;
+                    if (driveStatus) {
+                        readVuMarkStartTime = getRuntime();
+                        opmodeState = OPMODE_STEPS.STEP5;
+                        //CameraDevice.getInstance().setFocusMode(CameraDevice.FOCUS_MODE.FOCUS_MODE_TRIGGERAUTO);
+                    }
+                } else {
+                    // VuMark has been identified
+                    // skip the rotation toward VuMark and just go to the column
+                    opmodeState = OPMODE_STEPS.STEP6;
                 }
                 break;
             case STEP5:
@@ -1322,9 +1345,9 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
     }
 
     public boolean navxDrive( double speed,
-                           double distance,
-                           double timeoutS,
-                           double angle) throws InterruptedException {
+                              double distance,
+                              double timeoutS,
+                              double angle) throws InterruptedException {
 
         int     newLeftTarget;
         int     newRightTarget;
