@@ -167,7 +167,7 @@ public interface CargoBotConstants {
     double LIFT_MOTOR_TIMEOUT = 3.0;
 
     // intake motors
-    double BOTH_INTAKE_MOTOR_ACTIVATION_TIME = 2;
+    double BOTH_INTAKE_MOTOR_ACTIVATION_TIME = 1.5;
     double FRONT_INTAKE_POWER = 0.5;
     double LEFT_INTAKE_POWER = 0.85;
     double RIGHT_INTAKE_POWER = 0.85;

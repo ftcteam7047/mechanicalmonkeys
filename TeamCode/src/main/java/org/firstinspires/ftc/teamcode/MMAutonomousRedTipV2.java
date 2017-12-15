@@ -393,13 +393,14 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
                             if (img != null) {
                                 frameCounter++;
                                 final Bitmap bm = getBitmapFromImage(img);
+                                final Bitmap croppedbm = createCroppedBitmap(bm, 392, 0, 1280, 720);
 
                                 if (!isProcessingFrame) {
                                     cameraExecutorService.execute(new Runnable() {
                                         @Override
                                         public void run() {
                                             isProcessingFrame = true;
-                                            processBitmap(bm);
+                                            processBitmap(croppedbm);
                                             isProcessingFrame = false;
                                         }
                                     });
@@ -536,6 +537,12 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
         return bm;
     }
 
+    public Bitmap createCroppedBitmap(Bitmap bitmap, int leftCrop, int topCrop, int rightCrop, int bottomCrop) {
+        int cropWidth = rightCrop - leftCrop;
+        int cropHeight = bottomCrop - topCrop;
+        return Bitmap.createBitmap(bitmap, leftCrop, topCrop, cropWidth, cropHeight);
+    }
+
     private void initDetection(Context context) {
 
         if (MODE == DetectorMode.YOLO) {
@@ -650,8 +657,9 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
         final ArrayList<String> result = new ArrayList<String>();
 
         b = BitmapUtils.resizeBitmap(input, cropSize);
-        b2 = BitmapUtils.rotateBitmap(b);
-        List<Classifier.Recognition> r = detector.recognizeImage(b2);
+        // rotate only if the input image is taken in portrait mode
+        //b2 = BitmapUtils.rotateBitmap(b);
+        List<Classifier.Recognition> r = detector.recognizeImage(b);
 
         for (Classifier.Recognition recog : r) {
             Log.d("Recognition", recog.toString());
@@ -753,18 +761,24 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
         } else if (ballList.size() == 1) {
             if (ballList.get(0).equals("redball")) {
                 // check redball's left edge relative to the frame
-                if (ballLeftEdge[0] <= (cropSize * 1.0 / 2)) {
+                if (ballLeftEdge[0] <= (cropSize * 0.45f)) {
+                    pred = BALL_PREDICTION_RESULT.RED_ON_LEFT;
+                } else if ((ballLeftEdge[0] >= (cropSize * 0.55f))) {
+                    pred = BALL_PREDICTION_RESULT.BLUE_ON_LEFT;
+                } else {
+                    pred = BALL_PREDICTION_RESULT.UNKNOWN;
+                }
+            } else if (ballList.get(0).equals("blueball")){
+                // check blueball's left edge relative to the frame
+                if (ballLeftEdge[1] <= (cropSize * 0.45f)) {
+                    pred = BALL_PREDICTION_RESULT.BLUE_ON_LEFT;
+                } else if (ballLeftEdge[1] >= (cropSize * 0.55f)) {
                     pred = BALL_PREDICTION_RESULT.RED_ON_LEFT;
                 } else {
-                    pred = BALL_PREDICTION_RESULT.BLUE_ON_LEFT;
+                    pred = BALL_PREDICTION_RESULT.UNKNOWN;
                 }
             } else {
-                // check blueball's left edge relative to the frame
-                if (ballLeftEdge[1] <= (cropSize * 1.0 / 2)) {
-                    pred = BALL_PREDICTION_RESULT.BLUE_ON_LEFT;
-                } else {
-                    pred = BALL_PREDICTION_RESULT.RED_ON_LEFT;
-                }
+                pred = BALL_PREDICTION_RESULT.UNKNOWN;
             }
         } else {
             pred = BALL_PREDICTION_RESULT.UNKNOWN;
