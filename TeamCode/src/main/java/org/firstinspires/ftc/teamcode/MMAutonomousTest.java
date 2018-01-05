@@ -1084,10 +1084,10 @@ public class MMAutonomousTest extends LinearOpMode {
                             if (distance < 0)
                                 output *= -1.0;
 
-                            robot.frontLeftDrive.setPower(speed + output);
-                            robot.frontRightDrive.setPower(speed - output);
-                            robot.rearLeftDrive.setPower(speed + output);
-                            robot.rearRightDrive.setPower(speed - output);
+                            robot.frontLeftDrive.setPower(speed - output);
+                            robot.frontRightDrive.setPower(speed + output);
+                            robot.rearLeftDrive.setPower(speed - output);
+                            robot.rearRightDrive.setPower(speed + output);
 //                            telemetry.addData("PIDOutput", df.format(limit(speed + output)) + ", " +
 //                                    df.format(limit(speed - output)));
                         }

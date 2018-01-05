@@ -38,6 +38,7 @@ import android.util.Log;
 import com.kauailabs.navx.ftc.AHRS;
 import com.kauailabs.navx.ftc.navXPIDController;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -95,9 +96,9 @@ import static java.lang.StrictMath.sin;
  * is explained in {@link ConceptVuforiaNavigation}.
  */
 
-@Autonomous(name="Red Tip V2", group ="Red")
-//@Disabled
-public class MMAutonomousRedTipV2 extends LinearOpMode {
+@Autonomous(name="Blue Relic Test", group ="Blue")
+@Disabled
+public class MMAutonomousBlueRelicV2TestNavxDrive extends LinearOpMode {
 
     public static final String TAG = "Vuforia VuMark Sample";
 
@@ -174,7 +175,7 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
         BLUE
     }
 
-    ALLIANCE_COLOR alliance = ALLIANCE_COLOR.RED;
+    ALLIANCE_COLOR alliance = ALLIANCE_COLOR.BLUE;
 
     public enum LiftPosition {
         GRAB,
@@ -201,6 +202,7 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
     boolean vumarkStatus = false;
 
     enum OPMODE_STEPS {
+        STEP0,
         STEP1,
         STEP2,
         STEP3,
@@ -217,7 +219,7 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
         STEP14,
         STEP15
     }
-    OPMODE_STEPS opmodeState = OPMODE_STEPS.STEP1;
+    OPMODE_STEPS opmodeState = OPMODE_STEPS.STEP0;
 
     private final int NAVX_DIM_I2C_PORT = 1;
     private AHRS navxDevice = null;
@@ -233,7 +235,7 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
     private boolean calibration_complete = false;
     double Kp                   = 0.005;
 
-    private boolean isDoneRunningAuto = false;
+	private boolean isDoneRunningAuto = false;
 
     int target;
     int offset = 0;
@@ -341,7 +343,7 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
                 appContext = context;
 
                 // initialize tensor flow object detection
-                initDetection(context);
+                 initDetection(context);
 
                 // time management
                 int tick = 0;
@@ -489,6 +491,8 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
 
                     // step through linear opmode steps
                     linearOpModeSteps();
+
+                    reportNavxDriveTimeout();
 
                     // run loops every 10 ms
                     //sleep(10);
@@ -842,6 +846,13 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
     boolean isStep1Started = false;
     double intakeMotorRunTime = 0.0;
 
+    DRIVE_STATE driveState = DRIVE_STATE.START;
+    navXPIDController.PIDResult yawPIDResult = new navXPIDController.PIDResult();
+    int     newLeftTarget;
+    int     newRightTarget;
+    int     moveCounts;
+    double navxDriveStartTime;
+
     /*
  *  Method to perfmorm a relative move, based on encoder counts.
  *  Encoders are not reset as the move is based on the current position.
@@ -851,8 +862,8 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
  *  3) Driver stops the opmode running.
  */
     public boolean encoderDrive(double speed,
-                                double leftInches, double rightInches,
-                                double timeoutS) {
+                             double leftInches, double rightInches,
+                             double timeoutS) {
         int newLeftTarget = 0;
         int newRightTarget = 0;
         boolean driveComplete = false;
@@ -940,6 +951,16 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
 
     private void linearOpModeSteps() throws InterruptedException {
         switch (opmodeState) {
+            case STEP0:
+                driveStatus = navxDrive(CargoBotConstants.BALL_SPEED,
+                        -30,
+                        calculateTimeout(-30,
+                                CargoBotConstants.BALL_SPEED),
+                        0);
+                if (driveStatus) {
+                    opmodeState = OPMODE_STEPS.STEP15;
+                }
+                break;
             case STEP1:
                 // Lowers ball arm
                 robot.ballArm.setPosition(CargoBotConstants.BALL_ARM_DOWN);
@@ -1035,15 +1056,15 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
                 // leaving platform always use negative for red and leaving platform for blue always use positive
                 if (alliance == ALLIANCE_COLOR.RED) {
                     driveStatus = navxDrive(CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED,
-                            -CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_V2_DISTANCE_WITHOUT_OFFSET - drivingOffPlatformOffset,
-                            calculateTimeout(CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_V2_DISTANCE_WITHOUT_OFFSET +
+                            -CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET - drivingOffPlatformOffset,
+                            calculateTimeout(CargoBotConstants.DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET +
                                             drivingOffPlatformOffset,
                                     CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
                 } else {
                     if (!driveStatus) {
                         driveStatus = navxDrive(CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED,
-                                CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_V2_DISTANCE_WITHOUT_OFFSET + drivingOffPlatformOffset,
-                                calculateTimeout(CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_V2_DISTANCE_WITHOUT_OFFSET +
+                                CargoBotConstants.DRIVE_OFF_BLUE_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET + drivingOffPlatformOffset,
+                                calculateTimeout(CargoBotConstants.DRIVE_OFF_BLUE_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET +
                                                 drivingOffPlatformOffset,
                                         CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
                     }
@@ -1088,7 +1109,7 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
                 } else {
                     // VuMark has been identified
                     // skip the rotation toward VuMark and just go to the column
-                    opmodeState = OPMODE_STEPS.STEP6;
+                    opmodeState = OPMODE_STEPS.STEP7;
                 }
                 break;
             case STEP5:
@@ -1111,7 +1132,7 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
                 break;
             case STEP6:
                 // Turn away from VuMark
-                driveStatus = navxRotateToAngle(90, yawKp * 0.8);
+                driveStatus = navxRotateToAngle(0, yawKp);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP7;
                 }
@@ -1119,27 +1140,27 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
             case STEP7:
                 // move to the column specified by vuMark
                 switch (vuMarkIdentified) {
-                    case RIGHT:
+                    case LEFT:
                         driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
-                                -CargoBotConstants.BACKUP_OFFSET_V2_TO_APPROACH_TIP_BOX,
-                                calculateTimeout(-CargoBotConstants.BACKUP_OFFSET_V2_TO_APPROACH_TIP_BOX,
-                                        CargoBotConstants.APPROACH_SPEED), 90);
+                                CargoBotConstants.BLUE_RELIC_COLUMN_OFFSET,
+                                calculateTimeout(CargoBotConstants.BLUE_RELIC_COLUMN_OFFSET,
+                                        CargoBotConstants.APPROACH_SPEED), 0);
                         break;
                     case CENTER:
                         driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
-                                -CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC
-                                        - CargoBotConstants.BACKUP_OFFSET_V2_TO_APPROACH_TIP_BOX,
-                                calculateTimeout(-CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC
-                                                - CargoBotConstants.BACKUP_OFFSET_V2_TO_APPROACH_TIP_BOX,
-                                        CargoBotConstants.APPROACH_SPEED), 90);
+                                CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC
+                                        + CargoBotConstants.BLUE_RELIC_COLUMN_OFFSET,
+                                calculateTimeout(CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC
+                                                + CargoBotConstants.BLUE_RELIC_COLUMN_OFFSET,
+                                        CargoBotConstants.APPROACH_SPEED), 0);
                         break;
-                    case LEFT:
+                    case RIGHT:
                         driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
-                                -CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC
-                                        - CargoBotConstants.BACKUP_OFFSET_V2_TO_APPROACH_TIP_BOX,
-                                calculateTimeout(-CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC
-                                                - CargoBotConstants.BACKUP_OFFSET_V2_TO_APPROACH_TIP_BOX,
-                                        CargoBotConstants.APPROACH_SPEED), 90);
+                                CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC
+                                        + CargoBotConstants.BLUE_RELIC_COLUMN_OFFSET,
+                                calculateTimeout(CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC
+                                                + CargoBotConstants.BLUE_RELIC_COLUMN_OFFSET,
+                                        CargoBotConstants.APPROACH_SPEED), 0);
                         break;
                 }
 
@@ -1149,7 +1170,7 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
                 break;
             case STEP8:
                 // turn to face column
-                driveStatus = navxRotateToAngle(CargoBotConstants.ANGLE_TO_FACE_BOX_RED_TIP, yawKp * 0.8);
+                driveStatus = navxRotateToAngle(CargoBotConstants.ANGLE_TO_FACE_BOX_RED_RELIC, yawKp);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP9;
                 }
@@ -1157,9 +1178,9 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
             case STEP9:
                 // move into a column
                 driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
-                        CargoBotConstants.CRYPTO_BOX_DISTANCE_V2_RED_TIP,
-                        calculateTimeout(CargoBotConstants.CRYPTO_BOX_DISTANCE_V2_RED_TIP, CargoBotConstants.APPROACH_SPEED),
-                        CargoBotConstants.ANGLE_TO_FACE_BOX_RED_TIP);
+                        CargoBotConstants.CRYPTO_BOX_DISTANCE_V2_BLUE_RELIC,
+                        calculateTimeout(CargoBotConstants.CRYPTO_BOX_DISTANCE_V2_BLUE_RELIC, CargoBotConstants.APPROACH_SPEED),
+                        CargoBotConstants.ANGLE_TO_FACE_BOX_RED_RELIC);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP10;
                 }
@@ -1178,14 +1199,14 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
                 driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
                         CargoBotConstants.BACKUP_DISTANCE_V2,
                         calculateTimeout(CargoBotConstants.BACKUP_DISTANCE_V2, CargoBotConstants.APPROACH_SPEED),
-                        CargoBotConstants.ANGLE_TO_FACE_BOX_RED_TIP);
+                        CargoBotConstants.ANGLE_TO_FACE_BOX_RED_RELIC);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP12;
                 }
                 break;
             case STEP12:
                 // turn 180 to get ready for teleOp or try to pick up extra block from the center pile
-                driveStatus = navxRotateToAngle(CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_RED_TIP, 0.8 * yawKp);
+                driveStatus = navxRotateToAngle(CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_RED_BLUE_RELIC, 0.8 * yawKp);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP13;
                 }
@@ -1195,7 +1216,7 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
                 driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
                         CargoBotConstants.BACKUP_PUSH_BLOCK_DISTANCE,
                         calculateTimeout(CargoBotConstants.BACKUP_PUSH_BLOCK_DISTANCE, CargoBotConstants.APPROACH_SPEED),
-                        CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_RED_TIP);
+                        CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_RED_BLUE_RELIC);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP14;
                 }
@@ -1205,7 +1226,7 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
                 driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
                         CargoBotConstants.AWAY_FROM_BLOCK_DISTANCE,
                         calculateTimeout(CargoBotConstants.AWAY_FROM_BLOCK_DISTANCE, CargoBotConstants.APPROACH_SPEED),
-                        CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_RED_TIP);
+                        CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_RED_BLUE_RELIC);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP15;
                 }
@@ -1216,6 +1237,13 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
                 telemetry.addData("Autonomous", "Complete");
                 telemetry.update();
                 break;
+        }
+    }
+
+    private void reportNavxDriveTimeout() {
+        if (isNavxMicroDataTimeout){
+            telemetry.addData("navxDrive", "Yaw PID waitForNewUpdate() TIMEOUT");
+            telemetry.update();
         }
     }
 
@@ -1358,108 +1386,128 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
         }
     }
 
+    enum DRIVE_STATE {
+        START,
+        RUN,
+        END
+    }
     public boolean navxDrive( double speed,
                               double distance,
                               double timeoutS,
                               double angle) throws InterruptedException {
 
-        int     newLeftTarget;
-        int     newRightTarget;
-        int     moveCounts;
+
         boolean driveComplete = false;
         // negation for mecanum drive arrangement
         distance = -distance;
-
         // set up navx stuff
         double angleNormalized = -angle; // reverse the angle's direction: since positive is for CCW, negative is for CW
-        // set the parameters before enabling the PID controller
-        yawDrivePIDController.enable(true);
-        yawDrivePIDController.setSetpoint(angleNormalized);
-        yawDrivePIDController.setPID(Kp, MMShooterBotConstants.YAW_PID_I, MMShooterBotConstants.YAW_PID_D);
 
-        navXPIDController.PIDResult yawPIDResult = new navXPIDController.PIDResult();
 
-        DecimalFormat df = new DecimalFormat("#.##");
-
-        Thread.sleep(MMShooterBotConstants.SLEEP_MS);
         // according to documentation, this instruction blocks the thread, and won't return immediately
         // it returns true if new data is available; false if it times out.
-        if (yawDrivePIDController.waitForNewUpdate(yawPIDResult, MMShooterBotConstants.WAIT_FOR_UPDATE_TIMEOUT_MS)) {
-            // proceed to keep using data from navx-micro
-            // Ensure that the opmode is still active
-            if (opModeIsActive()) {
 
-                // Determine new target position, and pass to motor controller
-                moveCounts = (int)(distance * MMShooterBotConstants.COUNTS_PER_INCH);
-                newLeftTarget = robot.frontLeftDrive.getCurrentPosition() + moveCounts;
-                newRightTarget = robot.frontRightDrive.getCurrentPosition() + moveCounts;
-                newLeftTarget = robot.rearLeftDrive.getCurrentPosition() + moveCounts;
-                newRightTarget = robot.rearRightDrive.getCurrentPosition() + moveCounts;
+        // proceed to keep using data from navx-micro
+        // Ensure that the opmode is still active
+        if (opModeIsActive()) {
+            switch (driveState) {
+                case START:
+                    // set the parameters before enabling the PID controller
+                    yawDrivePIDController.enable(true);
+                    yawDrivePIDController.setSetpoint(angleNormalized);
+                    yawDrivePIDController.setPID(Kp, MMShooterBotConstants.YAW_PID_I, MMShooterBotConstants.YAW_PID_D);
 
-                // Set Target and Turn On RUN_TO_POSITION
-                robot.frontLeftDrive.setTargetPosition(newLeftTarget);
-                robot.frontRightDrive.setTargetPosition(newRightTarget);
-                robot.rearLeftDrive.setTargetPosition(newLeftTarget);
-                robot.rearRightDrive.setTargetPosition(newRightTarget);
+                    DecimalFormat df = new DecimalFormat("#.##");
 
-                robot.frontLeftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                robot.frontRightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                robot.rearLeftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                robot.rearRightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    Thread.sleep(MMShooterBotConstants.SLEEP_MS);
 
-                // start motion.
-                speed = Range.clip(Math.abs(speed), 0.0, 1.0);
+                    // Determine new target position, and pass to motor controller
+                    moveCounts = (int)(distance * MMShooterBotConstants.COUNTS_PER_INCH);
+                    newLeftTarget = robot.frontLeftDrive.getCurrentPosition() + moveCounts;
+                    newRightTarget = robot.frontRightDrive.getCurrentPosition() + moveCounts;
+                    newLeftTarget = robot.rearLeftDrive.getCurrentPosition() + moveCounts;
+                    newRightTarget = robot.rearRightDrive.getCurrentPosition() + moveCounts;
 
-                runtime.reset();
-                // for debugging only, activate it when necessary
-                //RobotLog.vv(MMShooterBotConstants.GYRO_DRIVE_TAG, ",run time after reset =,%5.2f, seconds", runtime.seconds());
+                    // Set Target and Turn On RUN_TO_POSITION
+                    robot.frontLeftDrive.setTargetPosition(newLeftTarget);
+                    robot.frontRightDrive.setTargetPosition(newRightTarget);
+                    robot.rearLeftDrive.setTargetPosition(newLeftTarget);
+                    robot.rearRightDrive.setTargetPosition(newRightTarget);
 
-                // keep looping while we are still active, and either motors are running.
-                while (opModeIsActive() && robot.frontLeftDrive.isBusy() && robot.frontRightDrive.isBusy()
-                        && robot.rearLeftDrive.isBusy() && robot.rearRightDrive.isBusy() &&
-                        (runtime.seconds() < timeoutS)){
-                    if (yawDrivePIDController.isNewUpdateAvailable(yawPIDResult)) {
-                        if (yawPIDResult.isOnTarget()) {
-                            robot.frontLeftDrive.setPower(speed);
-                            robot.frontRightDrive.setPower(speed);
-                            robot.rearLeftDrive.setPower(speed);
-                            robot.rearRightDrive.setPower(speed);
+                    robot.frontLeftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    robot.frontRightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    robot.rearLeftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    robot.rearRightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+                    // start motion.
+                    speed = Range.clip(Math.abs(speed), 0.0, 1.0);
+
+                    navxDriveStartTime = getRuntime();
+                    // for debugging only, activate it when necessary
+                    //RobotLog.vv(MMShooterBotConstants.GYRO_DRIVE_TAG, ",run time after reset =,%5.2f, seconds", runtime.seconds());
+
+                    driveState = DRIVE_STATE.RUN;
+
+                    break;
+                case RUN:
+                    if (yawDrivePIDController.waitForNewUpdate(yawPIDResult, MMShooterBotConstants.WAIT_FOR_UPDATE_TIMEOUT_MS)) {
+                        // keep looping while we are still active, and either motors are running.
+                        if (robot.frontLeftDrive.isBusy() && robot.frontRightDrive.isBusy()
+                                && robot.rearLeftDrive.isBusy() && robot.rearRightDrive.isBusy() &&
+                                ((getRuntime() - navxDriveStartTime) < timeoutS)) {
+                            if (yawDrivePIDController.isNewUpdateAvailable(yawPIDResult)) {
+                                if (yawPIDResult.isOnTarget()) {
+                                    robot.frontLeftDrive.setPower(speed);
+                                    robot.frontRightDrive.setPower(speed);
+                                    robot.rearLeftDrive.setPower(speed);
+                                    robot.rearRightDrive.setPower(speed);
 //                            telemetry.addData("PIDOutput", df.format(speed) + ", " +
 //                                    df.format(speed));
-                        } else {
-                            double output = yawPIDResult.getOutput();
-                            // if driving in reverse, the motor correction also needs to be reversed
-                            if (distance < 0)
-                                output *= -1.0;
+                                } else {
+                                    double output = yawPIDResult.getOutput();
+                                    // if driving in reverse, the motor correction also needs to be reversed
+                                    if (distance < 0)
+                                        output *= -1.0;
 
-                            robot.frontLeftDrive.setPower(speed - output);
-                            robot.frontRightDrive.setPower(speed + output);
-                            robot.rearLeftDrive.setPower(speed - output);
-                            robot.rearRightDrive.setPower(speed + output);
-//                            telemetry.addData("PIDOutput", df.format(limit(speed + output)) + ", " +
-//                                    df.format(limit(speed - output)));
-                        }
+                                    robot.frontLeftDrive.setPower(speed - output);
+                                    robot.frontRightDrive.setPower(speed + output);
+                                    robot.rearLeftDrive.setPower(speed - output);
+                                    robot.rearRightDrive.setPower(speed + output);
+                                    telemetry.addData("yawPIDResult", "not On Target");
+                                }
+
 //                        telemetry.addData("Yaw", df.format(navxDevice.getYaw()));
-                    }
+                            }
 //                    telemetry.update();
 
-                    // for debugging only, activate it when necessary
-                    //RobotLog.vv(MMShooterBotConstants.GYRO_DRIVE_TAG, ",run time =,%5.2f, seconds", runtime.seconds());
-                }
+                            // for debugging only, activate it when necessary
+                            //RobotLog.vv(MMShooterBotConstants.GYRO_DRIVE_TAG, ",run time =,%5.2f, seconds", runtime.seconds());
+                        } else {
+                            driveState = DRIVE_STATE.END;
+                        }
 
-                // stop the momentum of the robot
-                turnOffDriveMotors();
-                driveComplete = true;
+                    } else {
+                        // time out occurs, fall back to use modern robotics gyro and change the mission route
+                        RobotLog.vv("navXRotateOp", "Yaw PID waitForNewUpdate() TIMEOUT.");
+                        telemetry.addData("navxDrive", "Yaw PID waitForNewUpdate() TIMEOUT");
+                        telemetry.update();
+                        isNavxMicroDataTimeout = true;
+                        driveState = DRIVE_STATE.END;
+                    }
+                    break;
+                case END:
+                    // stop the momentum of the robot
+                    turnOffDriveMotors();
+                    driveComplete = true;
+                    yawDrivePIDController.enable(false);
+                    driveState = DRIVE_STATE.START;
+                    break;
             }
-
-        } else {
-            // time out occurs, fall back to use modern robotics gyro and change the mission route
-            RobotLog.vv("navXRotateOp", "Yaw PID waitForNewUpdate() TIMEOUT.");
-            isNavxMicroDataTimeout = true;
         }
-        yawDrivePIDController.enable(false);
+
         return driveComplete;
     }
+
 
     public void turnOffDriveMotors() {
         // Stop all motion;
