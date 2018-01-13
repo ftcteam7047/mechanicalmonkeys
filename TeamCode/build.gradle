@@ -30,3 +30,6 @@ repositories {
 dependencies {
     compile 'org.tensorflow:tensorflow-android:+'
 }
+android {
+    buildToolsVersion '26.0.2'
+}
