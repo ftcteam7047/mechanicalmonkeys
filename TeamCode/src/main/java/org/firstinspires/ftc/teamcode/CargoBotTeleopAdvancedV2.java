@@ -158,10 +158,11 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     boolean shouldRampMoveToFlatDueToLift = false;
     boolean isRampUpEvent = false;
     boolean isLiftAtLowPosition = false;
-    boolean lastGamepad1Down = false;
-    boolean lastGamepad1Up = false;
+    boolean lastGamepadDown = false;
+    boolean lastGamepadUp = false;
     double lifterDownStartTime = 0.0;
     double lifterUpStartTime = 0.0;
+    boolean shouldActivateIntakeDueToLifting = false;
 
     // rotate to nearest 90 degrees
     private enum ENUM_NAVX_GYRO_TURN {
@@ -291,7 +292,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     }
 
     private void intakeController() {
-        if (gamepad2.a) {
+        if (gamepad2.a || shouldActivateIntakeDueToLifting) {
             // normal intake
             setIntakeMotorDir(intakeDir.NORMAL);
             activateIntakeMotors();
@@ -743,9 +744,9 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
                         } else {
                             sideMovement = min(leftStickX, rightStickX);
                         }
-                        // Limit the top speed of the robot in low speed mode
+                        // Limit the top strafing speed of the robot in low speed mode
                         if (isLowSpeedMode) {
-                            sideMovement = (float) Range.clip(sideMovement, -CargoBotConstants.TELEOP_SLOW_MODE_TOP_SPEED, CargoBotConstants.TELEOP_SLOW_MODE_TOP_SPEED);
+                            sideMovement = (float) Range.clip(sideMovement, -CargoBotConstants.TELEOP_SLOW_MODE_STRAFING_TOP_SPEED, CargoBotConstants.TELEOP_SLOW_MODE_STRAFING_TOP_SPEED);
                         }
                         frontLeftDrive.setPower(-sideMovement);
                         frontRightDrive.setPower(sideMovement);
@@ -886,7 +887,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
 
             if (offset < low) {
                 // only accept dpad up
-                if (gamepad1.dpad_up) {
+                if (gamepad2.dpad_up) {
                     if (!isLifterButtonPressed) {
                         liftPosition = liftPosition.LOW;
                         isLifterButtonPressed = true;
@@ -894,7 +895,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
                 }
             } else if (offset >= low && offset < high) {
                 // can accept dpad up or down
-                if (gamepad1.dpad_up) {
+                if (gamepad2.dpad_up) {
                     if (!isLifterButtonPressed) {
                         liftPosition = liftPosition.HIGH;
                         isLifterButtonPressed = true;
@@ -917,7 +918,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
             }
         }
         // normal operation
-        if (gamepad1.dpad_up) {
+        if (gamepad2.dpad_up) {
             if (liftPosition == liftPosition.LOW && !isLifterButtonPressed) {
                 liftPosition = liftPosition.HIGH;
                 isLifterButtonPressed = true;
@@ -951,13 +952,18 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         // don't move the lifter without user input
         if (liftPosition != LiftPosition.INIT_POSITION) {
             if (!isMotorStalled) {
-                blockLift.setTargetPosition(target);
-                blockLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                if (CargoBotConstants.SET_LIFT_MOTOR_HIGH_SPEED) {
-                    // always lift up/down at high speed
-                    blockLift.setPower(CargoBotConstants.LIFT_HI_SPEED);
+                if ((getRuntime() - lifterUpStartTime) < CargoBotConstants.INTAKE_MOTOR_ACTIVE_TIME) {
+                    shouldActivateIntakeDueToLifting = true;
                 } else {
-                    blockLift.setPower(CargoBotConstants.LIFT_SPEED);
+                    shouldActivateIntakeDueToLifting = false;
+                    blockLift.setTargetPosition(target);
+                    blockLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    if (CargoBotConstants.SET_LIFT_MOTOR_HIGH_SPEED) {
+                        // always lift up/down at high speed
+                        blockLift.setPower(CargoBotConstants.LIFT_HI_SPEED);
+                    } else {
+                        blockLift.setPower(CargoBotConstants.LIFT_SPEED);
+                    }
                 }
             }
 
@@ -967,24 +973,31 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
                 turnOffLiftMotor();
                 reportLiftLogicalPos();
             } else {
-                detectNeverRest20MotorStall();
-                // move the ramp to the expected position while the lift is moving to either high or low position
-                if (liftPosition == LiftPosition.HIGH) {
-                    if (!isLiftNearHighPosition() && !isMotorStalled && !isLifterUpTimeout()) {
-                        // inform servo controller that we want to move to flat position
-                        shouldRampMoveToFlatDueToLift = true;
+
+                //activate intake motor for a short burst to help blocks clear the obstacle
+                if (!shouldActivateIntakeDueToLifting){
+                    if (liftPosition == LiftPosition.HIGH) {
+                        if (!isLiftNearHighPosition() && !isMotorStalled && !isLifterUpTimeout()) {
+                            // inform servo controller that we want to move to flat position
+                            shouldRampMoveToFlatDueToLift = true;
+                        }
                     }
-                } else if (liftPosition == LiftPosition.LOW) {
+                }
+                if (liftPosition == LiftPosition.LOW) {
                     if (!isLiftNearLowPosition() && !isMotorStalled && !isLifterDownTimeout()) {
                         // inform servo controller that we want to move to down position
                         shouldRampMoveToDownDueToLift = true;
+                        shouldActivateIntakeDueToLifting = false;
                     }
+                }
+                if (!shouldActivateIntakeDueToLifting) {
+                    detectNeverRest20MotorStall();
                 }
             }
         }
 
         if (isLifterButtonPressed) {
-            if (!gamepad1.dpad_down && !gamepad1.dpad_up) {
+            if (!gamepad1.dpad_down && !gamepad2.dpad_up) {
                 isLifterButtonPressed = false;
             }
         }
@@ -993,20 +1006,21 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
 
     private void setLifterStartTime(){
         // record the time when lifter down button has been pressed
-        if (!lastGamepad1Down && gamepad1.dpad_down){
+        if (!lastGamepadDown && gamepad1.dpad_down){
             lifterDownStartTime = getRuntime();
         }
         // record the time when lifter up button has been pressed
-        if (!lastGamepad1Up && gamepad1.dpad_up){
+        if (!lastGamepadUp && gamepad2.dpad_up){
             lifterUpStartTime = getRuntime();
         }
         // for comparison in the next loop
-        lastGamepad1Down = gamepad1.dpad_down;
-        lastGamepad1Up = gamepad1.dpad_up;
+        lastGamepadDown = gamepad1.dpad_down;
+        lastGamepadUp = gamepad2.dpad_up;
     }
 
     private boolean isLifterUpTimeout(){
-        return ((getRuntime() - lifterUpStartTime) > CargoBotConstants.LIFT_MOTOR_TIMEOUT);
+        // account for the time to activate intake motor
+        return ((getRuntime() - lifterUpStartTime) > (CargoBotConstants.LIFT_MOTOR_TIMEOUT + CargoBotConstants.INTAKE_MOTOR_ACTIVE_TIME));
     }
     private boolean isLifterDownTimeout(){
         return ((getRuntime() - lifterDownStartTime) > CargoBotConstants.LIFT_MOTOR_TIMEOUT);

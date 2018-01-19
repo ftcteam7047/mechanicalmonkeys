@@ -62,6 +62,7 @@ public interface CargoBotConstants {
     double VU_MARK_DETECTION_TIMEOUT = 5.0;
 
     double TELEOP_SLOW_MODE_TOP_SPEED = 0.42;
+    double TELEOP_SLOW_MODE_STRAFING_TOP_SPEED = 0.25;
     boolean USE_Y_BUTTON_FOR_LOW_SPEED_MODE = true;
 
     double MOTOR_STALL_CHECKING_PERIOD = 0.3;
@@ -187,5 +188,8 @@ public interface CargoBotConstants {
     // ball detection timeout
     double BALL_DETECTION_TIMEOUT = 10.0;
     double PRE_INIT_BALL_DETECTION_TIMEOUT = 5.0;
+
+    // Intake motor active duration before ramp is lifted with blocks
+    double INTAKE_MOTOR_ACTIVE_TIME = 0.35;
 }
 
