@@ -191,5 +191,8 @@ public interface CargoBotConstants {
 
     // Intake motor active duration before ramp is lifted with blocks
     double INTAKE_MOTOR_ACTIVE_TIME = 0.35;
+    // distance to sense if a block is crossing the front "gate"
+    double BLOCK_PRESENT_DISTANCE = 7.0;  // unit: cm
+    double DELAY_BEFORE_OFF_TIME = 0.2; // 200 ms
 }
 

@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import android.content.Context;
 
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -31,6 +32,8 @@ public class HardwareMecanumCargoBotV2 {
     public Servo ballArm;
     public Servo liftServo;
 
+    // range sensor
+    ModernRoboticsI2cRangeSensor rangeSensor;
 
     // enum for relic arm
     public enum RelicGripPosition {
@@ -92,6 +95,9 @@ public class HardwareMecanumCargoBotV2 {
         //relicServo = hwMap.servo.get("relicServo");
         ballArm = hwMap.servo.get("ballArm");
         liftServo = hwMap.servo.get("testServo");
+
+        // range sensor
+        rangeSensor = hwMap.get(ModernRoboticsI2cRangeSensor.class, "rangeSensor1");
 
         // Set motor initial direction
         frontLeftDrive.setDirection(DcMotor.Direction.FORWARD); // Set to FORWARD if using AndyMark motors Neverest 40

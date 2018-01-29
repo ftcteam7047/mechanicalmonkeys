@@ -4,6 +4,7 @@ import android.content.Context;
 
 import com.kauailabs.navx.ftc.AHRS;
 import com.kauailabs.navx.ftc.navXPIDController;
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -12,6 +13,8 @@ import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 import com.qualcomm.robotcore.util.RobotLog;
+
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 import java.text.DecimalFormat;
 
@@ -163,6 +166,17 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     double lifterDownStartTime = 0.0;
     double lifterUpStartTime = 0.0;
     boolean shouldActivateIntakeDueToLifting = false;
+    double blockDetectedStartTime = 0.0;
+    boolean lastGamepad2A = false;
+    enum INTAKE_MOTOR_STATE {
+        WAIT_FOR_COMMAND,
+        SENSE_BLOCK,
+        DELAY
+    }
+    INTAKE_MOTOR_STATE intakeMotorState = INTAKE_MOTOR_STATE.WAIT_FOR_COMMAND;
+
+    ModernRoboticsI2cRangeSensor rangeSensor;
+    double rangeSensorDistance = 0.0;
 
     // rotate to nearest 90 degrees
     private enum ENUM_NAVX_GYRO_TURN {
@@ -173,6 +187,8 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
 
     @Override
     public void init() {
+        // get a reference to the range sensor
+        rangeSensor = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, "rangeSensor1");
         context = hardwareMap.appContext;
         testServo = hardwareMap.servo.get("testServo");
         testServo.setPosition(downTarget);
@@ -226,6 +242,8 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
 
     @Override
     public void loop() {
+        rangeSensorDistance = rangeSensor.getDistance(DistanceUnit.CM);
+        telemetry.addData("distance", rangeSensorDistance);
         servoController();
         intakeController();
         driveController();
@@ -295,15 +313,56 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         if (gamepad2.a || shouldActivateIntakeDueToLifting) {
             // normal intake
             setIntakeMotorDir(intakeDir.NORMAL);
-            activateIntakeMotors();
+            activteSecondaryIntakeMotors();
         } else if (gamepad2.y) {
             // reverse intake
             setIntakeMotorDir(intakeDir.REVERSE);
-            activateIntakeMotors();
+            activateAllIntakeMotors();
         } else {
             turnOffIntakeMotors();
         }
+        intakeStateMachine();
 
+    }
+
+    private void intakeStateMachine() {
+        switch (intakeMotorState){
+            case WAIT_FOR_COMMAND:
+                if (!gamepad2.y){
+                    frontIntakeMotor.setPower(0);
+                }
+                // "A" button is "pressed" event
+                if (gamepad2.a && !lastGamepad2A) {
+                    setIntakeMotorDir(intakeDir.NORMAL);
+                    intakeMotorState = INTAKE_MOTOR_STATE.SENSE_BLOCK;
+                    frontIntakeMotor.setPower(frontIntakeMotorPower);
+                }
+                break;
+            case SENSE_BLOCK:
+                if (isObjectDetectedWithinRange(CargoBotConstants.BLOCK_PRESENT_DISTANCE)){
+                    blockDetectedStartTime = getRuntime();
+                    intakeMotorState = INTAKE_MOTOR_STATE.DELAY;
+                }
+                break;
+            case DELAY:
+                if ((getRuntime() - blockDetectedStartTime) > CargoBotConstants.DELAY_BEFORE_OFF_TIME){
+                    if (!gamepad2.y){
+                        frontIntakeMotor.setPower(0);
+                    }
+                    intakeMotorState = INTAKE_MOTOR_STATE.WAIT_FOR_COMMAND;
+                }
+                break;
+        }
+
+        // regardless of state, when the button is "released", always return to the WAIT_FOR_COMMAND state
+        if (!gamepad2.a && lastGamepad2A){
+            intakeMotorState = INTAKE_MOTOR_STATE.WAIT_FOR_COMMAND;
+        }
+        // store a copy for comparison in the next loop
+        lastGamepad2A = gamepad2.a;
+
+//        telemetry.addData("state", intakeMotorState);
+//        telemetry.update();
     }
 
     private void servoController(){
@@ -434,9 +493,15 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     }
 
 
-    private void activateIntakeMotors(){
+    private void activateAllIntakeMotors(){
         // activate primary intake motor
         frontIntakeMotor.setPower(frontIntakeMotorPower);
+        // activate equal power on both left and right intake motors
+        leftIntakeMotor.setPower(leftIntakeMotorPower);
+        rightIntakeMotor.setPower(rightIntakeMotorPower);
+    }
+
+    private void activteSecondaryIntakeMotors(){
         // activate equal power on both left and right intake motors
         leftIntakeMotor.setPower(leftIntakeMotorPower);
         rightIntakeMotor.setPower(rightIntakeMotorPower);
@@ -667,7 +732,8 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
 
 
     private void checkForLowSpeedModeInput() {
-        if ((gamepad1.y) && !lastGamepad1YButton) {
+        // check for release instead of press
+        if (!gamepad1.y && lastGamepad1YButton) {
             isLowSpeedMode = !isLowSpeedMode;
         }
         // store the current state for comparison in the next loop
@@ -1443,10 +1509,25 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
      */
     @Override
     public void stop() {
-        navxDevice.close();
+        if (navxDevice!= null) {
+            navxDevice.close();
+        }
         turnOffIntakeMotors();
         turnOffDriveMotors();
         blockLift.setPower(0);
         fileHandler.writeToFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, Integer.toString(offset + blockLift.getCurrentPosition()), context);
+    }
+
+    public boolean isObjectDetectedWithinRange(double distance) {
+
+        boolean inRange = false;
+        // make sure the range sensor distance is a good number
+        if (!Double.isNaN(rangeSensorDistance)) {
+            if (rangeSensorDistance < distance) {
+                inRange = true;
+            }
+        }
+
+        return inRange;
     }
 }
