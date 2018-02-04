@@ -386,7 +386,8 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
                 if ((getRuntime() - blockAutoEjectedStartTime) > CargoBotConstants.DELAY_BEFORE_STOPPING_AUTO_EJECT) {
                     autoEjecting = false;
                     setIntakeMotorDir(intakeDir.NORMAL);
-                    frontIntakeMotor.setPower(frontIntakeMotorPower);
+                    activateAllIntakeMotors();
+                    //frontIntakeMotor.setPower(frontIntakeMotorPower);
                     intakeMotorState = INTAKE_MOTOR_STATE.SENSE_BLOCK;
                 }
                 break;

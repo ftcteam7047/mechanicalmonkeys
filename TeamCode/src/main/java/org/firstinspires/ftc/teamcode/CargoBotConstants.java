@@ -192,11 +192,11 @@ public interface CargoBotConstants {
     // Intake motor active duration before ramp is lifted with blocks
     double INTAKE_MOTOR_ACTIVE_TIME = 0.35;
     // distance to sense if a block is crossing the front "gate"
-    double BLOCK_PRESENT_DISTANCE = 7.0;  // unit: cm
-    double DELAY_BEFORE_OFF_TIME = 0.2; // 200 ms
+    double BLOCK_PRESENT_DISTANCE = 12;  // unit: cm
+    double DELAY_BEFORE_OFF_TIME = 0.4; // 1000 ms
 
-    double DELAY_BEFORE_AUTO_EJECT = 0.85;
-    double LENGTH_OF_AUTO_EJECT = 1.0;
+    double DELAY_BEFORE_AUTO_EJECT = 0.85; // Maximum is .699 for intake time
+    double LENGTH_OF_AUTO_EJECT = 2.0;
     double DELAY_BEFORE_STOPPING_AUTO_EJECT = DELAY_BEFORE_AUTO_EJECT + LENGTH_OF_AUTO_EJECT;
 }
 
