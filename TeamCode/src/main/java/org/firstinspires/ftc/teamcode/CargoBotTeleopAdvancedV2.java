@@ -167,11 +167,18 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     double lifterUpStartTime = 0.0;
     boolean shouldActivateIntakeDueToLifting = false;
     double blockDetectedStartTime = 0.0;
+    double blockAutoEjectedStartTime = 0.0;
     boolean lastGamepad2A = false;
+    boolean autoEjectAttempted = false;
+    boolean autoEjecting = false;
+
+    double timeBlockinGate = 0.0;
     enum INTAKE_MOTOR_STATE {
         WAIT_FOR_COMMAND,
         SENSE_BLOCK,
-        DELAY
+        DELAY,
+        WAIT_FOR_AUTO_EJECT,
+        AUTO_EJECT
     }
     INTAKE_MOTOR_STATE intakeMotorState = INTAKE_MOTOR_STATE.WAIT_FOR_COMMAND;
 
@@ -310,11 +317,11 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     }
 
     private void intakeController() {
-        if (gamepad2.a || shouldActivateIntakeDueToLifting) {
+        if ((gamepad2.a || shouldActivateIntakeDueToLifting) && !autoEjecting) {
             // normal intake
             setIntakeMotorDir(intakeDir.NORMAL);
             activteSecondaryIntakeMotors();
-        } else if (gamepad2.y) {
+        } else if (gamepad2.y || autoEjecting) {
             // reverse intake
             setIntakeMotorDir(intakeDir.REVERSE);
             activateAllIntakeMotors();
@@ -349,20 +356,57 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
                     if (!gamepad2.y){
                         frontIntakeMotor.setPower(0);
                     }
+                    if (!autoEjectAttempted) {
+                        intakeMotorState = INTAKE_MOTOR_STATE.WAIT_FOR_AUTO_EJECT;
+                        blockAutoEjectedStartTime = getRuntime();
+                    } else {
+                        intakeMotorState = INTAKE_MOTOR_STATE.WAIT_FOR_COMMAND;
+                    }
+                }
+                break;
+            case WAIT_FOR_AUTO_EJECT:
+                // a delay that waits a certain amount of time and if the block is still there, send it to auto eject.
+                // if the block isn't there, send it to the Wait state
+                if (isObjectDetectedWithinRange(CargoBotConstants.BLOCK_PRESENT_DISTANCE)) {
+                    if ((getRuntime() - blockAutoEjectedStartTime) > CargoBotConstants.DELAY_BEFORE_AUTO_EJECT) {
+                        intakeMotorState = INTAKE_MOTOR_STATE.AUTO_EJECT;
+                    }
+                } else {
                     intakeMotorState = INTAKE_MOTOR_STATE.WAIT_FOR_COMMAND;
+                    timeBlockinGate = getRuntime() - blockDetectedStartTime;
+                }
+                break;
+            case AUTO_EJECT:
+                // ejects the block for 1 second and only occurs once for every press of the a button
+                if (!autoEjectAttempted) {
+                    autoEjecting = true;
+                    autoEjectAttempted = true;
+                    setIntakeMotorDir(intakeDir.REVERSE);
+                }
+                if ((getRuntime() - blockAutoEjectedStartTime) > CargoBotConstants.DELAY_BEFORE_STOPPING_AUTO_EJECT) {
+                    autoEjecting = false;
+                    setIntakeMotorDir(intakeDir.NORMAL);
+                    frontIntakeMotor.setPower(frontIntakeMotorPower);
+                    intakeMotorState = INTAKE_MOTOR_STATE.SENSE_BLOCK;
                 }
                 break;
         }
 
         // regardless of state, when the button is "released", always return to the WAIT_FOR_COMMAND state
+        // also resets the auto eject booleans
         if (!gamepad2.a && lastGamepad2A){
             intakeMotorState = INTAKE_MOTOR_STATE.WAIT_FOR_COMMAND;
+            autoEjectAttempted = false;
+            autoEjecting = false;
         }
         // store a copy for comparison in the next loop
         lastGamepad2A = gamepad2.a;
 
+
 //        telemetry.addData("state", intakeMotorState);
 //        telemetry.update();
+//        telemetry.addData("auto ejecting", autoEjecting);
+//        telemetry.addData("time in gate", timeBlockinGate);
     }
 
     private void servoController(){
