@@ -104,15 +104,16 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     float leftStickY = 0;
     float rightStickY = 0;
 
-    // enum for block lift
+    // enum for block lift target position
     public enum LiftPosition {
+        INIT_POSITION,
         LOW,
         HIGH,
-        INIT_POSITION
+        NO_MOVEMENT
     }
 
     // lift motor variables
-    LiftPosition liftPosition;
+    LiftPosition liftTargetPosition;
     boolean isLifterButtonPressed;
     int offset;
     boolean isMotorStalled = false;
@@ -184,7 +185,25 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
 
     ModernRoboticsI2cRangeSensor rangeSensor;
     double rangeSensorDistance = 0.0;
-
+    boolean downButtonReleased = false;
+    boolean upButtonReleased = false;
+    private enum LIFTER_STATE {
+        INIT,
+        WAIT_FOR_COMMAND,
+        TO_LOW_PHASE1,
+        TO_LOW_PHASE2,
+        TO_HIGH_PHASE1,
+        TO_HIGH_PHASE2,
+        PAUSE_FOR_LOW_TO_HIGH,
+        PAUSE_FOR_HIGH_TO_LOW
+    }
+    LIFTER_STATE lifterState = LIFTER_STATE.INIT;
+    int liftTargetLow = 0;
+    int liftTargetHigh = 0;
+    boolean upMovementInitiated = false;
+    boolean downMovementInitiated = false;
+//    double lastVbatt = 0.0;
+//    boolean isMotorStalledDetectedByVoltageDrop = false;
     // rotate to nearest 90 degrees
     private enum ENUM_NAVX_GYRO_TURN {
         NOT_ARRIVED,
@@ -250,11 +269,11 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     @Override
     public void loop() {
         rangeSensorDistance = rangeSensor.getDistance(DistanceUnit.CM);
-        telemetry.addData("distance", rangeSensorDistance);
+        //telemetry.addData("distance", rangeSensorDistance);
         servoController();
         intakeController();
         driveController();
-        blockLiftController();
+        blockLiftControllerV2();
         // rotate to nearest 90 is not used
         // back on to platform is not used
 //        try {
@@ -991,7 +1010,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
 
     public void blockLiftController() {
         // initialization, considering offset
-        if (liftPosition == liftPosition.INIT_POSITION) {
+        if (liftTargetPosition == liftTargetPosition.INIT_POSITION) {
             // first determine lift position, then determine the target position depending on dpad up/down
             int low = (int) CargoBotConstants.LOW_DISTANCE_FROM_START;
             int high = (int) CargoBotConstants.HIGH_DISTANCE_FROM_START;
@@ -1000,7 +1019,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
                 // only accept dpad up
                 if (gamepad2.dpad_up) {
                     if (!isLifterButtonPressed) {
-                        liftPosition = liftPosition.LOW;
+                        liftTargetPosition = liftTargetPosition.LOW;
                         isLifterButtonPressed = true;
                     }
                 }
@@ -1008,12 +1027,12 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
                 // can accept dpad up or down
                 if (gamepad2.dpad_up) {
                     if (!isLifterButtonPressed) {
-                        liftPosition = liftPosition.HIGH;
+                        liftTargetPosition = liftTargetPosition.HIGH;
                         isLifterButtonPressed = true;
                     }
                 } else if (gamepad1.dpad_down) {
                     if (!isLifterButtonPressed) {
-                        liftPosition = liftPosition.LOW;
+                        liftTargetPosition = liftTargetPosition.LOW;
                         isLifterButtonPressed = true;
                     }
                 }
@@ -1022,7 +1041,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
                 // offset >= high, only accept dpad down
                 if (gamepad1.dpad_down) {
                     if (!isLifterButtonPressed) {
-                        liftPosition = liftPosition.HIGH;
+                        liftTargetPosition = liftTargetPosition.HIGH;
                         isLifterButtonPressed = true;
                     }
                 }
@@ -1030,22 +1049,22 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         }
         // normal operation
         if (gamepad2.dpad_up) {
-            if (liftPosition == liftPosition.LOW && !isLifterButtonPressed) {
-                liftPosition = liftPosition.HIGH;
+            if (liftTargetPosition == liftTargetPosition.LOW && !isLifterButtonPressed) {
+                liftTargetPosition = liftTargetPosition.HIGH;
                 isLifterButtonPressed = true;
                 telemetry.addData("lift status", "to HIGH");
             }
             isMotorStalled = false;
         } else if (gamepad1.dpad_down) {
-            if (liftPosition == liftPosition.HIGH && !isLifterButtonPressed) {
-                liftPosition = liftPosition.LOW;
+            if (liftTargetPosition == liftTargetPosition.HIGH && !isLifterButtonPressed) {
+                liftTargetPosition = liftTargetPosition.LOW;
                 isLifterButtonPressed = true;
                 telemetry.addData("lift status", "to LOW");
             }
             isMotorStalled = false;
         }
 
-        switch (liftPosition) {
+        switch (liftTargetPosition) {
             case LOW:
                 target = (int) CargoBotConstants.LOW_DISTANCE_FROM_START - offset;
                 break;
@@ -1061,7 +1080,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         setLifterStartTime();
 
         // don't move the lifter without user input
-        if (liftPosition != LiftPosition.INIT_POSITION) {
+        if (liftTargetPosition != LiftPosition.INIT_POSITION) {
             if (!isMotorStalled) {
                 if ((getRuntime() - lifterUpStartTime) < CargoBotConstants.INTAKE_MOTOR_ACTIVE_TIME) {
                     shouldActivateIntakeDueToLifting = true;
@@ -1087,14 +1106,14 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
 
                 //activate intake motor for a short burst to help blocks clear the obstacle
                 if (!shouldActivateIntakeDueToLifting){
-                    if (liftPosition == LiftPosition.HIGH) {
+                    if (liftTargetPosition == LiftPosition.HIGH) {
                         if (!isLiftNearHighPosition() && !isMotorStalled && !isLifterUpTimeout()) {
                             // inform servo controller that we want to move to flat position
                             shouldRampMoveToFlatDueToLift = true;
                         }
                     }
                 }
-                if (liftPosition == LiftPosition.LOW) {
+                if (liftTargetPosition == LiftPosition.LOW) {
                     if (!isLiftNearLowPosition() && !isMotorStalled && !isLifterDownTimeout()) {
                         // inform servo controller that we want to move to down position
                         shouldRampMoveToDownDueToLift = true;
@@ -1113,6 +1132,163 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
             }
         }
 
+    }
+
+    private void liftButtonHandler() {
+        // record the time when lifter down button has been released
+        // detect the "down" button release event
+        if (lastGamepadDown && !gamepad1.dpad_down) {
+            lifterDownStartTime = getRuntime();
+            downButtonReleased = true;
+        } else {
+            downButtonReleased = false;
+        }
+
+        // record the time when lifter up button has been released
+        // detect the "up" button release event
+        if (lastGamepadUp && !gamepad2.dpad_up) {
+            lifterUpStartTime = getRuntime();
+            upButtonReleased = true;
+        } else {
+            upButtonReleased = false;
+        }
+
+        // for comparison in the next loop
+        lastGamepadDown = gamepad1.dpad_down;
+        lastGamepadUp = gamepad2.dpad_up;
+    }
+
+    private void calculateLiftTarget(){
+        switch (liftTargetPosition) {
+            case LOW:
+                target = (int) CargoBotConstants.LOW_DISTANCE_FROM_START - offset;
+                break;
+            case HIGH:
+                target = (int) CargoBotConstants.HIGH_DISTANCE_FROM_START - offset;
+                break;
+            case INIT_POSITION:
+                // robot is just initialized, don't move the lifter without user input
+                break;
+        }
+    }
+
+    private void blockLiftControllerV2(){
+        liftButtonHandler();
+        calculateLiftTarget();
+
+        switch (lifterState){
+            case INIT:
+                liftTargetLow = (int) CargoBotConstants.LOW_DISTANCE_FROM_START;
+                liftTargetHigh = (int) CargoBotConstants.HIGH_DISTANCE_FROM_START;
+                lifterState = LIFTER_STATE.WAIT_FOR_COMMAND;
+                break;
+
+            case WAIT_FOR_COMMAND:
+                if (upButtonReleased && !downButtonReleased){
+                    lifterState = LIFTER_STATE.TO_HIGH_PHASE1;
+                    liftTargetPosition = LiftPosition.HIGH;
+                }
+                if (downButtonReleased){
+                    lifterState = LIFTER_STATE.TO_LOW_PHASE1;
+                    liftTargetPosition = LiftPosition.LOW;
+                }
+
+                // clear the motor stall flag
+                isMotorStalled = false;
+                break;
+            case TO_LOW_PHASE1:
+                blockLift.setTargetPosition(target);
+                blockLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                // always lift up/down at high speed
+                blockLift.setPower(CargoBotConstants.LIFT_HI_SPEED);
+                lifterState = LIFTER_STATE.TO_LOW_PHASE2;
+                downMovementInitiated = true;
+
+            case TO_LOW_PHASE2:
+                if (liftTargetPosition == LiftPosition.LOW) {
+                    if (!isLiftNearLowPosition() && !isMotorStalled && !isLifterDownTimeout()) {
+                        // inform servo controller that we want to move to down position
+                        shouldRampMoveToDownDueToLift = true;
+                        shouldActivateIntakeDueToLifting = false;
+                    }
+                }
+
+                if (blockLift.isBusy()) {
+                    blockLift.setTargetPosition(target);
+                    blockLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    // always lift up/down at high speed
+                    blockLift.setPower(CargoBotConstants.LIFT_HI_SPEED);
+                } else {
+                    turnOffLiftMotor();
+                    lifterState = LIFTER_STATE.WAIT_FOR_COMMAND;
+                }
+
+                detectNeverRest20MotorStall();
+                if (isMotorStalled) {
+                    lifterState = LIFTER_STATE.WAIT_FOR_COMMAND;
+                }
+                // allow changing direction on the fly
+                if (upButtonReleased){
+                    lifterState = LIFTER_STATE.PAUSE_FOR_LOW_TO_HIGH;
+                }
+                break;
+
+            case TO_HIGH_PHASE1:
+                if ((getRuntime() - lifterUpStartTime) < CargoBotConstants.INTAKE_MOTOR_ACTIVE_TIME) {
+                    shouldActivateIntakeDueToLifting = true;
+                } else {
+                    shouldActivateIntakeDueToLifting = false;
+                    blockLift.setTargetPosition(target);
+                    blockLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    // always lift up/down at high speed
+                    blockLift.setPower(CargoBotConstants.LIFT_HI_SPEED);
+                    // go to phase 2 to reach the target position
+                    lifterState = LIFTER_STATE.TO_HIGH_PHASE2;
+                    upMovementInitiated = true;
+                }
+                break;
+
+            case TO_HIGH_PHASE2:
+                if (liftTargetPosition == LiftPosition.HIGH) {
+                    if (!isLiftNearHighPosition() && !isMotorStalled && !isLifterUpTimeout()) {
+                        // inform servo controller that we want to move to flat position
+                        shouldRampMoveToFlatDueToLift = true;
+                    }
+                }
+                if (blockLift.isBusy()) {
+                    blockLift.setTargetPosition(target);
+                    blockLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    // always lift up/down at high speed
+                    blockLift.setPower(CargoBotConstants.LIFT_HI_SPEED);
+                } else {
+                    turnOffLiftMotor();
+                    lifterState = LIFTER_STATE.WAIT_FOR_COMMAND;
+                }
+                detectNeverRest20MotorStall();
+
+                if (isMotorStalled){
+                    lifterState = LIFTER_STATE.WAIT_FOR_COMMAND;
+                }
+                // allow changing direction on the fly
+                if (downButtonReleased){
+                    lifterState = LIFTER_STATE.PAUSE_FOR_HIGH_TO_LOW;
+                }
+                break;
+
+            case PAUSE_FOR_HIGH_TO_LOW:
+                turnOffLiftMotor();
+                lifterState = LIFTER_STATE.TO_LOW_PHASE1;
+                liftTargetPosition = LiftPosition.LOW;
+                break;
+
+            case PAUSE_FOR_LOW_TO_HIGH:
+                turnOffLiftMotor();
+                lifterState = LIFTER_STATE.TO_HIGH_PHASE1;
+                liftTargetPosition = LiftPosition.HIGH;
+                break;
+
+        }
+        telemetry.addData("lift state", lifterState);
     }
 
     private void setLifterStartTime(){
@@ -1143,7 +1319,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     }
 
     private void reportLiftLogicalPos() {
-        switch (liftPosition) {
+        switch (liftTargetPosition) {
             case LOW:
                 telemetry.addData("lift status", "@ LOW");
                 break;
@@ -1167,7 +1343,8 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         motorPower = Range.clip(motorPower, -CargoBotConstants.MOTOR_TOP_SPEED, CargoBotConstants.MOTOR_TOP_SPEED);
         int maxEncoderPulsesPerSec = (int) Math.round(motorPower * CargoBotConstants.ANDYMARK_20_MAX_COUNT_PER_SEC * getBatteryVoltage() / CargoBotConstants.MOTOR_VOLTAGE);
         int maxEncoderPulsesPerTick = (int) Math.round(maxEncoderPulsesPerSec * tick);
-
+        telemetry.addData("maxEncoderPulsesPerSec", maxEncoderPulsesPerSec);
+        telemetry.addData("maxEncoderPulsesPerTick", maxEncoderPulsesPerTick);
         return maxEncoderPulsesPerTick;
     }
 
@@ -1177,25 +1354,30 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         // for every new request, set the last encoder position to the current position
         // as the basis for comparison
         // clear the motor stall flag to allow movement to other positions
-        if (isLifterButtonPressed) {
+        if (downMovementInitiated || upMovementInitiated) {
+            if (downMovementInitiated){
+                downMovementInitiated = false;
+            }
+            if (upMovementInitiated){
+                upMovementInitiated = false;
+            }
             lastEncoderPos = blockLift.getCurrentPosition();
             tMotorStart = getRuntime();
             lastMotorStallTick = getRuntimeInTicks(tMotorStart, CargoBotConstants.MOTOR_STALL_CHECKING_PERIOD);
+            // for checking sudden drop in battery voltage: part of motor stall detection
+//            lastVbatt = getBatteryVoltage();
         }
 
         tick = getRuntimeInTicks(tMotorStart, CargoBotConstants.MOTOR_STALL_CHECKING_PERIOD);
         if (tick > lastMotorStallTick) {
-            // update for comparison in the next loop
-            lastMotorStallTick = tick;
             int deltaTicks = tick - lastMotorStallTick;
             double time = CargoBotConstants.MOTOR_STALL_CHECKING_PERIOD * deltaTicks;
-            double motorSpeed;
-            if (CargoBotConstants.SET_LIFT_MOTOR_HIGH_SPEED) {
-                motorSpeed = CargoBotConstants.LIFT_HI_SPEED;
-            } else {
-                motorSpeed = CargoBotConstants.LIFT_SPEED;
-            }
+            double motorSpeed = CargoBotConstants.LIFT_HI_SPEED;
+
             int motorStallThreshold = (int) (getNeverest20MotorEncoderCountWithTime(time, motorSpeed) * CargoBotConstants.MOTOR_STALL_RATIO);
+//            telemetry.addData("deltaTicks", deltaTicks);
+//            telemetry.addData("time", time);
+//            telemetry.addData("motorSpeed", motorSpeed);
 //            telemetry.addData("last encoder", lastEncoderPos);
 //            telemetry.addData("current pos", blockLift.getCurrentPosition());
 //            telemetry.addData("delta pos", abs(lastEncoderPos - blockLift.getCurrentPosition()));
@@ -1208,8 +1390,20 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
             }
             // update for comparison in the next loop
             lastEncoderPos = blockLift.getCurrentPosition();
-
+            // update for comparison in the next loop
+            lastMotorStallTick = tick;
+            // detect sudden voltage drop in battery
+//            if ((lastVbatt - getBatteryVoltage()) >= CargoBotConstants.VBATT_VOLTAGE_DROP_MOTOR_STALL &&
+//                    getBatteryVoltage() <= 10.0) {
+//                turnOffLiftMotor();
+//                isMotorStalled = true;
+//                isMotorStalledDetectedByVoltageDrop = true;
+//            }
+//            // for checking in the next loop
+//            lastVbatt = getBatteryVoltage();
         }
+
+
     }
 
     // Computes the current battery voltage
@@ -1225,7 +1419,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     }
 
     private void initLiftMotor(){
-        liftPosition = LiftPosition.LOW;
+        liftTargetPosition = LiftPosition.INIT_POSITION;
         context = hardwareMap.appContext;
         if (fileHandler.readFromFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, context).equals("error")) {
             offset = 0;
