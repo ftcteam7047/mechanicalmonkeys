@@ -29,7 +29,7 @@ public interface CargoBotConstants {
     double DIAGONAL_HALF_BAND_WIDTH = 0.30; // max shall be less than sqrt(2)
     // for ver 2 slider
     double SLIDER_LOW_HEIGHT = 0.0;
-    double SLIDER_HIGH_HEIGHT = 7.0;
+    double SLIDER_HIGH_HEIGHT = 7.5;
     int COUNTS_PER_MOTOR_REV_20 = 560;
     double SLIDER_PULLEY_DIAMETER_INCHES = 0.465;
     double COUNTS_PER_INCH_SLIDER_PULLEY = COUNTS_PER_MOTOR_REV_20 / (SLIDER_PULLEY_DIAMETER_INCHES * Math.PI);
@@ -201,5 +201,11 @@ public interface CargoBotConstants {
     double DELAY_BEFORE_STOPPING_AUTO_EJECT = DELAY_BEFORE_AUTO_EJECT + LENGTH_OF_AUTO_EJECT;
     // voltage drop threshold due to motor stall
     double VBATT_VOLTAGE_DROP_MOTOR_STALL = 0.7;
+
+    double GUIDE_SERVO_BLUE_IN_POSITION = 1.00;
+    double GUIDE_SERVO_BLUE_OUT_POSITION = 0.06;
+
+    double GUIDE_SERVO_RED_IN_POSITION = 0.0;
+    double GUIDE_SERVO_RED_OUT_POSITION = 1.00;
 }
 

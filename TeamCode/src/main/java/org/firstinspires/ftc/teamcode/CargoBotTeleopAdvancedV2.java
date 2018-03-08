@@ -5,6 +5,7 @@ import android.content.Context;
 import com.kauailabs.navx.ftc.AHRS;
 import com.kauailabs.navx.ftc.navXPIDController;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsTouchSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -38,6 +39,8 @@ import static java.lang.Math.sqrt;
 public class CargoBotTeleopAdvancedV2 extends OpMode {
 
     Servo testServo;
+    Servo guideServoBlue;
+    Servo guideServoRed;
     //
     DcMotor frontIntakeMotor;
     DcMotor leftIntakeMotor;
@@ -52,6 +55,9 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     Context context;
 
     // servo variables
+    boolean lastGamepad2B = false;
+    boolean lastGamepad2X = false;
+
     double targetPos = 0.0;
     boolean lastGamepad1A = false;
     boolean lastGamepad1B = false;
@@ -124,6 +130,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     double tMotorStart = 0;
     int lastEncoderPos = 0;
 
+
     // for time interval
     private ElapsedTime period  = new ElapsedTime();
 
@@ -184,6 +191,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     INTAKE_MOTOR_STATE intakeMotorState = INTAKE_MOTOR_STATE.WAIT_FOR_COMMAND;
 
     ModernRoboticsI2cRangeSensor rangeSensor;
+    ModernRoboticsTouchSensor touchSensor;
     double rangeSensorDistance = 0.0;
     boolean downButtonReleased = false;
     boolean upButtonReleased = false;
@@ -221,6 +229,10 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         context = hardwareMap.appContext;
         testServo = hardwareMap.servo.get("testServo");
         testServo.setPosition(downTarget);
+        guideServoBlue = hardwareMap.servo.get("guideServoBlue");
+        guideServoBlue.setPosition(CargoBotConstants.GUIDE_SERVO_BLUE_IN_POSITION);
+        guideServoRed = hardwareMap.servo.get("guideServoRed");
+        guideServoRed.setPosition(CargoBotConstants.GUIDE_SERVO_RED_IN_POSITION);
         frontIntakeMotor = hardwareMap.dcMotor.get("frontIntakeMotor");
         leftIntakeMotor = hardwareMap.dcMotor.get("leftIntakeMotor");
         rightIntakeMotor = hardwareMap.dcMotor.get("rightIntakeMotor");
@@ -234,6 +246,9 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         frontIntakeMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         leftIntakeMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rightIntakeMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        // touch sensor
+        touchSensor = hardwareMap.get(ModernRoboticsTouchSensor.class, "touchSensor");
         initLiftMotor();
         initDriveMotors();
 
@@ -272,11 +287,13 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     @Override
     public void loop() {
         rangeSensorDistance = rangeSensor.getDistance(DistanceUnit.CM);
-        //telemetry.addData("distance", rangeSensorDistance);
+        //telemetry.addData("distanceSensor", rangeSensorDistance);
         servoController();
         intakeController();
         driveController();
         blockLiftControllerV2();
+        guideServoBlueController();
+        guideServoRedController();
         // rotate to nearest 90 is not used
         // back on to platform is not used
 //        try {
@@ -640,14 +657,20 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         int tick = 0;
         tick = getRuntimeInTicks(tStart, timeIncrement);
 
-        if (tick > lastTick) {
-            int deltaTick = tick - lastTick;
-            lastTick = tick;
-            targetPos = testServo.getPosition() - deltaTick * posIncrement;
-            if (targetPos <= upTarget) {
-                targetPos = upTarget;
+        if (!touchSensor.isPressed()) {
+            if (tick > lastTick) {
+                int deltaTick = tick - lastTick;
+                lastTick = tick;
+                targetPos = testServo.getPosition() - deltaTick * posIncrement;
+                if (targetPos <= upTarget) {
+                    targetPos = upTarget;
+                }
+                testServo.setPosition(targetPos);
             }
-            testServo.setPosition(targetPos);
+        } else {
+            bIsPressed = false;
+            aIsPressed = true;
+            moveRampToDown();
         }
         // cancel the request when the servo is at the target
         if (upTarget == testServo.getPosition()){
@@ -659,19 +682,27 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         int tick = 0;
         tick = getRuntimeInTicks(tStart, timeIncrement);
 
-        if (tick > lastTick) {
-            int deltaTick = tick - lastTick;
-            lastTick = tick;
-            currentServoPos = testServo.getPosition();
-            if ((currentServoPos - deltaTick * posIncrement) > flatTarget){
-                targetPos = currentServoPos - deltaTick * posIncrement;
-            } else if ((currentServoPos + deltaTick * posIncrement) < flatTarget){
-                targetPos = currentServoPos + deltaTick * posIncrement;
-            } else {
-                targetPos = flatTarget;
-            }
+        if (!touchSensor.isPressed()) {
+            if (tick > lastTick) {
+                int deltaTick = tick - lastTick;
+                lastTick = tick;
+                currentServoPos = testServo.getPosition();
+                if ((currentServoPos - deltaTick * posIncrement) > flatTarget) {
+                    targetPos = currentServoPos - deltaTick * posIncrement;
+                } else if ((currentServoPos + deltaTick * posIncrement) < flatTarget) {
+                    targetPos = currentServoPos + deltaTick * posIncrement;
+                } else {
+                    targetPos = flatTarget;
+                }
 
-            testServo.setPosition(targetPos);
+                testServo.setPosition(targetPos);
+            }
+        } else {
+            turnOffLiftMotor();
+            lifterState = LIFTER_STATE.PAUSE_FOR_HIGH_TO_LOW;
+            shouldRampMoveToFlatDueToLift = false;
+            aIsPressed = true;
+            moveRampToDown();
         }
         // cancel the request when the servo is at the target
         if (flatTarget == testServo.getPosition()){
@@ -1315,7 +1346,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
 
 
     /* switch to high speed
-     * advance a defined distance onto the platform
+     * advance a defined distanceSensor onto the platform
      * brake
      */
     private void getOnPlatform() throws InterruptedException {
@@ -1636,7 +1667,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
 
     public boolean isObjectDetectedWithinRange(double distance) {
         boolean inRange = false;
-        // make sure the range sensor distance is a good number
+        // make sure the range sensor distanceSensor is a good number
         if (!Double.isNaN(rangeSensorDistance)) {
             if (rangeSensorDistance < distance) {
                 inRange = true;
@@ -1647,5 +1678,115 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         // keep a record in case we don't have a valid reading (i.e. NaN)
         lastInRange = inRange;
         return inRange;
+    }
+
+    enum GUIDE_SERVO_BLUE_DIRECTION {
+        IN,
+        OUT
+    }
+    GUIDE_SERVO_BLUE_DIRECTION guideServoBlueState = GUIDE_SERVO_BLUE_DIRECTION.IN;
+
+    public void guideServoBlueController() {
+        if (gamepad2.b && !lastGamepad2B) {
+            if(guideServoBlueState == GUIDE_SERVO_BLUE_DIRECTION.IN) {
+                guideServoBlueState = GUIDE_SERVO_BLUE_DIRECTION.OUT;
+            } else {
+                guideServoBlueState = GUIDE_SERVO_BLUE_DIRECTION.IN;
+            }
+        }
+        lastGamepad2B = gamepad2.b;
+
+        switch (guideServoBlueState) {
+            case IN:
+                guideServoBlue.setPosition(CargoBotConstants.GUIDE_SERVO_BLUE_IN_POSITION);
+                //moveMicroServoBlue(CargoBotConstants.GUIDE_SERVO_BLUE_IN_POSITION);
+                break;
+            case OUT:
+                guideServoBlue.setPosition(CargoBotConstants.GUIDE_SERVO_BLUE_OUT_POSITION);
+                //moveMicroServoBlue(CargoBotConstants.GUIDE_SERVO_BLUE_OUT_POSITION);
+                break;
+        }
+    }
+
+    enum GUIDE_SERVO_RED_DIRECTION {
+        IN,
+        OUT
+    }
+    GUIDE_SERVO_RED_DIRECTION guideServoRedState = GUIDE_SERVO_RED_DIRECTION.IN;
+
+    public void guideServoRedController() {
+        if (gamepad2.x && !lastGamepad2X) {
+            if(guideServoRedState == GUIDE_SERVO_RED_DIRECTION.IN) {
+                guideServoRedState = GUIDE_SERVO_RED_DIRECTION.OUT;
+            } else {
+                guideServoRedState = GUIDE_SERVO_RED_DIRECTION.IN;
+            }
+        }
+        lastGamepad2X = gamepad2.x;
+
+        switch (guideServoRedState) {
+            case IN:
+                guideServoRed.setPosition(CargoBotConstants.GUIDE_SERVO_RED_IN_POSITION);
+                //moveMicroServoRed(CargoBotConstants.GUIDE_SERVO_RED_IN_POSITION);
+                break;
+            case OUT:
+                guideServoRed.setPosition(CargoBotConstants.GUIDE_SERVO_RED_OUT_POSITION);
+                //moveMicroServoRed(CargoBotConstants.GUIDE_SERVO_RED_OUT_POSITION);
+                break;
+        }
+    }
+
+    double microServoTimeIncrement = 0.035;
+
+    double targetMicroServoBluePos = 0.0;
+
+    int lastMicroServoBlueTick = 0;
+    double currentMicroServoBluePos = 0.0;
+    double microServoBluePosIncrement = 0.02;
+
+    public void moveMicroServoBlue (double target) {
+        int tick = 0;
+        tick = getRuntimeInTicks(tStart, microServoTimeIncrement);
+
+        if (tick > lastMicroServoBlueTick) {
+            int deltaTick = tick - lastMicroServoBlueTick;
+            lastMicroServoBlueTick = tick;
+            currentMicroServoBluePos = guideServoBlue.getPosition();
+            if ((currentMicroServoBluePos - deltaTick * microServoBluePosIncrement) > target) {
+                targetMicroServoBluePos = currentMicroServoBluePos - deltaTick * microServoBluePosIncrement;
+            } else if ((currentMicroServoBluePos + deltaTick * microServoBluePosIncrement) < target) {
+                targetMicroServoBluePos = currentMicroServoBluePos + deltaTick * microServoBluePosIncrement;
+            } else {
+                targetMicroServoBluePos = target;
+            }
+
+            guideServoBlue.setPosition(targetMicroServoBluePos);
+        }
+    }
+
+    double targetMicroServoRedPos = 0.0;
+
+    int lastMicroServoRedTick = 0;
+    double currentMicroServoRedPos = 0.0;
+    double microServoRedPosIncrement = 0.02;
+
+    public void moveMicroServoRed (double target) {
+        int tick = 0;
+        tick = getRuntimeInTicks(tStart, microServoTimeIncrement);
+
+        if (tick > lastMicroServoRedTick) {
+            int deltaTick = tick - lastMicroServoRedTick;
+            lastMicroServoRedTick = tick;
+            currentMicroServoRedPos = guideServoRed.getPosition();
+            if ((currentMicroServoRedPos - deltaTick * microServoRedPosIncrement) > target) {
+                targetMicroServoRedPos = currentMicroServoRedPos - deltaTick * microServoRedPosIncrement;
+            } else if ((currentMicroServoRedPos + deltaTick * microServoRedPosIncrement) < target) {
+                targetMicroServoRedPos = currentMicroServoRedPos + deltaTick * microServoRedPosIncrement;
+            } else {
+                targetMicroServoRedPos = target;
+            }
+
+            guideServoRed.setPosition(targetMicroServoRedPos);
+        }
     }
 }
