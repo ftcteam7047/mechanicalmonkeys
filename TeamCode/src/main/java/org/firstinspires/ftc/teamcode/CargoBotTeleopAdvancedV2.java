@@ -39,6 +39,7 @@ import static java.lang.Math.sqrt;
 public class CargoBotTeleopAdvancedV2 extends OpMode {
 
     Servo testServo;
+    Servo ballArmServo;
     Servo guideServoBlue;
     Servo guideServoRed;
     //
@@ -229,10 +230,13 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         context = hardwareMap.appContext;
         testServo = hardwareMap.servo.get("testServo");
         testServo.setPosition(downTarget);
-        guideServoBlue = hardwareMap.servo.get("guideServoBlue");
-        guideServoBlue.setPosition(CargoBotConstants.GUIDE_SERVO_BLUE_IN_POSITION);
-        guideServoRed = hardwareMap.servo.get("guideServoRed");
-        guideServoRed.setPosition(CargoBotConstants.GUIDE_SERVO_RED_IN_POSITION);
+        // keep the ball arm up even though its function is not needed in TeleOp
+        ballArmServo = hardwareMap.servo.get("ballArm");
+        ballArmServo.setPosition(CargoBotConstants.BALL_ARM_UP);
+
+        // guide servos (the 2 micro servos)
+        initGuideServos();
+
         frontIntakeMotor = hardwareMap.dcMotor.get("frontIntakeMotor");
         leftIntakeMotor = hardwareMap.dcMotor.get("leftIntakeMotor");
         rightIntakeMotor = hardwareMap.dcMotor.get("rightIntakeMotor");
@@ -292,8 +296,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         intakeController();
         driveController();
         blockLiftControllerV2();
-        guideServoBlueController();
-        guideServoRedController();
+        guideServoController();
         // rotate to nearest 90 is not used
         // back on to platform is not used
 //        try {
@@ -1687,22 +1690,19 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     GUIDE_SERVO_BLUE_DIRECTION guideServoBlueState = GUIDE_SERVO_BLUE_DIRECTION.IN;
 
     public void guideServoBlueController() {
-        if (gamepad2.b && !lastGamepad2B) {
-            if(guideServoBlueState == GUIDE_SERVO_BLUE_DIRECTION.IN) {
-                guideServoBlueState = GUIDE_SERVO_BLUE_DIRECTION.OUT;
-            } else {
-                guideServoBlueState = GUIDE_SERVO_BLUE_DIRECTION.IN;
-            }
-        }
-        lastGamepad2B = gamepad2.b;
-
         switch (guideServoBlueState) {
             case IN:
                 guideServoBlue.setPosition(CargoBotConstants.GUIDE_SERVO_BLUE_IN_POSITION);
+                if (activateBlueGuide){
+                    guideServoBlueState = GUIDE_SERVO_BLUE_DIRECTION.OUT;
+                }
                 //moveMicroServoBlue(CargoBotConstants.GUIDE_SERVO_BLUE_IN_POSITION);
                 break;
             case OUT:
                 guideServoBlue.setPosition(CargoBotConstants.GUIDE_SERVO_BLUE_OUT_POSITION);
+                if (activateBlueGuide){
+                    guideServoBlueState = GUIDE_SERVO_BLUE_DIRECTION.IN;
+                }
                 //moveMicroServoBlue(CargoBotConstants.GUIDE_SERVO_BLUE_OUT_POSITION);
                 break;
         }
@@ -1715,22 +1715,19 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     GUIDE_SERVO_RED_DIRECTION guideServoRedState = GUIDE_SERVO_RED_DIRECTION.IN;
 
     public void guideServoRedController() {
-        if (gamepad2.x && !lastGamepad2X) {
-            if(guideServoRedState == GUIDE_SERVO_RED_DIRECTION.IN) {
-                guideServoRedState = GUIDE_SERVO_RED_DIRECTION.OUT;
-            } else {
-                guideServoRedState = GUIDE_SERVO_RED_DIRECTION.IN;
-            }
-        }
-        lastGamepad2X = gamepad2.x;
-
         switch (guideServoRedState) {
             case IN:
                 guideServoRed.setPosition(CargoBotConstants.GUIDE_SERVO_RED_IN_POSITION);
+                if (activateRedGuide){
+                    guideServoRedState = GUIDE_SERVO_RED_DIRECTION.OUT;
+                }
                 //moveMicroServoRed(CargoBotConstants.GUIDE_SERVO_RED_IN_POSITION);
                 break;
             case OUT:
                 guideServoRed.setPosition(CargoBotConstants.GUIDE_SERVO_RED_OUT_POSITION);
+                if (activateRedGuide){
+                    guideServoRedState = GUIDE_SERVO_RED_DIRECTION.IN;
+                }
                 //moveMicroServoRed(CargoBotConstants.GUIDE_SERVO_RED_OUT_POSITION);
                 break;
         }
@@ -1788,5 +1785,87 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
 
             guideServoRed.setPosition(targetMicroServoRedPos);
         }
+    }
+    enum ALLIANCE_COLOR {
+        RED,
+        BLUE,
+        UNKNOWN
+    }
+
+    private ALLIANCE_COLOR allianceColor = ALLIANCE_COLOR.UNKNOWN;
+
+    private void initGuideServos(){
+        // set initial positions
+        guideServoBlue = hardwareMap.servo.get("guideServoBlue");
+        guideServoBlue.setPosition(CargoBotConstants.GUIDE_SERVO_BLUE_IN_POSITION);
+        guideServoRed = hardwareMap.servo.get("guideServoRed");
+        guideServoRed.setPosition(CargoBotConstants.GUIDE_SERVO_RED_IN_POSITION);
+
+        // read the alliance color saved by autonomous program
+        // and determine the control scheme
+        // the goal is the use one button to control different servo, depending on the alliance color
+        context = hardwareMap.appContext;
+        if (fileHandler.readFromFile("alliance_color.txt", CargoBotConstants.pathToAllianceColor, context).equals("error")) {
+            allianceColor = ALLIANCE_COLOR.UNKNOWN;
+        } else {
+            String color = fileHandler.readFromFile("alliance_color.txt", CargoBotConstants.pathToAllianceColor, context);
+            if (color.equals("red")){
+                allianceColor = ALLIANCE_COLOR.RED;
+            } else  if (color.equals("blue")) {
+                allianceColor = ALLIANCE_COLOR.BLUE;
+            } else {
+                allianceColor = ALLIANCE_COLOR.UNKNOWN;
+            }
+        }
+
+    }
+
+    private boolean activateRedGuide = false;
+    private boolean activateBlueGuide = false;
+    private void guideServoInputHandler(){
+        switch (allianceColor){
+            case RED:
+                // always use B button to simplify control
+                if (gamepad2.b && !lastGamepad2B) {
+                    activateRedGuide = true;
+                } else {
+                    activateRedGuide = false;
+                }
+                lastGamepad2B = gamepad2.b;
+                break;
+            case BLUE:
+                // always use B button to simplify control
+                if (gamepad2.b && !lastGamepad2B) {
+                    activateBlueGuide = true;
+                } else {
+                    activateBlueGuide = false;
+                }
+                lastGamepad2B = gamepad2.b;
+                break;
+            case UNKNOWN:
+                // if color is unknown (probably no file saved by the autonomous program)
+                // default to original control scheme
+                // X button: red guide   | B button: blue guide
+                if (gamepad2.x && !lastGamepad2X) {
+                    activateRedGuide = true;
+                } else {
+                    activateRedGuide = false;
+                }
+                lastGamepad2X = gamepad2.x;
+
+                if (gamepad2.b && !lastGamepad2B) {
+                    activateBlueGuide = true;
+                } else {
+                    activateBlueGuide = false;
+                }
+                lastGamepad2B = gamepad2.b;
+                break;
+        }
+    }
+
+    private void guideServoController(){
+        guideServoInputHandler();
+        guideServoBlueController();
+        guideServoRedController();
     }
 }

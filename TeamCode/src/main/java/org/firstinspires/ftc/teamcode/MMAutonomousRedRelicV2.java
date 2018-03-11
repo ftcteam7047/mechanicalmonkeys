@@ -1562,6 +1562,8 @@ public class MMAutonomousRedRelicV2 extends LinearOpMode {
         turnOffDriveMotors();
         // save the block lift position for next operation
         robot.fileHandler.writeToFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, Integer.toString(offset + robot.blockLift.getCurrentPosition()), robot.context);
+        // save the alliance color for teleop
+        robot.fileHandler.writeToFile("alliance_color.txt", CargoBotConstants.pathToAllianceColor, "red", robot.context);
     }
 
     private void localizeRobot(double robotHeading){

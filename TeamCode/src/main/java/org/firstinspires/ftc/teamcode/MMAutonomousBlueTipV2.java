@@ -1606,6 +1606,8 @@ public class MMAutonomousBlueTipV2 extends LinearOpMode {
         turnOffDriveMotors();
         // save the block lift position for next operation
         robot.fileHandler.writeToFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, Integer.toString(offset + robot.blockLift.getCurrentPosition()), robot.context);
+        // save the alliance color for teleop
+        robot.fileHandler.writeToFile("alliance_color.txt", CargoBotConstants.pathToAllianceColor, "blue", robot.context);
     }
 
     private void localizeRobot(double robotHeading){

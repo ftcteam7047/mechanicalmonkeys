@@ -156,6 +156,7 @@ public interface CargoBotConstants {
 
     // path constant
     String pathToLiftMotorOffset = "/FTC/liftMotorOffset";
+    String pathToAllianceColor = "/FTC/alliance";
 
     // back up distance to the platform for parking
     double BACKUP_ONTO_PLATFORM_DISTANCE = -6.9;
