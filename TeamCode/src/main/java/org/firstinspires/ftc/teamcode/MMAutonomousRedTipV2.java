@@ -841,6 +841,7 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
     INTAKE_CONTROLLER_STATE intakeControllerState = INTAKE_CONTROLLER_STATE.START;
     boolean isStep1Started = false;
     double intakeMotorRunTime = 0.0;
+    boolean sleep = false;
 
     /*
  *  Method to perfmorm a relative move, based on encoder counts.
@@ -1152,9 +1153,14 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
                 driveStatus = navxRotateToAngle(CargoBotConstants.ANGLE_TO_FACE_BOX_RED_TIP, yawKp * 0.8);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP9;
+                    driveStatus = false;
                 }
                 break;
             case STEP9:
+                if (!sleep) {
+                    sleep(200);
+                    sleep = true;
+                }
                 // move into a column
                 driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
                         CargoBotConstants.CRYPTO_BOX_DISTANCE_V2_RED_TIP,
@@ -1198,9 +1204,14 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
                         CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_RED_TIP);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP14;
+                    driveStatus = false;
                 }
                 break;
             case STEP14:
+                if (sleep) {
+                    sleep(200);
+                    sleep = false;
+                }
                 // drive forward so the robot is not in contact with the block
                 driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
                         CargoBotConstants.AWAY_FROM_BLOCK_DISTANCE,
