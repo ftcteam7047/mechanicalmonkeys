@@ -207,6 +207,6 @@ public interface CargoBotConstants {
     double GUIDE_SERVO_BLUE_OUT_POSITION = 0.06;
 
     double GUIDE_SERVO_RED_IN_POSITION = 0.0;
-    double GUIDE_SERVO_RED_OUT_POSITION = 1.00;
+    double GUIDE_SERVO_RED_OUT_POSITION = 0.96;
 }
 
