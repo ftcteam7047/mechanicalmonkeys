@@ -1826,7 +1826,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         switch (allianceColor){
             case RED:
                 // always use B button to simplify control
-                if (gamepad2.b && !lastGamepad2B) {
+                if ((gamepad2.b && !lastGamepad2B) && (!gamepad2.start)) {
                     activateRedGuide = true;
                 } else {
                     activateRedGuide = false;
@@ -1835,7 +1835,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
                 break;
             case BLUE:
                 // always use B button to simplify control
-                if (gamepad2.b && !lastGamepad2B) {
+                if ((gamepad2.b && !lastGamepad2B) && (!gamepad2.start)) {
                     activateBlueGuide = true;
                 } else {
                     activateBlueGuide = false;
@@ -1853,7 +1853,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
                 }
                 lastGamepad2X = gamepad2.x;
 
-                if (gamepad2.b && !lastGamepad2B) {
+                if ((gamepad2.b && !lastGamepad2B) && (!gamepad2.start)) {
                     activateBlueGuide = true;
                 } else {
                     activateBlueGuide = false;
