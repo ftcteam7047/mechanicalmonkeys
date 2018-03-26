@@ -35,6 +35,9 @@ public class HardwareMecanumCargoBotV2 {
     public Servo guideServoBlue;
     public Servo guideServoRed;
 
+    Servo hornServoLeft;
+    Servo hornServoRight;
+
     // range sensor
     ModernRoboticsI2cRangeSensor rangeSensor;
 
@@ -105,6 +108,11 @@ public class HardwareMecanumCargoBotV2 {
         guideServoBlue.setPosition(CargoBotConstants.GUIDE_SERVO_BLUE_IN_POSITION);
         guideServoRed = hwMap.servo.get("guideServoRed");
         guideServoRed.setPosition(CargoBotConstants.GUIDE_SERVO_RED_IN_POSITION);
+
+        hornServoLeft = hwMap.servo.get("hornServoLeft");
+        hornServoLeft.setPosition(CargoBotConstants.HORN_SERVO_LEFT_IN_POSITION);
+        hornServoRight = hwMap.servo.get("hornServoRight");
+        hornServoRight.setPosition(CargoBotConstants.HORN_SERVO_RIGHT_IN_POSITION);
 
         // range sensor
         rangeSensor = hwMap.get(ModernRoboticsI2cRangeSensor.class, "rangeSensor1");

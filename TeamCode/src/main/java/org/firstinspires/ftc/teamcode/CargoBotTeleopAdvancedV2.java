@@ -42,6 +42,8 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     Servo ballArmServo;
     Servo guideServoBlue;
     Servo guideServoRed;
+    Servo hornServoLeft;
+    Servo hornServoRight;
     //
     DcMotor frontIntakeMotor;
     DcMotor leftIntakeMotor;
@@ -55,7 +57,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     MMFileHandler fileHandler = new MMFileHandler();
     Context context;
 
-    // servo variables
+    //servo variables
     boolean lastGamepad2B = false;
     boolean lastGamepad2X = false;
 
@@ -70,7 +72,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     boolean xIsPressed = false;
 
     // servo parameters
-    double downTarget = 0.82;
+    double downTarget = 0.80;
     double upTarget = 0.0;
     double flatTarget = 0.66;
     double timeIncrement = 0.025;
@@ -234,6 +236,11 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         ballArmServo = hardwareMap.servo.get("ballArm");
         ballArmServo.setPosition(CargoBotConstants.BALL_ARM_UP);
 
+        hornServoLeft = hardwareMap.servo.get("hornServoLeft");
+        hornServoLeft.setPosition(CargoBotConstants.HORN_SERVO_LEFT_IN_POSITION);
+        hornServoRight = hardwareMap.servo.get("hornServoRight");
+        hornServoRight.setPosition(CargoBotConstants.HORN_SERVO_RIGHT_IN_POSITION);
+
         // guide servos (the 2 micro servos)
         initGuideServos();
 
@@ -297,6 +304,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         driveController();
         blockLiftControllerV2();
         guideServoController();
+        hornController();
         // rotate to nearest 90 is not used
         // back on to platform is not used
 //        try {
@@ -1867,5 +1875,40 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         guideServoInputHandler();
         guideServoBlueController();
         guideServoRedController();
+    }
+
+    enum HORN_POSITION {
+        UP,
+        DOWN
+    }
+
+    HORN_POSITION hornPosition = HORN_POSITION.UP;
+    boolean activateHorn = false;
+
+    public void hornController() {
+        if (gamepad2.x && !lastGamepad2X) {
+            activateHorn = true;
+        } else {
+            activateHorn = false;
+        }
+        lastGamepad2X = gamepad2.x;
+        switch (hornPosition) {
+            case UP:
+                hornServoLeft.setPosition(CargoBotConstants.HORN_SERVO_LEFT_IN_POSITION);
+                hornServoRight.setPosition(CargoBotConstants.HORN_SERVO_RIGHT_IN_POSITION);
+                telemetry.addData("Horn", "Up");
+                if (activateHorn) {
+                    hornPosition = HORN_POSITION.DOWN;
+                }
+                break;
+            case DOWN:
+                hornServoLeft.setPosition(CargoBotConstants.HORN_SERVO_LEFT_OUT_POSITION);
+                hornServoRight.setPosition(CargoBotConstants.HORN_SERVO_RIGHT_OUT_POSITION);
+                telemetry.addData("Horn", "Down");
+                if (activateHorn) {
+                    hornPosition = HORN_POSITION.UP;
+                }
+                break;
+        }
     }
 }

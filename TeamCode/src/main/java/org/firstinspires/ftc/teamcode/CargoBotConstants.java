@@ -181,7 +181,7 @@ public interface CargoBotConstants {
 
     // lift servo parameters
     // servo parameters
-    double DOWN_TARGET = 0.82;
+    double DOWN_TARGET = 0.80;
     double UP_TARGET = 0.0;
     double FLAT_TARGET = 0.66;
     double TIME_INCREMENT = 0.025;
@@ -208,5 +208,11 @@ public interface CargoBotConstants {
 
     double GUIDE_SERVO_RED_IN_POSITION = 0.0;
     double GUIDE_SERVO_RED_OUT_POSITION = 0.96;
+
+    double HORN_SERVO_LEFT_IN_POSITION = 1.0;
+    double HORN_SERVO_LEFT_OUT_POSITION = 0.0;
+
+    double HORN_SERVO_RIGHT_IN_POSITION = 0.0;
+    double HORN_SERVO_RIGHT_OUT_POSITION = 1.0;
 }
 
