@@ -1050,7 +1050,7 @@ public class MMAutonomousBlueRelicV2 extends LinearOpMode {
                                     CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
                 } else {
                     if (!driveStatus) {
-                        driveStatus = navxDrive(CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED,
+                        driveStatus = navxDrive(CargoBotConstants.DRIVING_OFF_BLUE_PLATFORM_SPEED,
                                 CargoBotConstants.DRIVE_OFF_BLUE_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET + drivingOffPlatformOffset,
                                 calculateTimeout(CargoBotConstants.DRIVE_OFF_BLUE_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET +
                                                 drivingOffPlatformOffset,
@@ -1158,7 +1158,7 @@ public class MMAutonomousBlueRelicV2 extends LinearOpMode {
                 break;
             case STEP8:
                 // turn to face column
-                driveStatus = navxRotateToAngle(CargoBotConstants.ANGLE_TO_FACE_BOX_RED_RELIC, yawKp);
+                driveStatus = navxRotateToAngle(CargoBotConstants.ANGLE_TO_FACE_BOX_RED_RELIC, 0.8 * yawKp);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP9;
                 }
@@ -1337,6 +1337,8 @@ public class MMAutonomousBlueRelicV2 extends LinearOpMode {
                 }
             } else {
                 double output = yawPIDResult.getOutput();
+                // scale the output so that the robot is not turning too fast
+                output = output * CargoBotConstants.SPEED_RATIO;
 
                 // amplify the output of PID controller as it gets close to the target
                 // otherwise, it would not finish turning in time
@@ -1505,18 +1507,24 @@ public class MMAutonomousBlueRelicV2 extends LinearOpMode {
         robot.rearRightDrive.setPower(0);
 
         // Turn off RUN_TO_POSITION
+        // It is critical to stop and reset the encoder before the next run
+        robot.frontLeftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         robot.frontLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        robot.frontRightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         robot.frontRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        robot.rearLeftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         robot.rearLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        robot.rearRightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         robot.rearRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
 
     private double calculateTimeout(double distance, double speed) {
         double timeoutS = 0.0;
         timeoutS = distance/speed * MMShooterBotConstants.TIMEOUT_SCALING_FACTOR;
-
-        // make sure we return a positive value
-        return Math.abs(timeoutS);
+        timeoutS = timeoutS * CargoBotConstants.TIMEOUT_CORRECTION_FACTOR;
+        // make sure we return a positive value;
+        // and add 1 second margin
+        return (Math.abs(timeoutS) + 1);
     }
 
     private boolean intakeController(double activationTime, INTAKE_DIR dir, INTAKE_MOTOR motor) {

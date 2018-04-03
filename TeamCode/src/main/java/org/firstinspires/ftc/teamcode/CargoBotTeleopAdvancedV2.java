@@ -13,7 +13,6 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
-import com.qualcomm.robotcore.util.RobotLog;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
@@ -72,10 +71,11 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     boolean xIsPressed = false;
 
     // servo parameters
-    double downTarget = 0.80;
+    double downTarget = 0.83;
     double upTarget = 0.0;
-    double flatTarget = 0.66;
-    double timeIncrement = 0.025;
+    double flatTarget = 0.67;
+    double flatTarget2 = 0.70;
+    double timeIncrement = 0.025; // was 0.025
     double posIncrement = 0.02;
 
     // dcMotor parameters
@@ -224,6 +224,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         ARRIVED,
         TIMEOUT
     }
+    //MRIColorBeacon colorBeacon = new MRIColorBeacon();
 
     @Override
     public void init() {
@@ -241,8 +242,15 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         hornServoRight = hardwareMap.servo.get("hornServoRight");
         hornServoRight.setPosition(CargoBotConstants.HORN_SERVO_RIGHT_IN_POSITION);
 
+        // color beacon to indicate if horn servo is up or down, since it is hard to see the horns from the driver positions
+        //colorBeacon.init(hardwareMap, "colorBeacon");
+        //colorBeacon.off();
+
         // guide servos (the 2 micro servos)
         initGuideServos();
+        // use the alliance color to initialize 90 degrees rotation set point,
+        // to always face away from the "Tip" position Cryptobox to assist alignment
+        initNavx90DegreeSetPoint();
 
         frontIntakeMotor = hardwareMap.dcMotor.get("frontIntakeMotor");
         leftIntakeMotor = hardwareMap.dcMotor.get("leftIntakeMotor");
@@ -305,14 +313,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         blockLiftControllerV2();
         guideServoController();
         hornController();
-        // rotate to nearest 90 is not used
-        // back on to platform is not used
-//        try {
-//            checkCommandToGetOnToPlatform();
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-//        rotateToNearest90DegreeController();
+        //rotateToNearest90DegreeController();
 
         try {
             waitForTick(2); // every 2ms, sample the encoder
@@ -349,10 +350,10 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         rearRightDrive = hardwareMap.dcMotor.get("rearRightDrive");
 
         // Set motor initial direction
-        frontLeftDrive.setDirection(DcMotor.Direction.FORWARD); // Set to FORWARD if using AndyMark motors Neverest 40
-        frontRightDrive.setDirection(DcMotor.Direction.REVERSE);// Set to REVERSE if using AndyMark motors Neverest 40
-        rearLeftDrive.setDirection(DcMotor.Direction.FORWARD); // Set to FORWARD if using AndyMark motors Neverest 40
-        rearRightDrive.setDirection(DcMotor.Direction.REVERSE);// Set to REVERSE if using AndyMark motors Neverest 40
+        frontLeftDrive.setDirection(DcMotor.Direction.REVERSE); // Set to FORWARD if using AndyMark motors Neverest 40
+        frontRightDrive.setDirection(DcMotor.Direction.FORWARD);// Set to REVERSE if using AndyMark motors Neverest 40
+        rearLeftDrive.setDirection(DcMotor.Direction.REVERSE); // Set to FORWARD if using AndyMark motors Neverest 40
+        rearRightDrive.setDirection(DcMotor.Direction.FORWARD);// Set to REVERSE if using AndyMark motors Neverest 40
 
         // Encoder reset if necessary
         // Run motor at constant speed. (see above for details)
@@ -364,6 +365,8 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         rearLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rearRightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rearRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        // set motor mode to coasting since we start out in normal speed mode
+        setChassisMotorZeroBehavior(eZeroBehavior.FLOAT);
     }
 
     private void intakeController() {
@@ -526,11 +529,19 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
                     // don't accept the command if the driver is still controlling the left/right stick (with some threshold)
                     if ((Math.abs(gamepad1.left_stick_y) <= MMShooterBotConstants.CONTROL_STICK_THRESHOLD) &&
                             (Math.abs(gamepad1.right_stick_y) <= MMShooterBotConstants.CONTROL_STICK_THRESHOLD)) {
-                        if ((gamepad1.left_bumper) && !lastGamepad1LeftBumper) {
-                            navxRotationSetPoint = calculateSetPointRotateToNearest90CCW();
+                        if ((!gamepad1.left_bumper) && lastGamepad1LeftBumper) {
+                            if (allianceColor == ALLIANCE_COLOR.UNKNOWN) {
+                                navxRotationSetPoint = calculateSetPointRotateToNearest90CCW();
+                            } else {
+                                navxRotationSetPoint = rotationSetPoint;
+                            }
                             navxRotateState = RotateTo90DegreeState.ROTATE_CCW;
-                        } else if ((gamepad1.right_bumper) && !lastGamepad1RightBumper) {
-                            navxRotationSetPoint = calculateSetPointRotateToNearest90CW();
+                        } else if ((!gamepad1.right_bumper) && lastGamepad1RightBumper) {
+                            if (allianceColor == ALLIANCE_COLOR.UNKNOWN) {
+                                navxRotationSetPoint = calculateSetPointRotateToNearest90CW();
+                            } else {
+                                navxRotationSetPoint = rotationSetPoint;
+                            }
                             navxRotateState = RotateTo90DegreeState.ROTATE_CW;
                         }
                     }
@@ -538,7 +549,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
 
                 case ROTATE_CCW:
                     // abort if the button is pressed again
-                    if ((gamepad1.left_bumper) && !lastGamepad1LeftBumper) {
+                    if ((!gamepad1.left_bumper) && lastGamepad1LeftBumper) {
                         turnOffDriveMotors();
                         navxRotateState = RotateTo90DegreeState.IDLE;
                     } else {
@@ -552,7 +563,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
 
                 case ROTATE_CW:
                     // abort if the button is pressed again
-                    if ((gamepad1.right_bumper) && !lastGamepad1RightBumper) {
+                    if ((!gamepad1.right_bumper) && lastGamepad1RightBumper) {
                         turnOffDriveMotors();
                         navxRotateState = RotateTo90DegreeState.IDLE;
                     } else {
@@ -778,6 +789,8 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
                 }
             } else {
                 double output = yawPIDResult.getOutput();
+                // scale the motor output based on the type of motor being used
+                output = output * CargoBotConstants.SPEED_RATIO;
 
                 // amplify the output of PID controller as it gets close to the target
                 // otherwise, it would not finish turning in time
@@ -839,26 +852,94 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         return setPoint;
     }
 
-
-    private void checkForLowSpeedModeInput() {
-        // check for release instead of press
+    boolean speedModeButtonActivated = false;
+    double lastLeftTrigger = 0.0;
+    double lastRightTrigger = 0.0;
+    boolean activateTurbo = false;
+    private void speedModeInputHandler(){
+        // check for y button release instead of press
+        // for checking speed mode change
         if (!gamepad1.y && lastGamepad1YButton) {
-            isLowSpeedMode = !isLowSpeedMode;
+            speedModeButtonActivated = true;
+        } else {
+            speedModeButtonActivated = false;
         }
         // store the current state for comparison in the next loop
         lastGamepad1YButton = gamepad1.y;
 
-        // tell the driver with the current speed mode
-        if (isLowSpeedMode) {
-            telemetry.addData("Speed", "Low");
+        // left trigger & right trigger fully pressed simultaneously
+        // for checking turbo mode input
+        if (((gamepad1.left_trigger == MMShooterBotConstants.FULLY_PRESSED) && (lastLeftTrigger != MMShooterBotConstants.FULLY_PRESSED)
+                && (gamepad1.right_trigger == MMShooterBotConstants.FULLY_PRESSED))
+                ||
+                ((gamepad1.right_trigger == MMShooterBotConstants.FULLY_PRESSED) && (lastRightTrigger != MMShooterBotConstants.FULLY_PRESSED)
+                        && (gamepad1.left_trigger == MMShooterBotConstants.FULLY_PRESSED))){
+            activateTurbo = true;
+
         } else {
-            telemetry.addData("Speed", "Normal");
+            activateTurbo = false;
+        }
+        // store current left and right trigger for comparison in the next loop
+        lastLeftTrigger = gamepad1.left_trigger;
+        lastRightTrigger = gamepad1.right_trigger;
+    }
+    enum SPEED_MODE {
+        LOW,
+        NORMAL,
+        TURBO
+    }
+    SPEED_MODE speedMode = SPEED_MODE.NORMAL;
+    double speedModeRatio = CargoBotConstants.NORMAL_SPEED_RATIO; // for normal mode
+    /*
+        Pressing Y button toggles between normal and low speed modes
+        Pressing the 2 triggers at the same time enters turbo mode
+        Pressing Y button in turbo mode switches back to normal mode
+     */
+    private void speedModeStateMachine() {
+        speedModeInputHandler();
+        switch (speedMode) {
+            case LOW:
+                isLowSpeedMode = true;
+                telemetry.addData("Speed", "Low");
+                if (activateTurbo) {
+                    speedMode = SPEED_MODE.TURBO;
+                    setChassisMotorZeroBehavior(eZeroBehavior.FLOAT);
+
+                }
+                if (speedModeButtonActivated) {
+                    speedMode = SPEED_MODE.NORMAL;
+                    setChassisMotorZeroBehavior(eZeroBehavior.FLOAT);
+
+                }
+                break;
+
+            case NORMAL:
+                isLowSpeedMode = false;
+                speedModeRatio = CargoBotConstants.NORMAL_SPEED_RATIO;
+                telemetry.addData("Speed", "Normal");
+                if (activateTurbo) {
+                    speedMode = SPEED_MODE.TURBO;
+                }
+                if (speedModeButtonActivated) {
+                    speedMode = SPEED_MODE.LOW;
+                    setChassisMotorZeroBehavior(eZeroBehavior.BRAKE);
+                }
+                break;
+
+            case TURBO:
+                isLowSpeedMode = false;
+                speedModeRatio = CargoBotConstants.TURBO_SPEED_RATIO;
+                telemetry.addData("Speed", "Turbo");
+                if (speedModeButtonActivated) {
+                    speedMode = SPEED_MODE.NORMAL;
+                }
+                break;
         }
     }
 
     public void driveController(){
         if (!isRotatingToNearest90Degree && !isGettingOnPlatform){
-            checkForLowSpeedModeInput();
+            speedModeStateMachine();
             // assign gamepad stick positions to interim variables
             // so we can do post processing on them
             leftStickX = gamepad1.left_stick_x;
@@ -891,21 +972,28 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
                 }
 
                 // Optioinal: set motor zero power during tank drive
-                if (CargoBotConstants.SET_MOTOR_ZERO_POWER){
-                    if (!isLowSpeedMode){
-                        setChassisMotorZeroBehavior(eZeroBehavior.FLOAT);
-                    }
-                }
+//                if (CargoBotConstants.SET_MOTOR_ZERO_POWER){
+//                    if (!isLowSpeedMode){
+//                        setChassisMotorZeroBehavior(eZeroBehavior.FLOAT);
+//                    }
+//                }
                 // Typical tank drive
-                frontLeftDrive.setPower(leftStickY);
-                frontRightDrive.setPower(rightStickY);
-                rearLeftDrive.setPower(leftStickY);
-                rearRightDrive.setPower(rightStickY);
-            } else {
-                // Optioinal: set motor zero power other than tank drive
-                if (CargoBotConstants.SET_MOTOR_ZERO_POWER){
-                    setChassisMotorZeroBehavior(eZeroBehavior.BRAKE);
+                if (isLowSpeedMode){
+                    frontLeftDrive.setPower(leftStickY);
+                    frontRightDrive.setPower(rightStickY);
+                    rearLeftDrive.setPower(leftStickY);
+                    rearRightDrive.setPower(rightStickY);
+                } else {
+                    frontLeftDrive.setPower(leftStickY * speedModeRatio);
+                    frontRightDrive.setPower(rightStickY * speedModeRatio);
+                    rearLeftDrive.setPower(leftStickY * speedModeRatio);
+                    rearRightDrive.setPower(rightStickY * speedModeRatio);
                 }
+            } else {
+//                // Optioinal: set motor zero power other than tank drive
+//                if (CargoBotConstants.SET_MOTOR_ZERO_POWER){
+//                    setChassisMotorZeroBehavior(eZeroBehavior.BRAKE);
+//                }
 
                 // check if left and right sticks move in the same direction
                 // and within a top-bottom band around the y-axis
@@ -922,11 +1010,16 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
                         // Limit the top strafing speed of the robot in low speed mode
                         if (isLowSpeedMode) {
                             sideMovement = (float) Range.clip(sideMovement, -CargoBotConstants.TELEOP_SLOW_MODE_STRAFING_TOP_SPEED, CargoBotConstants.TELEOP_SLOW_MODE_STRAFING_TOP_SPEED);
+                            frontLeftDrive.setPower(-sideMovement);
+                            frontRightDrive.setPower(sideMovement);
+                            rearLeftDrive.setPower(sideMovement);
+                            rearRightDrive.setPower(-sideMovement);
+                        } else {
+                            frontLeftDrive.setPower(-sideMovement * speedModeRatio);
+                            frontRightDrive.setPower(sideMovement * speedModeRatio);
+                            rearLeftDrive.setPower(sideMovement * speedModeRatio);
+                            rearRightDrive.setPower(-sideMovement * speedModeRatio);
                         }
-                        frontLeftDrive.setPower(-sideMovement);
-                        frontRightDrive.setPower(sideMovement);
-                        rearLeftDrive.setPower(sideMovement);
-                        rearRightDrive.setPower(-sideMovement);
 
                     } else {
                         if (CargoBotConstants.DO_DIAGONAL){
@@ -1355,43 +1448,6 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         blockLift.setDirection(DcMotor.Direction.REVERSE);
     }
 
-
-    /* switch to high speed
-     * advance a defined distanceSensor onto the platform
-     * brake
-     */
-    private void getOnPlatform() throws InterruptedException {
-        boolean driveStatus = false;
-        switch (platformState){
-            case START:
-                // switch back to normal speed
-                isLowSpeedMode = false;
-                // get robot heading to be used for navxDrive
-                currentHeading = -navxDevice.getYaw(); // adding negative to the value so that for the robot, CCW is positive, CW is negative.
-                // inform other controller the status
-                isGettingOnPlatform = true;
-                platformState = enumPlatFormState.RUN;
-                break;
-
-            case RUN:
-                driveStatus = navxDrive(CargoBotConstants.BACKUP_ONTO_PLATFORM_SPEED,
-                        CargoBotConstants.BACKUP_ONTO_PLATFORM_DISTANCE,
-                        calculateTimeout(CargoBotConstants.BACKUP_ONTO_PLATFORM_DISTANCE, CargoBotConstants.BACKUP_ONTO_PLATFORM_SPEED),
-                        currentHeading);
-
-                if (driveStatus) {
-                    platformState = enumPlatFormState.END;
-                }
-                break;
-
-            case END:
-                isLowSpeedMode = true;
-                // inform other controller the status
-                isGettingOnPlatform = false;
-                break;
-        }
-    }
-
     private double calculateTimeout(double distance, double speed) {
         double timeoutS = 0.0;
         timeoutS = distance/speed * MMShooterBotConstants.TIMEOUT_SCALING_FACTOR;
@@ -1472,149 +1528,6 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
             telemetry.update();
         }
 
-    }
-
-    private boolean navxDrive( double speed,
-                              double distance,
-                              double timeoutS,
-                              double angle) throws InterruptedException {
-
-        int newLeftTarget;
-        int newRightTarget;
-        int moveCounts;
-        boolean driveComplete = false;
-
-
-        if (!isNavxDriveInitiated) {
-            isNavxDriveInitiated = true;
-            // negation for mecanum drive arrangement
-            distance = -distance;
-
-            // set up navx stuff
-            double angleNormalized = -angle; // reverse the angle's direction: since positive is for CCW, negative is for CW
-            // set the parameters before enabling the PID controller
-            yawDrivePIDController.enable(true);
-            yawDrivePIDController.setSetpoint(angleNormalized);
-            yawDrivePIDController.setPID(Kp, MMShooterBotConstants.YAW_PID_I, MMShooterBotConstants.YAW_PID_D);
-
-            yawPIDResult = new navXPIDController.PIDResult();
-
-            DecimalFormat df = new DecimalFormat("#.##");
-
-            Thread.sleep(MMShooterBotConstants.SLEEP_MS);
-
-            navxDriveStartTime = getRuntime();
-
-            setChassisMotorZeroBehavior(eZeroBehavior.BRAKE);
-        }
-
-
-        // according to documentation, this instruction blocks the thread, and won't return immediately
-        // it returns true if new data is available; false if it times out.
-        if (yawDrivePIDController.waitForNewUpdate(yawPIDResult, MMShooterBotConstants.WAIT_FOR_UPDATE_TIMEOUT_MS)) {
-            // proceed to keep using data from navx-micro
-
-            // Determine new target position, and pass to motor controller
-            moveCounts = (int) (distance * MMShooterBotConstants.COUNTS_PER_INCH);
-            newLeftTarget = frontLeftDrive.getCurrentPosition() + moveCounts;
-            newRightTarget = frontRightDrive.getCurrentPosition() + moveCounts;
-            newLeftTarget = rearLeftDrive.getCurrentPosition() + moveCounts;
-            newRightTarget = rearRightDrive.getCurrentPosition() + moveCounts;
-
-            // Set Target and Turn On RUN_TO_POSITION
-            frontLeftDrive.setTargetPosition(newLeftTarget);
-            frontRightDrive.setTargetPosition(newRightTarget);
-            rearLeftDrive.setTargetPosition(newLeftTarget);
-            rearRightDrive.setTargetPosition(newRightTarget);
-
-            frontLeftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            frontRightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            rearLeftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            rearRightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-
-            // start motion.
-            speed = Range.clip(Math.abs(speed), 0.0, 1.0);
-
-            // for debugging only, activate it when necessary
-            //RobotLog.vv(MMShooterBotConstants.GYRO_DRIVE_TAG, ",run time after reset =,%5.2f, seconds", runtime.seconds());
-
-            // keep looping while we are still active, and all motors are running.
-            if (frontLeftDrive.isBusy() && frontRightDrive.isBusy()
-                    && rearLeftDrive.isBusy() && rearRightDrive.isBusy() &&
-                    ((getRuntime() - navxDriveStartTime) < timeoutS)) {
-                if (yawDrivePIDController.isNewUpdateAvailable(yawPIDResult)) {
-                    if (yawPIDResult.isOnTarget()) {
-                        frontLeftDrive.setPower(speed);
-                        frontRightDrive.setPower(speed);
-                        rearLeftDrive.setPower(speed);
-                        rearRightDrive.setPower(speed);
-//                            telemetry.addData("PIDOutput", df.format(speed) + ", " +
-//                                    df.format(speed));
-                    } else {
-                        double output = yawPIDResult.getOutput();
-                        // if driving in reverse, the motor correction also needs to be reversed
-                        if (distance < 0)
-                            output *= -1.0;
-
-                        frontLeftDrive.setPower(speed + output);
-                        frontRightDrive.setPower(speed - output);
-                        rearLeftDrive.setPower(speed + output);
-                        rearRightDrive.setPower(speed - output);
-//                            telemetry.addData("PIDOutput", df.format(limit(speed + output)) + ", " +
-//                                    df.format(limit(speed - output)));
-                    }
-//                        telemetry.addData("Yaw", df.format(navxDevice.getYaw()));
-                }
-//                    telemetry.update();
-
-                // for debugging only, activate it when necessary
-                //RobotLog.vv(MMShooterBotConstants.GYRO_DRIVE_TAG, ",run time =,%5.2f, seconds", runtime.seconds());
-            } else {
-                // stop the momentum of the robot
-                turnOffDriveMotors();
-                isNavxDriveInitiated = false;
-                yawDrivePIDController.enable(false);
-                driveComplete = true;
-            }
-        } else {
-            // time out occurs
-            RobotLog.vv("navXRotateOp", "Yaw PID waitForNewUpdate() TIMEOUT.");
-            isNavxMicroDataTimeout = true;
-            isNavxDriveInitiated = false;
-            yawDrivePIDController.enable(false);
-            driveComplete = true;
-        }
-
-        return driveComplete;
-    }
-
-    private void checkCommandToGetOnToPlatform() throws InterruptedException {
-        // don't get back on to platform unless robot is relatively stationary, controlled by driver 1
-        if ((Math.abs(gamepad1.left_stick_y) <= CargoBotConstants.CONTROL_STICK_THRESHOLD_FOR_BACKUP_TO_PLATFORM) &&
-                (Math.abs(gamepad1.right_stick_y) <= CargoBotConstants.CONTROL_STICK_THRESHOLD_FOR_BACKUP_TO_PLATFORM)) {
-
-            // left trigger & right trigger fully pressed simultaneously, controlled by driver 1
-            if (((gamepad1.left_trigger == MMShooterBotConstants.FULLY_PRESSED) && (lastGamepad1LeftTrigger != MMShooterBotConstants.FULLY_PRESSED)
-                    && (gamepad1.right_trigger == MMShooterBotConstants.FULLY_PRESSED))
-                    ||
-                    ((gamepad1.right_trigger == MMShooterBotConstants.FULLY_PRESSED) && (lastGamepad1RightTrigger != MMShooterBotConstants.FULLY_PRESSED)
-                            && (gamepad1.left_trigger == MMShooterBotConstants.FULLY_PRESSED))) {
-                if (platformState == enumPlatFormState.END) {
-                    platformState = enumPlatFormState.START;
-                } else if (platformState == enumPlatFormState.RUN) {
-                    // abort
-                    platformState = enumPlatFormState.END;
-                    turnOffDriveMotors();
-                    isNavxDriveInitiated = false;
-                    yawDrivePIDController.enable(false);
-                }
-            }
-
-            // store current left and right trigger for comparison in the next loop
-            lastGamepad1LeftTrigger = gamepad1.left_trigger;
-            lastGamepad1RightTrigger = gamepad1.right_trigger;
-        }
-        getOnPlatform();
     }
 
     private boolean isLiftNearHighPosition(){
@@ -1884,6 +1797,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
 
     HORN_POSITION hornPosition = HORN_POSITION.UP;
     boolean activateHorn = false;
+    double rotationSetPoint = 0.0;
 
     public void hornController() {
         if (gamepad2.x && !lastGamepad2X) {
@@ -1900,6 +1814,8 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
                 if (activateHorn) {
                     hornPosition = HORN_POSITION.DOWN;
                 }
+                // turn off beacon: visual aid for the driver
+                //colorBeacon.off();
                 break;
             case DOWN:
                 hornServoLeft.setPosition(CargoBotConstants.HORN_SERVO_LEFT_OUT_POSITION);
@@ -1908,7 +1824,17 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
                 if (activateHorn) {
                     hornPosition = HORN_POSITION.UP;
                 }
+                // turn beacon color to green: visual aid for the driver
+                //colorBeacon.green();
                 break;
+        }
+    }
+
+    private void initNavx90DegreeSetPoint(){
+        if (allianceColor == ALLIANCE_COLOR.RED){
+            rotationSetPoint = 0.0;
+        } else if (allianceColor == ALLIANCE_COLOR.BLUE){
+            rotationSetPoint = 179.9;
         }
     }
 }

@@ -6,6 +6,16 @@ package org.firstinspires.ftc.teamcode;
 
 public interface CargoBotConstants {
 
+
+    boolean USE_ORBITAL_20 = true;
+    // motor speed scalar for autonomous based on the usage of either
+    // 1) NeverRest 20 Orbital (must slow down for this motor)
+    // or
+    // 2) NeverRest 40
+    double SPEED_RATIO = USE_ORBITAL_20 ? 19.2/40.0 : 1.0;
+    double NORMAL_SPEED_RATIO = 0.48;
+    double TURBO_SPEED_RATIO = 0.75;
+
     // relic servo position magic numbers
     double RELIC_ARM_CLOSE = 0.0;
     double RELIC_ARM_OPEN = 0.4;
@@ -39,7 +49,7 @@ public interface CargoBotConstants {
     double BALL_ARM_UP = 0.0;
     double BALL_ARM_DOWN = 1.0;
 
-    double BALL_SPEED = 0.1;
+    double BALL_SPEED = 0.1 * SPEED_RATIO;
     double BALL_DISTANCE = 2.75;
 
     double DRIVE_OFF_PLATFORM_MORE_OFFSET = 2.75;
@@ -47,11 +57,12 @@ public interface CargoBotConstants {
     double DRIVE_OFF_PLATFORM_LESS_OFFSET = -3.75;
     double DRIVE_OFF_PLATFORM_DISTANCE_WITHOUT_OFFSET = 26;
     double DRIVE_OFF_TIP_PLATFORM_DISTANCE_WITHOUT_OFFSET = 26;
-    double DRIVING_OFF_PLATFORM_SPEED = 0.3;
+    double DRIVING_OFF_PLATFORM_SPEED = 0.3 * SPEED_RATIO;
+    double DRIVING_OFF_BLUE_PLATFORM_SPEED = 2.0 * DRIVING_OFF_PLATFORM_SPEED;
     // drive off platform parameters for V2
-    double DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET = 28; // this has to be adjusted from V1, because the intake is in the center whereas the gripper is off-centered
-    double DRIVE_OFF_BLUE_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET = 22.5;
-    double DRIVE_OFF_TIP_PLATFORM_V2_DISTANCE_WITHOUT_OFFSET = 27;
+    double DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET = 25.25; // this has to be adjusted from V1, because the intake is in the center whereas the gripper is off-centered
+    double DRIVE_OFF_BLUE_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET = 24;
+    double DRIVE_OFF_TIP_PLATFORM_V2_DISTANCE_WITHOUT_OFFSET = 27.5;
 
     double RED_TURN_ANGLE = -35;
     double BLUE_TURN_ANGLE = 60;
@@ -61,8 +72,8 @@ public interface CargoBotConstants {
 
     double VU_MARK_DETECTION_TIMEOUT = 5.0;
 
-    double TELEOP_SLOW_MODE_TOP_SPEED = 0.42;
-    double TELEOP_SLOW_MODE_STRAFING_TOP_SPEED = 0.25;
+    double TELEOP_SLOW_MODE_TOP_SPEED = 0.45 * SPEED_RATIO;
+    double TELEOP_SLOW_MODE_STRAFING_TOP_SPEED = 0.42 * SPEED_RATIO;
     boolean USE_Y_BUTTON_FOR_LOW_SPEED_MODE = true;
 
     double MOTOR_STALL_CHECKING_PERIOD = 0.3;
@@ -94,7 +105,7 @@ public interface CargoBotConstants {
     // for curious george v1
     double ANGLE_TO_FACE_BOX_RED_RELIC = 90.0;
     double CRYPTO_BOX_DISTANCE_RED_RELIC = 7.0;
-    double APPROACH_SPEED = 0.2;
+    double APPROACH_SPEED = 0.2 * SPEED_RATIO;
     double BACKUP_DISTANCE = -4.5;
     double MOVE_TO_CENTER_DISTANCE_RELIC = 7.5;
     double MOVE_TO_LEFT_DISTANCE_RELIC = MOVE_TO_CENTER_DISTANCE_RELIC * 2;
@@ -102,6 +113,7 @@ public interface CargoBotConstants {
     double CRYPTO_BOX_DISTANCE_V2_RED_RELIC = 6.0;
     double BACKUP_DISTANCE_V2 = -5.5; // need to back up enough so that there is enough room to turn around without hitting the cryptoBox
     double BACKUP_PUSH_BLOCK_DISTANCE = -11.0;
+    double BACKUP_BLUE_TIP_PUSH_BLOCK_DISTANCE = -10.0;
     double ANGLE_TO_FACE_FIELD_CENTER_RED_BLUE_RELIC = -90.0;
     double AWAY_FROM_BLOCK_DISTANCE = 6.0;
 
@@ -120,13 +132,13 @@ public interface CargoBotConstants {
     double DRIVE_BLUE_OFF_PLATFORM_MORE_OFFSET = 1.75;
     double CRYPTO_BOX_DISTANCE_BLUE_RELIC = 8.5;
     // for curious george v2
-    double CRYPTO_BOX_DISTANCE_V2_BLUE_RELIC = 5.5;
+    double CRYPTO_BOX_DISTANCE_V2_BLUE_RELIC = 6.5;
 
     // cryptoBox for blue tip
-    double ANGLE_TO_FACE_BLUE_TIP_COLUMN = 1;
+    double ANGLE_TO_FACE_BLUE_TIP_COLUMN = 0;
     double BLUE_TIP_COLUMN_OFFSET = 8.0;
     // for curious george v2
-    double BLUE_TIP_COLUMN_V2_OFFSET = 4.5; // this has to be adjusted from V1, because the intake is in the center whereas the gripper is off-centered
+    double BLUE_TIP_COLUMN_V2_OFFSET = 3.75; // this has to be adjusted from V1, because the intake is in the center whereas the gripper is off-centered
 
 
     // diagonal movement
@@ -214,5 +226,8 @@ public interface CargoBotConstants {
 
     double HORN_SERVO_RIGHT_IN_POSITION = 0.0;
     double HORN_SERVO_RIGHT_OUT_POSITION = 1.0;
+
+    double TIMEOUT_CORRECTION_FACTOR = 1.5;
+    double TIME_LIMIT_FOR_SETTING_BRAKE = 110;
 }
 

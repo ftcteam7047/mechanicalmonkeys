@@ -10,7 +10,8 @@ interface MMShooterBotConstants {
     double     ANDYMARK_60_COUNTS_PER_MOTOR_REV     = 1680.0;
     double     ANDYMARK_40_COUNTS_PER_MOTOR_REV     = 1120.0;
     double     ANDYMARK_20_COUNTS_PER_MOTOR_REV     = 560.0;
-    double     COUNTS_PER_MOTOR_REV    	            = ANDYMARK_40_COUNTS_PER_MOTOR_REV ; // apply what is being installed as the drive motors
+    double     ANDYMARK_ORBITAL_20_COUNTS_PER_MOTOR_REV = 537.6;
+    double     COUNTS_PER_MOTOR_REV    	            = ANDYMARK_ORBITAL_20_COUNTS_PER_MOTOR_REV ; // apply what is being installed as the drive motors
     double     COUNTS_PER_TETRIX_MOTOR_REV          = 1440.0 ;    // eg: TETRIX Motor Encoder: 1440 is the reference
     double     MOTOR_ENCODER_SCALE_FACTOR           = (COUNTS_PER_MOTOR_REV/COUNTS_PER_TETRIX_MOTOR_REV);    // For Textrix: set 1, for AndyMark: set 0.39
     double     DRIVE_SPEED             	            = 0.2 * MOTOR_ENCODER_SCALE_FACTOR;     // Nominal speed for better accuracy.
@@ -46,7 +47,8 @@ interface MMShooterBotConstants {
 
     double     DRIVE_GEAR_REDUCTION                 = 1.0 ;     // This is < 1.0 if geared UP
     double     WHEEL_DIAMETER_INCHES                = 4.0 ;     // For figuring circumference
-    double     COUNTS_PER_INCH         	            = (COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) / (WHEEL_DIAMETER_INCHES * 3.1415);
+    double     CORRECTION_FACTOR                    = 30.0 / 29.21;
+    double     COUNTS_PER_INCH         	            = ((COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) / (WHEEL_DIAMETER_INCHES * 3.1415)) * CORRECTION_FACTOR;
     double     ABORT_DURATION          	            = 0.5;	   // Duration to stay in ABORT state for line following
     double     AUTO_AIM_ABORT_DURATION              = 0.1;	   // Duration to stay in ABORT state for line following
     double     BLACK_SQUARE_WIDTH_INCHES            = 23.5;	   // in inches
