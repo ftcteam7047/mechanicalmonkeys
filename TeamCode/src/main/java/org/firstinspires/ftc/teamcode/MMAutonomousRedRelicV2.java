@@ -1123,16 +1123,16 @@ public class MMAutonomousRedRelicV2 extends LinearOpMode {
                         driveStatus = true;
                         break;
                     case CENTER:
-                        driveStatus = navxDrive(CargoBotConstants.TIP_FAR_COLUMN_APPROACH_SPEED,
+                        driveStatus = navxDrive(CargoBotConstants.FAR_COLUMN_APPROACH_SPEED,
                                 -CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC,
                                 calculateTimeout(CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC,
-                                        CargoBotConstants.TIP_FAR_COLUMN_APPROACH_SPEED), 0);
+                                        CargoBotConstants.FAR_COLUMN_APPROACH_SPEED), 0);
                         break;
                     case LEFT:
-                        driveStatus = navxDrive(CargoBotConstants.TIP_FAR_COLUMN_APPROACH_SPEED,
+                        driveStatus = navxDrive(CargoBotConstants.FAR_COLUMN_APPROACH_SPEED,
                                 -CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC,
                                 calculateTimeout(CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC,
-                                        CargoBotConstants.TIP_FAR_COLUMN_APPROACH_SPEED), 0);
+                                        CargoBotConstants.FAR_COLUMN_APPROACH_SPEED), 0);
                         break;
                 }
 

@@ -1135,12 +1135,12 @@ public class MMAutonomousRedTipV2 extends LinearOpMode {
                                         CargoBotConstants.APPROACH_SPEED), 90);
                         break;
                     case LEFT:
-                        driveStatus = navxDrive(CargoBotConstants.TIP_FAR_COLUMN_APPROACH_SPEED,
+                        driveStatus = navxDrive(CargoBotConstants.FAR_COLUMN_APPROACH_SPEED,
                                 -CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC
                                         - CargoBotConstants.BACKUP_OFFSET_V2_TO_APPROACH_TIP_BOX,
                                 calculateTimeout(-CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC
                                                 - CargoBotConstants.BACKUP_OFFSET_V2_TO_APPROACH_TIP_BOX,
-                                        CargoBotConstants.TIP_FAR_COLUMN_APPROACH_SPEED), 90);
+                                        CargoBotConstants.FAR_COLUMN_APPROACH_SPEED), 90);
                         break;
                 }
 

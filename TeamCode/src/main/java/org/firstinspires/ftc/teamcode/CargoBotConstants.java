@@ -108,7 +108,7 @@ public interface CargoBotConstants {
     double ANGLE_TO_FACE_BOX_RED_RELIC = 90.0;
     double CRYPTO_BOX_DISTANCE_RED_RELIC = 7.0;
     double APPROACH_SPEED = 0.2 * SPEED_RATIO;
-    double TIP_FAR_COLUMN_APPROACH_SPEED = 2.0 * APPROACH_SPEED;
+    double FAR_COLUMN_APPROACH_SPEED = 2.0 * APPROACH_SPEED;
     double PUSH_BLOCK_BACK_SPEED = 1.5 * APPROACH_SPEED;
     double AWAY_FROM_BLOCK_SPEED = 2.0 * APPROACH_SPEED;
     double BACKUP_DISTANCE = -4.5;
@@ -138,7 +138,8 @@ public interface CargoBotConstants {
     double DRIVE_BLUE_OFF_PLATFORM_MORE_OFFSET = 1.75;
     double CRYPTO_BOX_DISTANCE_BLUE_RELIC = 8.5;
     // for curious george v2
-    double CRYPTO_BOX_DISTANCE_V2_BLUE_RELIC = 6.5;
+    double CRYPTO_BOX_DISTANCE_V2_BLUE_RELIC = 5.5;
+    double CRYPTO_BOX_DISTANCE_V2_BLUE_TIP = 5.5;
 
     // cryptoBox for blue tip
     double ANGLE_TO_FACE_BLUE_TIP_COLUMN = 0;

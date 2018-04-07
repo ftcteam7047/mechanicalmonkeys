@@ -1143,12 +1143,12 @@ public class MMAutonomousBlueTipV2 extends LinearOpMode {
                                         CargoBotConstants.APPROACH_SPEED), 90);
                         break;
                     case RIGHT:
-                        driveStatus = navxDrive(CargoBotConstants.TIP_FAR_COLUMN_APPROACH_SPEED,
+                        driveStatus = navxDrive(CargoBotConstants.FAR_COLUMN_APPROACH_SPEED,
                                 -CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC
                                         - CargoBotConstants.BLUE_TIP_COLUMN_V2_OFFSET,
                                 calculateTimeout(CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC
                                                 + CargoBotConstants.BLUE_TIP_COLUMN_V2_OFFSET,
-                                        CargoBotConstants.TIP_FAR_COLUMN_APPROACH_SPEED), 90);
+                                        CargoBotConstants.FAR_COLUMN_APPROACH_SPEED), 90);
                         break;
                 }
 
@@ -1184,9 +1184,9 @@ public class MMAutonomousBlueTipV2 extends LinearOpMode {
                 break;
             case STEP11:
                 // drive backwards so robot is not in contact with the block
-                driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                driveStatus = navxDrive(CargoBotConstants.AWAY_FROM_BLOCK_SPEED,
                         CargoBotConstants.BACKUP_DISTANCE_V2,
-                        calculateTimeout(CargoBotConstants.BACKUP_DISTANCE_V2, CargoBotConstants.APPROACH_SPEED),
+                        calculateTimeout(CargoBotConstants.BACKUP_DISTANCE_V2, CargoBotConstants.AWAY_FROM_BLOCK_SPEED),
                         CargoBotConstants.ANGLE_TO_FACE_BLUE_TIP_COLUMN);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP12;
