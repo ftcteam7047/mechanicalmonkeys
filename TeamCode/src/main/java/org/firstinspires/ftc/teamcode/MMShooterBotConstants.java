@@ -75,7 +75,7 @@ interface MMShooterBotConstants {
     double      rightPunch                          = 1.00;     // right servo limit
     double      neutralPunch                        = 0.5;      // neutral servo position
     double      punchDuration                       = 1.0;      // how long the arm stays in punch state
-    double      FULLY_PRESSED                       = 1.0;      // when an analog control is fully activated
+    double      FULLY_PRESSED                       = 0.8;      // when an analog control is fully activated
     double      neutralOffsetCalibration            = 0.0;      // to compensate for one arm not able to fully return to the neutral position
     int         beaconPressRetryLimit               = 1;        // number of retry for button punching before giving up
     double      RELEASE_THRESHOLD                   = 0.1;      // the low limit that is considered releasing of the trigger

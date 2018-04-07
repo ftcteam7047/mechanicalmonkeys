@@ -23,6 +23,7 @@ import static java.lang.Math.max;
 import static java.lang.Math.min;
 import static java.lang.Math.sqrt;
 
+
 /**
  * Created by chrischen on 11/29/17.
  * Test program to control 4 DC motors
@@ -71,10 +72,10 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     boolean xIsPressed = false;
 
     // servo parameters
-    double downTarget = 0.83;
-    double upTarget = 0.0;
-    double flatTarget = 0.67;
-    double flatTarget2 = 0.70;
+    final double downTarget = 0.83;
+    final double upTarget = 0.0;
+    final double flatTarget = 0.70;
+    final double flatTarget2 = flatTarget + 0.03;
     double timeIncrement = 0.025; // was 0.025
     double posIncrement = 0.02;
 
@@ -170,6 +171,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     // for activating intake motor while the ramp is moving to flat or up
     boolean shouldRampMoveToDownDueToLift = false;
     boolean shouldRampMoveToFlatDueToLift = false;
+    boolean shouldRampMoveToFlat2DueToLift = false;
     boolean isRampUpEvent = false;
     boolean isLiftAtLowPosition = false;
     boolean lastGamepadDown = false;
@@ -195,6 +197,9 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
 
     ModernRoboticsI2cRangeSensor rangeSensor;
     ModernRoboticsTouchSensor touchSensor;
+    //AnalogInput irSensor1;
+    //CDI. Using this, we can read any analog sensor on this CDI without creating an instance for each sensor.
+//    DeviceInterfaceModule dim2;
     double rangeSensorDistance = 0.0;
     boolean downButtonReleased = false;
     boolean upButtonReleased = false;
@@ -301,6 +306,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+        //initIRSensor1();
     }
 
     @Override
@@ -313,6 +319,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         blockLiftControllerV2();
         guideServoController();
         hornController();
+        //irController();
         //rotateToNearest90DegreeController();
 
         try {
@@ -517,6 +524,8 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
             moveRampToUp();
         } else if (xIsPressed || shouldRampMoveToFlatDueToLift) {
             moveRampToFlat();
+        } else if (shouldRampMoveToFlat2DueToLift){
+            moveRampToFlat2();
         }
     }
 
@@ -700,7 +709,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         }
     }
 
-    private void moveRampToFlat(){
+    private void moveRampToFlat() {
         int tick = 0;
         tick = getRuntimeInTicks(tStart, timeIncrement);
 
@@ -730,6 +739,38 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         if (flatTarget == testServo.getPosition()){
             xIsPressed = false;
             shouldRampMoveToFlatDueToLift = false;
+        }
+    }
+
+    private void moveRampToFlat2() {
+        int tick = 0;
+        tick = getRuntimeInTicks(tStart, timeIncrement);
+
+        if (!touchSensor.isPressed()) {
+            if (tick > lastTick) {
+                int deltaTick = tick - lastTick;
+                lastTick = tick;
+                currentServoPos = testServo.getPosition();
+                if ((currentServoPos - deltaTick * posIncrement) > flatTarget2) {
+                    targetPos = currentServoPos - deltaTick * posIncrement;
+                } else if ((currentServoPos + deltaTick * posIncrement) < flatTarget2) {
+                    targetPos = currentServoPos + deltaTick * posIncrement;
+                } else {
+                    targetPos = flatTarget2;
+                }
+
+                testServo.setPosition(targetPos);
+            }
+        } else {
+            turnOffLiftMotor();
+            lifterState = LIFTER_STATE.PAUSE_FOR_HIGH_TO_LOW;
+            shouldRampMoveToFlat2DueToLift = false;
+            aIsPressed = true;
+            moveRampToDown();
+        }
+        // cancel the request when the servo is at the target
+        if (flatTarget2 == testServo.getPosition()){
+            shouldRampMoveToFlat2DueToLift = false;
         }
     }
 
@@ -856,6 +897,13 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     double lastLeftTrigger = 0.0;
     double lastRightTrigger = 0.0;
     boolean activateTurbo = false;
+    private enum BUMPER_STATE {
+        LEFT_PRESSED,
+        RIGHT_PRESSED,
+        TWO_PRESSED,
+        NONE_PRESSED
+    }
+    BUMPER_STATE bumpState = BUMPER_STATE.NONE_PRESSED;
     private void speedModeInputHandler(){
         // check for y button release instead of press
         // for checking speed mode change
@@ -869,19 +917,67 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
 
         // left trigger & right trigger fully pressed simultaneously
         // for checking turbo mode input
-        if (((gamepad1.left_trigger == MMShooterBotConstants.FULLY_PRESSED) && (lastLeftTrigger != MMShooterBotConstants.FULLY_PRESSED)
-                && (gamepad1.right_trigger == MMShooterBotConstants.FULLY_PRESSED))
-                ||
-                ((gamepad1.right_trigger == MMShooterBotConstants.FULLY_PRESSED) && (lastRightTrigger != MMShooterBotConstants.FULLY_PRESSED)
-                        && (gamepad1.left_trigger == MMShooterBotConstants.FULLY_PRESSED))){
-            activateTurbo = true;
+//        if (((gamepad1.left_trigger >= MMShooterBotConstants.FULLY_PRESSED) && (lastLeftTrigger < MMShooterBotConstants.FULLY_PRESSED)
+//                && (gamepad1.right_trigger >= MMShooterBotConstants.FULLY_PRESSED))
+//                ||
+//                ((gamepad1.right_trigger >= MMShooterBotConstants.FULLY_PRESSED) && (lastRightTrigger < MMShooterBotConstants.FULLY_PRESSED)
+//                        && (gamepad1.left_trigger >= MMShooterBotConstants.FULLY_PRESSED))) {
+//            activateTurbo = true;
+//
+//        } else {
+//            activateTurbo = false;
+//        }
 
-        } else {
-            activateTurbo = false;
+        switch (bumpState){
+            case NONE_PRESSED:
+                activateTurbo = false;
+                if ((gamepad1.left_bumper && !lastGamepad1LeftBumper) &&
+                        (!gamepad1.right_bumper && !lastGamepad1RightBumper)) {
+                    bumpState = BUMPER_STATE.LEFT_PRESSED;
+                }
+                if ((gamepad1.right_bumper && !lastGamepad1RightBumper) &&
+                        (!gamepad1.left_bumper && !lastGamepad1LeftBumper)) {
+                    bumpState = BUMPER_STATE.RIGHT_PRESSED;
+                }
+                if ((gamepad1.left_bumper && !lastGamepad1LeftBumper) &&
+                        (gamepad1.right_bumper && !lastGamepad1RightBumper)){
+                    bumpState = BUMPER_STATE.TWO_PRESSED;
+                    activateTurbo = true;
+                }
+                break;
+            case LEFT_PRESSED:
+                if ((gamepad1.right_bumper && !lastGamepad1RightBumper) &&
+                        (gamepad1.left_bumper && lastGamepad1LeftBumper)) {
+                    bumpState = BUMPER_STATE.TWO_PRESSED;
+                    activateTurbo = true;
+                } else if (!gamepad1.left_bumper){
+                    bumpState = BUMPER_STATE.NONE_PRESSED;
+                    activateTurbo = false;
+                }
+                break;
+            case RIGHT_PRESSED:
+                if ((gamepad1.left_bumper && !lastGamepad1LeftBumper) &&
+                        (gamepad1.right_bumper && lastGamepad1RightBumper)) {
+                    bumpState = BUMPER_STATE.TWO_PRESSED;
+                    activateTurbo = true;
+                } else if (!gamepad1.right_bumper){
+                    bumpState = BUMPER_STATE.NONE_PRESSED;
+                    activateTurbo = false;
+                }
+                break;
+            case TWO_PRESSED:
+                activateTurbo = false;
+                bumpState = BUMPER_STATE.NONE_PRESSED;
         }
+
+
+        // store button state for comparison in the next loop
+        lastGamepad1LeftBumper = gamepad1.left_bumper;
+        lastGamepad1RightBumper = gamepad1.right_bumper;
+
         // store current left and right trigger for comparison in the next loop
-        lastLeftTrigger = gamepad1.left_trigger;
-        lastRightTrigger = gamepad1.right_trigger;
+//        lastLeftTrigger = gamepad1.left_trigger;
+//        lastRightTrigger = gamepad1.right_trigger;
     }
     enum SPEED_MODE {
         LOW,
@@ -1279,6 +1375,16 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
                     if (!isLiftNearHighPosition() && !isMotorStalled && !isLifterUpTimeout()) {
                         // inform servo controller that we want to move to flat position
                         shouldRampMoveToFlatDueToLift = true;
+                        // if the lift is greater than 1/3 of the total height,
+                        // tilt the ramp down slightly to hold the block better
+                        int flat2Target = (int) CargoBotConstants.FLAT_TARGET_2_DISTANCE_FROM_START - offset;
+                        if (blockLift.getCurrentPosition() >= flat2Target){
+                            // cancel the flat target
+                            shouldRampMoveToFlatDueToLift = false;
+                            xIsPressed = false;
+                            // move to the flat target2
+                            shouldRampMoveToFlat2DueToLift = true;
+                        }
                     }
                 }
                 if (blockLift.isBusy()) {
@@ -1837,4 +1943,18 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
             rotationSetPoint = 179.9;
         }
     }
+
+//    private void initIRSensor1(){
+//        //Link objects to configuration file
+//        irSensor1 = hardwareMap.analogInput.get("irSensor1");
+//        dim2 = hardwareMap.deviceInterfaceModule.get("dim2");
+//    }
+
+//    double lastGoodIRdata = 0.0;
+//    private void irController(){
+//        telemetry.addData("IR sensor " + "1", dim2.getAnalogInputVoltage(1));
+//        double irData = dim2.getAnalogInputVoltage(1);
+//
+//        //RobotLog.ii("IR Sensor 1", String.valueOf(dim2.getAnalogInputVoltage(1)));
+//    }
 }

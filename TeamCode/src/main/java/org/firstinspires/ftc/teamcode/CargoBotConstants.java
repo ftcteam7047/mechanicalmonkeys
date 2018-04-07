@@ -40,11 +40,13 @@ public interface CargoBotConstants {
     // for ver 2 slider
     double SLIDER_LOW_HEIGHT = 0.0;
     double SLIDER_HIGH_HEIGHT = 7.5;
+    double FLAT_TARGET_2_HEIGHT = (1.0/3.0) * SLIDER_HIGH_HEIGHT; // one thirds of the total height
     int COUNTS_PER_MOTOR_REV_20 = 560;
     double SLIDER_PULLEY_DIAMETER_INCHES = 0.465;
     double COUNTS_PER_INCH_SLIDER_PULLEY = COUNTS_PER_MOTOR_REV_20 / (SLIDER_PULLEY_DIAMETER_INCHES * Math.PI);
     double LOW_DISTANCE_FROM_START = COUNTS_PER_INCH_SLIDER_PULLEY * SLIDER_LOW_HEIGHT;
     double HIGH_DISTANCE_FROM_START = COUNTS_PER_INCH_SLIDER_PULLEY * SLIDER_HIGH_HEIGHT;
+    double FLAT_TARGET_2_DISTANCE_FROM_START = COUNTS_PER_INCH_SLIDER_PULLEY * FLAT_TARGET_2_HEIGHT;
 
     double BALL_ARM_UP = 0.0;
     double BALL_ARM_DOWN = 1.0;
@@ -60,7 +62,7 @@ public interface CargoBotConstants {
     double DRIVING_OFF_PLATFORM_SPEED = 0.3 * SPEED_RATIO;
     double DRIVING_OFF_BLUE_PLATFORM_SPEED = 2.0 * DRIVING_OFF_PLATFORM_SPEED;
     // drive off platform parameters for V2
-    double DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET = 25.25; // this has to be adjusted from V1, because the intake is in the center whereas the gripper is off-centered
+    double DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET = 25.5; // this has to be adjusted from V1, because the intake is in the center whereas the gripper is off-centered
     double DRIVE_OFF_BLUE_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET = 24;
     double DRIVE_OFF_TIP_PLATFORM_V2_DISTANCE_WITHOUT_OFFSET = 27.5;
 
@@ -193,9 +195,9 @@ public interface CargoBotConstants {
 
     // lift servo parameters
     // servo parameters
-    double DOWN_TARGET = 0.80;
+    double DOWN_TARGET = 0.83;
     double UP_TARGET = 0.0;
-    double FLAT_TARGET = 0.66;
+    double FLAT_TARGET = 0.7;
     double TIME_INCREMENT = 0.025;
     double POS_INCREMENT = 0.02;
 
