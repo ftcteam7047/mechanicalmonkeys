@@ -1143,12 +1143,12 @@ public class MMAutonomousBlueTipV2 extends LinearOpMode {
                                         CargoBotConstants.APPROACH_SPEED), 90);
                         break;
                     case RIGHT:
-                        driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                        driveStatus = navxDrive(CargoBotConstants.TIP_FAR_COLUMN_APPROACH_SPEED,
                                 -CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC
                                         - CargoBotConstants.BLUE_TIP_COLUMN_V2_OFFSET,
                                 calculateTimeout(CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC
                                                 + CargoBotConstants.BLUE_TIP_COLUMN_V2_OFFSET,
-                                        CargoBotConstants.APPROACH_SPEED), 90);
+                                        CargoBotConstants.TIP_FAR_COLUMN_APPROACH_SPEED), 90);
                         break;
                 }
 
@@ -1201,9 +1201,9 @@ public class MMAutonomousBlueTipV2 extends LinearOpMode {
                 break;
             case STEP13:
                 // drive backwards to push the block further into the box
-                driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                driveStatus = navxDrive(CargoBotConstants.PUSH_BLOCK_BACK_SPEED,
                         CargoBotConstants.BACKUP_BLUE_TIP_PUSH_BLOCK_DISTANCE,
-                        calculateTimeout(CargoBotConstants.BACKUP_BLUE_TIP_PUSH_BLOCK_DISTANCE, CargoBotConstants.APPROACH_SPEED),
+                        calculateTimeout(CargoBotConstants.BACKUP_BLUE_TIP_PUSH_BLOCK_DISTANCE, CargoBotConstants.PUSH_BLOCK_BACK_SPEED),
                         CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_BlUE_TIP);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP14;
@@ -1211,9 +1211,9 @@ public class MMAutonomousBlueTipV2 extends LinearOpMode {
                 break;
             case STEP14:
                 // drive forward so the robot is not in contact with the block
-                driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                driveStatus = navxDrive(CargoBotConstants.AWAY_FROM_BLOCK_SPEED,
                         CargoBotConstants.AWAY_FROM_BLOCK_DISTANCE,
-                        calculateTimeout(CargoBotConstants.AWAY_FROM_BLOCK_DISTANCE, CargoBotConstants.APPROACH_SPEED),
+                        calculateTimeout(CargoBotConstants.AWAY_FROM_BLOCK_DISTANCE, CargoBotConstants.AWAY_FROM_BLOCK_SPEED),
                         CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_BlUE_TIP);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP15;
@@ -1310,6 +1310,8 @@ public class MMAutonomousBlueTipV2 extends LinearOpMode {
 
         if (!isNavxRotateInitialized) {
             // set the parameters before enabling the PID controller
+            // set tolerance for angle
+            yawTurnPIDController.setTolerance(navXPIDController.ToleranceType.ABSOLUTE, CargoBotConstants.ANGLE_TOLERANCE);
             yawTurnPIDController.setSetpoint(angleNormalized);
             yawTurnPIDController.setPID(Kp, MMShooterBotConstants.YAW_PID_I, MMShooterBotConstants.YAW_PID_D);
             yawTurnPIDController.enable(true);

@@ -1123,16 +1123,16 @@ public class MMAutonomousRedRelicV2 extends LinearOpMode {
                         driveStatus = true;
                         break;
                     case CENTER:
-                        driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                        driveStatus = navxDrive(CargoBotConstants.TIP_FAR_COLUMN_APPROACH_SPEED,
                                 -CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC,
                                 calculateTimeout(CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC,
-                                        CargoBotConstants.APPROACH_SPEED), 0);
+                                        CargoBotConstants.TIP_FAR_COLUMN_APPROACH_SPEED), 0);
                         break;
                     case LEFT:
-                        driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                        driveStatus = navxDrive(CargoBotConstants.TIP_FAR_COLUMN_APPROACH_SPEED,
                                 -CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC,
                                 calculateTimeout(CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC,
-                                        CargoBotConstants.APPROACH_SPEED), 0);
+                                        CargoBotConstants.TIP_FAR_COLUMN_APPROACH_SPEED), 0);
                         break;
                 }
 
@@ -1168,9 +1168,9 @@ public class MMAutonomousRedRelicV2 extends LinearOpMode {
                 break;
             case STEP11:
                 // drive backwards so robot is not in contact with the block
-                driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
-                        CargoBotConstants.BACKUP_DISTANCE_V2,
-                        calculateTimeout(CargoBotConstants.BACKUP_DISTANCE_V2, CargoBotConstants.APPROACH_SPEED),
+                driveStatus = navxDrive(CargoBotConstants.AWAY_FROM_BLOCK_SPEED,
+                        CargoBotConstants.BACKUP_DISTANCE_RED_RELIC_V2,
+                        calculateTimeout(CargoBotConstants.BACKUP_DISTANCE_RED_RELIC_V2, CargoBotConstants.AWAY_FROM_BLOCK_SPEED),
                         CargoBotConstants.ANGLE_TO_FACE_BOX_RED_RELIC);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP12;
@@ -1185,9 +1185,9 @@ public class MMAutonomousRedRelicV2 extends LinearOpMode {
                 break;
             case STEP13:
                 // drive backwards to push the block further into the box
-                driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                driveStatus = navxDrive(CargoBotConstants.PUSH_BLOCK_BACK_SPEED,
                         CargoBotConstants.BACKUP_PUSH_BLOCK_DISTANCE,
-                        calculateTimeout(CargoBotConstants.BACKUP_PUSH_BLOCK_DISTANCE, CargoBotConstants.APPROACH_SPEED),
+                        calculateTimeout(CargoBotConstants.BACKUP_PUSH_BLOCK_DISTANCE, CargoBotConstants.PUSH_BLOCK_BACK_SPEED),
                         CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_RED_BLUE_RELIC);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP14;
@@ -1195,9 +1195,9 @@ public class MMAutonomousRedRelicV2 extends LinearOpMode {
                 break;
             case STEP14:
                 // drive forward so the robot is not in contact with the block
-                driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                driveStatus = navxDrive(CargoBotConstants.AWAY_FROM_BLOCK_SPEED,
                         CargoBotConstants.AWAY_FROM_BLOCK_DISTANCE,
-                        calculateTimeout(CargoBotConstants.AWAY_FROM_BLOCK_DISTANCE, CargoBotConstants.APPROACH_SPEED),
+                        calculateTimeout(CargoBotConstants.AWAY_FROM_BLOCK_DISTANCE, CargoBotConstants.AWAY_FROM_BLOCK_SPEED),
                         CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_RED_BLUE_RELIC);
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP15;
@@ -1287,6 +1287,8 @@ public class MMAutonomousRedRelicV2 extends LinearOpMode {
 
         if (!isNavxRotateInitialized) {
             // set the parameters before enabling the PID controller
+            // set tolerance for angle
+            yawTurnPIDController.setTolerance(navXPIDController.ToleranceType.ABSOLUTE, CargoBotConstants.ANGLE_TOLERANCE);
             yawTurnPIDController.setSetpoint(angleNormalized);
             yawTurnPIDController.setPID(Kp, MMShooterBotConstants.YAW_PID_I, MMShooterBotConstants.YAW_PID_D);
             yawTurnPIDController.enable(true);

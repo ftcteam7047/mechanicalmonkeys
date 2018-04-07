@@ -207,10 +207,10 @@ interface MMShooterBotConstants {
     double     MAX_MOTOR_OUTPUT_VALUE               = 1.0;
     double     YAW_PID_P                            = 0.015;
     double     YAW_PID_I                            = 0.0;
-    double     YAW_PID_D                            = 0.0;
+    double     YAW_PID_D                            = 0.015;
     double     NAVX_CONNECTION_TIMEOUT              = 3.0;
-    double     NAVX_PID_LOW_OUTPUT_THRESHOLD        = 0.03; // 1.00 is max output
-    double     MULTIPLER_WHEN_NAVX_LOW_OUTPUT       = 5.0;
+    double     NAVX_PID_LOW_OUTPUT_THRESHOLD        = 0.03 * CargoBotConstants.SPEED_RATIO ; // 1.00 is max output
+    double     MULTIPLER_WHEN_NAVX_LOW_OUTPUT       = 4.0;
     long       SLEEP_MS                             = 120; // millisecond
     int        WAIT_FOR_UPDATE_TIMEOUT_MS           = 500; // millisecond
     boolean    ZERO_YAW_FOR_TELEOP                  = false; // we don't zero yaw (reset) because we want to continue to use the zero reference from autonomous opmode.

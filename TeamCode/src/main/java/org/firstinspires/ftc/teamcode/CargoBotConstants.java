@@ -108,12 +108,16 @@ public interface CargoBotConstants {
     double ANGLE_TO_FACE_BOX_RED_RELIC = 90.0;
     double CRYPTO_BOX_DISTANCE_RED_RELIC = 7.0;
     double APPROACH_SPEED = 0.2 * SPEED_RATIO;
+    double TIP_FAR_COLUMN_APPROACH_SPEED = 2.0 * APPROACH_SPEED;
+    double PUSH_BLOCK_BACK_SPEED = 1.5 * APPROACH_SPEED;
+    double AWAY_FROM_BLOCK_SPEED = 2.0 * APPROACH_SPEED;
     double BACKUP_DISTANCE = -4.5;
     double MOVE_TO_CENTER_DISTANCE_RELIC = 7.5;
     double MOVE_TO_LEFT_DISTANCE_RELIC = MOVE_TO_CENTER_DISTANCE_RELIC * 2;
     // for curious george v2
     double CRYPTO_BOX_DISTANCE_V2_RED_RELIC = 6.0;
     double BACKUP_DISTANCE_V2 = -5.5; // need to back up enough so that there is enough room to turn around without hitting the cryptoBox
+    double BACKUP_DISTANCE_RED_RELIC_V2 = -6.5;
     double BACKUP_PUSH_BLOCK_DISTANCE = -11.0;
     double BACKUP_BLUE_TIP_PUSH_BLOCK_DISTANCE = -10.0;
     double ANGLE_TO_FACE_FIELD_CENTER_RED_BLUE_RELIC = -90.0;
@@ -125,8 +129,8 @@ public interface CargoBotConstants {
     double CRYPTO_BOX_DISTANCE_RED_TIP = 5.5;
     // for curious george v2
     double ANGLE_TO_FACE_FIELD_CENTER_RED_TIP = 0;
-    double CRYPTO_BOX_DISTANCE_V2_RED_TIP = 3.0;
-    double BACKUP_OFFSET_V2_TO_APPROACH_TIP_BOX = 4.75;
+    double CRYPTO_BOX_DISTANCE_V2_RED_TIP = 0.0;
+    double BACKUP_OFFSET_V2_TO_APPROACH_TIP_BOX = 3.25;
     double ANGLE_TO_FACE_FIELD_CENTER_BlUE_TIP = 180;
 
     // cryptoBox for blue relic
@@ -231,5 +235,7 @@ public interface CargoBotConstants {
 
     double TIMEOUT_CORRECTION_FACTOR = 1.5;
     double TIME_LIMIT_FOR_SETTING_BRAKE = 110;
+
+    double ANGLE_TOLERANCE = 0.75;
 }
 

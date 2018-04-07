@@ -1310,6 +1310,8 @@ public class MMAutonomousBlueRelicV2 extends LinearOpMode {
 
         if (!isNavxRotateInitialized) {
             // set the parameters before enabling the PID controller
+            // set tolerance for angle
+            yawTurnPIDController.setTolerance(navXPIDController.ToleranceType.ABSOLUTE, CargoBotConstants.ANGLE_TOLERANCE);
             yawTurnPIDController.setSetpoint(angleNormalized);
             yawTurnPIDController.setPID(Kp, MMShooterBotConstants.YAW_PID_I, MMShooterBotConstants.YAW_PID_D);
             yawTurnPIDController.enable(true);
