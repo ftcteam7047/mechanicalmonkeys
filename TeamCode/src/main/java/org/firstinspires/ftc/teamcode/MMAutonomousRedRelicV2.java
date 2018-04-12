@@ -407,7 +407,7 @@ public class MMAutonomousRedRelicV2 extends LinearOpMode {
                                 }
 
 
-                                RobotLog.vv("detection status", ",%s,", detectionResult.toString());
+                                //RobotLog.vv("detection status", ",%s,", detectionResult.toString());
                                 telemetry.addData("detection status", detectionResult.toString());
                                 telemetry.addData("prediction", predictionString);
                                 telemetry.addData("frame counter", frameCounter);
