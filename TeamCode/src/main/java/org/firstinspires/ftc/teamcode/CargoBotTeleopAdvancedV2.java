@@ -80,10 +80,9 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     double posIncrement = 0.02;
 
     // dcMotor parameters
-    double frontIntakeMotorPower = 0.5;
-    double leftIntakeMotorPower = 0.85;
-    double rightIntakeMotorPower = 0.85;
-    double lrIntakeMotorDeltaPower = 0.1;
+    double frontIntakeMotorPower = CargoBotConstants.FRONT_INTAKE_POWER;
+    double leftIntakeMotorPower = CargoBotConstants.TELEOP_LEFT_INTAKE_POWER;
+    double rightIntakeMotorPower = CargoBotConstants.TELEOP_RIGHT_INTAKE_POWER;
 
     enum intakeDir {
         NORMAL,
@@ -639,10 +638,14 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         rearLeftDrive.setPower(0);
         rearRightDrive.setPower(0);
 
-        // make sure the drive motors maintain constant speed
+        // make sure the drive motors maintain constant speed using the encoder
+        frontLeftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         frontLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontRightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         frontRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rearLeftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rearLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rearRightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rearRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
     private void setIntakeMotorDir(intakeDir dir){
@@ -986,6 +989,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
     }
     SPEED_MODE speedMode = SPEED_MODE.NORMAL;
     double speedModeRatio = CargoBotConstants.NORMAL_SPEED_RATIO; // for normal mode
+    double sideMoveSpeedModeRatio = CargoBotConstants.NORMAL_SPEED_RATIO;
     /*
         Pressing Y button toggles between normal and low speed modes
         Pressing the 2 triggers at the same time enters turbo mode
@@ -1012,6 +1016,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
             case NORMAL:
                 isLowSpeedMode = false;
                 speedModeRatio = CargoBotConstants.NORMAL_SPEED_RATIO;
+                sideMoveSpeedModeRatio = CargoBotConstants.NORMAL_SPEED_RATIO;
                 telemetry.addData("Speed", "Normal");
                 if (activateTurbo) {
                     speedMode = SPEED_MODE.TURBO;
@@ -1025,6 +1030,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
             case TURBO:
                 isLowSpeedMode = false;
                 speedModeRatio = CargoBotConstants.TURBO_SPEED_RATIO;
+                sideMoveSpeedModeRatio = CargoBotConstants.SIDE_MOVE_TURBO_SPEED_RATIO;
                 telemetry.addData("Speed", "Turbo");
                 if (speedModeButtonActivated) {
                     speedMode = SPEED_MODE.NORMAL;
@@ -1111,10 +1117,10 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
                             rearLeftDrive.setPower(sideMovement);
                             rearRightDrive.setPower(-sideMovement);
                         } else {
-                            frontLeftDrive.setPower(-sideMovement * speedModeRatio);
-                            frontRightDrive.setPower(sideMovement * speedModeRatio);
-                            rearLeftDrive.setPower(sideMovement * speedModeRatio);
-                            rearRightDrive.setPower(-sideMovement * speedModeRatio);
+                            frontLeftDrive.setPower(-sideMovement * sideMoveSpeedModeRatio);
+                            frontRightDrive.setPower(sideMovement * sideMoveSpeedModeRatio);
+                            rearLeftDrive.setPower(sideMovement * sideMoveSpeedModeRatio);
+                            rearRightDrive.setPower(-sideMovement * sideMoveSpeedModeRatio);
                         }
 
                     } else {

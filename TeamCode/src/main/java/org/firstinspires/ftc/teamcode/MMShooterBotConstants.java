@@ -202,7 +202,7 @@ interface MMShooterBotConstants {
     int        RED_TEAM_FAVORITE_COORDINATES[][]    = {{3, 1}, {3, 6}, {6, 3}, {1, 3}};
 
     // NavX micro PID controller parameters
-    double     TOLERANCE_DEGREES                    = 2.0;
+    double     TOLERANCE_DEGREES                    = 0.75;
     double     MIN_MOTOR_OUTPUT_VALUE               = -1.0;
     double     MAX_MOTOR_OUTPUT_VALUE               = 1.0;
     double     YAW_PID_P                            = 0.015;

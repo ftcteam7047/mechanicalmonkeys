@@ -15,6 +15,7 @@ public interface CargoBotConstants {
     double SPEED_RATIO = USE_ORBITAL_20 ? 19.2/40.0 : 1.0;
     double NORMAL_SPEED_RATIO = 0.48;
     double TURBO_SPEED_RATIO = 0.75;
+    double SIDE_MOVE_TURBO_SPEED_RATIO = 0.95;
 
     // relic servo position magic numbers
     double RELIC_ARM_CLOSE = 0.0;
@@ -49,7 +50,7 @@ public interface CargoBotConstants {
     double FLAT_TARGET_2_DISTANCE_FROM_START = COUNTS_PER_INCH_SLIDER_PULLEY * FLAT_TARGET_2_HEIGHT;
 
     double BALL_ARM_UP = 0.0;
-    double BALL_ARM_DOWN = 1.0;
+    double BALL_ARM_DOWN = 0.90;
 
     double BALL_SPEED = 0.1 * SPEED_RATIO;
     double BALL_DISTANCE = 2.75;
@@ -189,10 +190,16 @@ public interface CargoBotConstants {
     double LIFT_MOTOR_TIMEOUT = 3.0;
 
     // intake motors
+    // change this if the motor type changes
+    // set to true:  ANDYMARK 40
+    // set to false: ANDYMARK 20
+    boolean SECONDARY_INTAKE_USE_ANDYMARK_40 = false;
     double BOTH_INTAKE_MOTOR_ACTIVATION_TIME = 1.5;
     double FRONT_INTAKE_POWER = 0.5;
-    double LEFT_INTAKE_POWER = 0.85;
-    double RIGHT_INTAKE_POWER = 0.85;
+    double LEFT_INTAKE_POWER = SECONDARY_INTAKE_USE_ANDYMARK_40 ? 0.85 : 0.425;
+    double RIGHT_INTAKE_POWER = SECONDARY_INTAKE_USE_ANDYMARK_40 ? 0.85 : 0.425;
+    double TELEOP_LEFT_INTAKE_POWER = SECONDARY_INTAKE_USE_ANDYMARK_40 ? 0.85 : 0.95;
+    double TELEOP_RIGHT_INTAKE_POWER = SECONDARY_INTAKE_USE_ANDYMARK_40 ? 0.85 : 0.95;
     double PRIMARY_INTAKE_MOTOR_ACTIVATION_TIME = 3;
 
     // Delay for lowering the ball arm
