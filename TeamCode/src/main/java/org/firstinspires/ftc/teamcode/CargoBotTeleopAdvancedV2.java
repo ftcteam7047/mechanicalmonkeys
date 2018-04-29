@@ -1068,9 +1068,9 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
                 }
 
                 // Optional: map stick y to a different curve (sinusoidal wave) to reduce jerk
-                if (CargoBotConstants.REMAP_CONTROLLER_Y && !isLowSpeedMode){
-                    leftStickY = mapStickY(leftStickY);
-                    rightStickY = mapStickY(rightStickY);
+                if (CargoBotConstants.REMAP_CONTROLLER_Y){
+                    leftStickY = mapStickY(leftStickY, CONTROLLER_INPUT_MAPPING.QUADRATIC);
+                    rightStickY = mapStickY(rightStickY, CONTROLLER_INPUT_MAPPING.QUADRATIC);
                 }
 
                 // Optioinal: set motor zero power during tank drive
@@ -1196,21 +1196,34 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         }
     }
 
-    private float mapStickY(float input){
+    enum CONTROLLER_INPUT_MAPPING {
+        SINUSOIDAL,
+        QUADRATIC
+    }
+    private float mapStickY(float input, CONTROLLER_INPUT_MAPPING mappingType) {
         float output = 0;
-        if (input > 0){
-            float theta = (float) (input * Math.PI + CargoBotConstants.PI_MULTIPLIER * Math.PI);
-            float cosineWave = (float) (Math.cos(theta));
-            float scale = 0.5f;
-            float offset = 1.0f;
-            output = (cosineWave + offset) * scale;
-        } else {
-            input = abs(input);
-            float theta = (float) (input * Math.PI + CargoBotConstants.PI_MULTIPLIER * Math.PI);
-            float cosineWave = (float) (Math.cos(theta));
-            float scale = 0.5f;
-            float offset = 1.0f;
-            output = -(cosineWave + offset) * scale;
+        if (mappingType == CONTROLLER_INPUT_MAPPING.SINUSOIDAL) {
+            if (input > 0) {
+                float theta = (float) (input * Math.PI + CargoBotConstants.PI_MULTIPLIER * Math.PI);
+                float cosineWave = (float) (Math.cos(theta));
+                float scale = 0.5f;
+                float offset = 1.0f;
+                output = (cosineWave + offset) * scale;
+            } else {
+                input = abs(input);
+                float theta = (float) (input * Math.PI + CargoBotConstants.PI_MULTIPLIER * Math.PI);
+                float cosineWave = (float) (Math.cos(theta));
+                float scale = 0.5f;
+                float offset = 1.0f;
+                output = -(cosineWave + offset) * scale;
+            }
+        } else if (mappingType == CONTROLLER_INPUT_MAPPING.QUADRATIC) {
+            if (input > 0) {
+                output = -(input - 1.0f) * (input - 1.0f) + 1.0f;  // mapping with y = - (x-1)(x-1) + 1 where x is the controller y travel input
+            } else {
+                output = (input + 1.0f) * (input + 1.0f) - 1.0f;   // mapping with y = (x+1)(x+1) - 1
+            }
+
         }
 
         return output;
