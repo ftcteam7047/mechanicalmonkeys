@@ -68,9 +68,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import static java.lang.Math.abs;
+import static java.lang.StrictMath.cos;
+import static java.lang.StrictMath.sin;
 
 /**
  * This OpMode illustrates the basics of using the Vuforia engine to determine
@@ -91,9 +96,9 @@ import java.util.concurrent.Executors;
  * is explained in {@link ConceptVuforiaNavigation}.
  */
 
-@Autonomous(name="Autonomous Test", group ="Concept")
+@Autonomous(name="MM Auto New", group ="Red")
 @Disabled
-public class MMAutonomousTest extends LinearOpMode {
+public class MMAutoNew extends LinearOpMode {
 
     public static final String TAG = "Vuforia VuMark Sample";
 
@@ -160,9 +165,17 @@ public class MMAutonomousTest extends LinearOpMode {
     boolean isProcessingFrame = false;
     Context appContext = null;
     private static final double PERIOD_PER_TICK = 0.5; // in seconds
-    HardwareMecanumTestBot robot = new HardwareMecanumTestBot();
+    boolean isFirstLoop = true;
 
 
+    HardwareMecanumCargoBot robot = new HardwareMecanumCargoBot();
+
+    enum ALLIANCE_COLOR {
+        RED,
+        BLUE
+    }
+
+    ALLIANCE_COLOR alliance = ALLIANCE_COLOR.RED;
 
 
     private ElapsedTime runtime = new ElapsedTime();
@@ -178,6 +191,8 @@ public class MMAutonomousTest extends LinearOpMode {
 
     ENCODER_DRIVE state = ENCODER_DRIVE.START;
     boolean driveStatus = false;
+    boolean intakeStatus = false;
+    boolean vumarkStatus = false;
 
     enum OPMODE_STEPS {
         STEP1,
@@ -189,11 +204,16 @@ public class MMAutonomousTest extends LinearOpMode {
         STEP7,
         STEP8,
         STEP9,
-        STEP10
+        STEP10,
+        STEP11,
+        STEP12,
+        STEP13,
+        STEP14,
+        STEP15
     }
-    OPMODE_STEPS opmodeState = OPMODE_STEPS.STEP1;
+    OPMODE_STEPS opmodeState = OPMODE_STEPS.STEP5;
 
-    private final int NAVX_DIM_I2C_PORT = 5;
+    private final int NAVX_DIM_I2C_PORT = 1;
     private AHRS navxDevice = null;
     private navXPIDController yawTurnPIDController = null;
     private navXPIDController yawDrivePIDController = null;
@@ -202,30 +222,48 @@ public class MMAutonomousTest extends LinearOpMode {
     double yawKp = MMShooterBotConstants.YAW_PID_P;
     boolean isNavxDeviceConnected = false;
     boolean timeoutNavxConnection = false;
-    boolean didRetryIngnterceptingWhiteLine = false;
     boolean isNavxMicroDataTimeout = false;
     double timeNavxDataTestTimeout = 0.0;
     private boolean calibration_complete = false;
     double Kp                   = 0.005;
 
-	private boolean isDoneRunningAuto = false;
+    private boolean isDoneRunningAuto = false;
 
-    private enum ENUM_NAVX_GYRO_TURN {
-        NOT_ARRIVED,
-        ARRIVED,
-        TIMEOUT
-    }
+    int target;
+    int offset = 0;
 
     ExecutorService cameraExecutorService = Executors.newFixedThreadPool(1);
 
-    boolean isNavxRotateInitialized = false;
+    ArrayList<BALL_PREDICTION_RESULT> predictions = new ArrayList<BALL_PREDICTION_RESULT>();
+
+    double drivingOffPlatformOffset;
+
     double timeRotationRequested;
+
+    boolean isNavxRotateInitialized = false;
+
+    double readVuMarkStartTime;
+
+    double tX = 0;
+    double tY = 0;
+    double tZ = 0;
+
+    // Extract the rotational components of the target relative to the robot (phone)
+    double rX = 0;
+    double rY = 0;
+    double rZ = 0;
+
+    boolean isRobotPositionAvailable = false;
+
+    double lowerBallArmStartTime = 0.0;
+    double ballDetectionStartTime = 0.0;
 
     @Override public void runOpMode() throws InterruptedException {
         try {
             while (!isDoneRunningAuto && !Thread.currentThread().isInterrupted()) {
 
                 robot.init(hardwareMap);
+
 
                 //this initializes the navx gyro
                 navxDevice = AHRS.getInstance(hardwareMap.deviceInterfaceModule.get("dim"),
@@ -318,6 +356,8 @@ public class MMAutonomousTest extends LinearOpMode {
                 }
 
                 waitForStart();
+                // in case the robot is idle in init for a while
+                navxDevice.zeroYaw();
 
                 double tStart = getRuntime();
                 relicTrackables.activate();
@@ -334,9 +374,10 @@ public class MMAutonomousTest extends LinearOpMode {
                 while (opModeIsActive()) {
                     VuforiaLocalizer.CloseableFrame frame = null;
                     tick = getRuntimeInTicks(tStart, PERIOD_PER_TICK);
-                    if (tick > lastTick) {
+                    if ((tick > lastTick) || isFirstLoop) {
                         // update for comparison in the next loop
                         lastTick = tick;
+                        isFirstLoop = false;
 
                         frame = vuforia.getFrameQueue().take();
                         if (frame != null) {
@@ -344,20 +385,21 @@ public class MMAutonomousTest extends LinearOpMode {
                             if (img != null) {
                                 frameCounter++;
                                 final Bitmap bm = getBitmapFromImage(img);
+                                final Bitmap croppedbm = createCroppedBitmap(bm, 392, 0, 1280, 720);
 
                                 if (!isProcessingFrame) {
                                     cameraExecutorService.execute(new Runnable() {
                                         @Override
                                         public void run() {
                                             isProcessingFrame = true;
-                                            processBitmap(bm);
+                                            processBitmap(croppedbm);
                                             isProcessingFrame = false;
                                         }
                                     });
                                 }
 
 
-                                RobotLog.vv("detection status", ",%s,", detectionResult.toString());
+                                //RobotLog.vv("detection status", ",%s,", detectionResult.toString());
                                 telemetry.addData("detection status", detectionResult.toString());
                                 telemetry.addData("prediction", predictionString);
                                 telemetry.addData("frame counter", frameCounter);
@@ -385,13 +427,13 @@ public class MMAutonomousTest extends LinearOpMode {
                 /* Found an instance of the template. In the actual game, you will probably
                  * loop until this condition occurs, then move on to act accordingly depending
                  * on which VuMark was visible. */
-                        telemetry.addData("VuMark", "%s visible", vuMark);
+                        //telemetry.addData("VuMark", "%s visible", vuMark);
 
                 /* For fun, we also exhibit the navigational pose. In the Relic Recovery game,
                  * it is perhaps unlikely that you will actually need to act on this pose information, but
                  * we illustrate it nevertheless, for completeness. */
                         OpenGLMatrix pose = ((VuforiaTrackableDefaultListener) relicTemplate.getListener()).getPose();
-                        telemetry.addData("Pose", format(pose));
+                        //telemetry.addData("Pose", format(pose));
 
                 /* We further illustrate how to decompose the pose into useful rotational and
                  * translational components */
@@ -400,25 +442,45 @@ public class MMAutonomousTest extends LinearOpMode {
                             Orientation rot = Orientation.getOrientation(pose, AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
 
                             // Extract the X, Y, and Z components of the offset of the target relative to the robot
-                            double tX = trans.get(0);
-                            double tY = trans.get(1);
-                            double tZ = trans.get(2);
+                            tX = trans.get(0);
+                            tY = trans.get(1);
+                            tZ = trans.get(2);
 
                             // Extract the rotational components of the target relative to the robot
-                            double rX = rot.firstAngle;
-                            double rY = rot.secondAngle;
-                            double rZ = rot.thirdAngle;
+                            rX = rot.firstAngle;
+                            rY = rot.secondAngle;
+                            rZ = rot.thirdAngle;
+                            isRobotPositionAvailable = true;
+                        } else {
+                            isRobotPositionAvailable = false;
                         }
                     } else {
-                        telemetry.addData("VuMark", "not visible");
+                        isRobotPositionAvailable = false;
+                        //telemetry.addData("VuMark", "not visible");
                     }
 
-                    telemetry.update();
+                    //telemetry.update();
 
+                    // checks what vuMark is currently visible and sets a variable
+                    // to keep track and locks it in if it is detected
+                    if (vuMarkIdentified == VU_MARK_TYPE.UNKNOWN) {
+                        switch (vuMark) {
+                            case LEFT:
+                                vuMarkIdentified = VU_MARK_TYPE.LEFT;
+                                break;
+                            case CENTER:
+                                vuMarkIdentified = VU_MARK_TYPE.CENTER;
+                                break;
+                            case RIGHT:
+                                vuMarkIdentified = VU_MARK_TYPE.RIGHT;
+                                break;
+                            case UNKNOWN:
+                                break;
+                        }
+                    }
 
                     // step through linear opmode steps
                     linearOpModeSteps();
-
 
                     // run loops every 10 ms
                     //sleep(10);
@@ -426,16 +488,18 @@ public class MMAutonomousTest extends LinearOpMode {
                     idle(); // Always call idle() at the bottom of your while(opModeIsActive()) loop
                 }
             }
-            cameraExecutorService.shutdown();
+//            cameraExecutorService.shutdown();
         }
         catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
         } finally {
-            if (!cameraExecutorService.isShutdown()) {
-                cameraExecutorService.shutdown();
-            }
-            navxDevice.close();
-            telemetry.addData("Autonomous", "Complete");
+//            if (!cameraExecutorService.isShutdown()) {
+//                cameraExecutorService.shutdown();
+//            }
+            onRobotStopOrInterrupt();
+
+            telemetry.addData("Autonomous", "Interrupted");
+            telemetry.update();
         }
     }
 
@@ -463,6 +527,12 @@ public class MMAutonomousTest extends LinearOpMode {
         Bitmap bm = Bitmap.createBitmap(img.getWidth(), img.getHeight(), Bitmap.Config.RGB_565);
         bm.copyPixelsFromBuffer(img.getPixels());
         return bm;
+    }
+
+    public Bitmap createCroppedBitmap(Bitmap bitmap, int leftCrop, int topCrop, int rightCrop, int bottomCrop) {
+        int cropWidth = rightCrop - leftCrop;
+        int cropHeight = bottomCrop - topCrop;
+        return Bitmap.createBitmap(bitmap, leftCrop, topCrop, cropWidth, cropHeight);
     }
 
     private void initDetection(Context context) {
@@ -579,8 +649,9 @@ public class MMAutonomousTest extends LinearOpMode {
         final ArrayList<String> result = new ArrayList<String>();
 
         b = BitmapUtils.resizeBitmap(input, cropSize);
-        b2 = BitmapUtils.rotateBitmap(b);
-        List<Classifier.Recognition> r = detector.recognizeImage(b2);
+        // rotate only if the input image is taken in portrait mode
+        //b2 = BitmapUtils.rotateBitmap(b);
+        List<Classifier.Recognition> r = detector.recognizeImage(b);
 
         for (Classifier.Recognition recog : r) {
             Log.d("Recognition", recog.toString());
@@ -624,7 +695,6 @@ public class MMAutonomousTest extends LinearOpMode {
         ArrayList<String> detectedObjects = new ArrayList<String>();
 
         for(String result : results) {
-            //if(result.equals("keyboard") || result.equals("laptop") || result.equals("mouse") || result.equals("person")) {
             if (!result.equals("???")){
                 detectedObjects.add(result);
             }
@@ -683,18 +753,24 @@ public class MMAutonomousTest extends LinearOpMode {
         } else if (ballList.size() == 1) {
             if (ballList.get(0).equals("redball")) {
                 // check redball's left edge relative to the frame
-                if (ballLeftEdge[0] <= (cropSize * 1.0 / 2)) {
+                if (ballLeftEdge[0] <= (cropSize * 0.45f)) {
+                    pred = BALL_PREDICTION_RESULT.RED_ON_LEFT;
+                } else if ((ballLeftEdge[0] >= (cropSize * 0.55f))) {
+                    pred = BALL_PREDICTION_RESULT.BLUE_ON_LEFT;
+                } else {
+                    pred = BALL_PREDICTION_RESULT.UNKNOWN;
+                }
+            } else if (ballList.get(0).equals("blueball")){
+                // check blueball's left edge relative to the frame
+                if (ballLeftEdge[1] <= (cropSize * 0.45f)) {
+                    pred = BALL_PREDICTION_RESULT.BLUE_ON_LEFT;
+                } else if (ballLeftEdge[1] >= (cropSize * 0.55f)) {
                     pred = BALL_PREDICTION_RESULT.RED_ON_LEFT;
                 } else {
-                    pred = BALL_PREDICTION_RESULT.BLUE_ON_LEFT;
+                    pred = BALL_PREDICTION_RESULT.UNKNOWN;
                 }
             } else {
-                // check blueball's left edge relative to the frame
-                if (ballLeftEdge[1] <= (cropSize * 1.0 / 2)) {
-                    pred = BALL_PREDICTION_RESULT.BLUE_ON_LEFT;
-                } else {
-                    pred = BALL_PREDICTION_RESULT.RED_ON_LEFT;
-                }
+                pred = BALL_PREDICTION_RESULT.UNKNOWN;
             }
         } else {
             pred = BALL_PREDICTION_RESULT.UNKNOWN;
@@ -724,6 +800,28 @@ public class MMAutonomousTest extends LinearOpMode {
         END
     }
 
+    private enum ENUM_NAVX_GYRO_TURN {
+        NOT_ARRIVED,
+        ARRIVED,
+        TIMEOUT
+    }
+
+    enum VU_MARK_TYPE {
+        LEFT,
+        CENTER,
+        RIGHT,
+        UNKNOWN
+    }
+    VU_MARK_TYPE vuMarkIdentified = VU_MARK_TYPE.UNKNOWN;
+    ArrayList<Double> yaws = new ArrayList<Double>();
+
+
+
+
+    boolean isStep1Started = false;
+    double intakeMotorRunTime = 0.0;
+    boolean sleep = false;
+
     /*
  *  Method to perfmorm a relative move, based on encoder counts.
  *  Encoders are not reset as the move is based on the current position.
@@ -733,8 +831,8 @@ public class MMAutonomousTest extends LinearOpMode {
  *  3) Driver stops the opmode running.
  */
     public boolean encoderDrive(double speed,
-                             double leftInches, double rightInches,
-                             double timeoutS) {
+                                double leftInches, double rightInches,
+                                double timeoutS) {
         int newLeftTarget = 0;
         int newRightTarget = 0;
         boolean driveComplete = false;
@@ -821,55 +919,257 @@ public class MMAutonomousTest extends LinearOpMode {
     }
 
     private void linearOpModeSteps() throws InterruptedException {
+
+        telemetry.addData("I am in LinearOpMode","");
         switch (opmodeState) {
+
             case STEP1:
-//                driveStatus = encoderDrive(DRIVE_SPEED, 12, 12, 1.2);  // Forward 12 Inches with 1.2 Sec timeout
-                driveStatus = navxDrive(0.5, 5, 10, 0);
+                // Move backwards or forwards to knock off ball
+                telemetry.addData("Step:", opmodeState.toString());
+                driveStatus = false;
+                if (prediction != BALL_PREDICTION_RESULT.UNKNOWN) {
+                    if (alliance == ALLIANCE_COLOR.RED) {
+                        if (prediction == BALL_PREDICTION_RESULT.RED_ON_LEFT) {
+                            // move forward
+                            predictions.add(prediction);
+                            driveStatus = navxDrive(CargoBotConstants.BALL_SPEED,
+                                    CargoBotConstants.BALL_DISTANCE,
+                                    calculateTimeout(CargoBotConstants.BALL_DISTANCE,
+                                            CargoBotConstants.BALL_SPEED),
+                                    0);
+                            drivingOffPlatformOffset = CargoBotConstants.DRIVE_OFF_PLATFORM_MORE_OFFSET;
+                        } else {
+                            // move back
+                            predictions.add(prediction);
+                            driveStatus = navxDrive(CargoBotConstants.BALL_SPEED,
+                                    -CargoBotConstants.BALL_DISTANCE,
+                                    calculateTimeout(CargoBotConstants.BALL_DISTANCE,
+                                            CargoBotConstants.BALL_SPEED),
+                                    0);
+                            drivingOffPlatformOffset = CargoBotConstants.DRIVE_OFF_PLATFORM_LESS_OFFSET;
+                        }
+                    } else {
+                        if (prediction == BALL_PREDICTION_RESULT.RED_ON_LEFT) {
+                            // move forward
+                            driveStatus = navxDrive(CargoBotConstants.BALL_SPEED,
+                                    -CargoBotConstants.BALL_DISTANCE,
+                                    calculateTimeout(CargoBotConstants.BALL_DISTANCE,
+                                            CargoBotConstants.BALL_SPEED),
+                                    0);
+                            drivingOffPlatformOffset = CargoBotConstants.DRIVE_BLUE_OFF_PLATFORM_MORE_OFFSET;
+                        } else {
+                            // move back
+                            driveStatus = navxDrive(CargoBotConstants.BALL_SPEED,
+                                    CargoBotConstants.BALL_DISTANCE,
+                                    calculateTimeout(CargoBotConstants.BALL_DISTANCE,
+                                            CargoBotConstants.BALL_SPEED),
+                                    0);
+                            drivingOffPlatformOffset = CargoBotConstants.DRIVE_OFF_PLATFORM_LESS_OFFSET;
+                        }
+                    }
+
+                } else {
+                    telemetry.addData("detection result", "unknown");
+                    if ((getRuntime() - ballDetectionStartTime) >= CargoBotConstants.BALL_DETECTION_TIMEOUT) {
+                        driveStatus = true;
+                        drivingOffPlatformOffset = 0;
+                    }
+                }
+                telemetry.addData("detection list", predictions.toString());
+                telemetry.update();
                 if (driveStatus) {
                     opmodeState = OPMODE_STEPS.STEP2;
+
+                    driveStatus = false;
                 }
                 break;
             case STEP2:
-//                driveStatus = encoderDrive(DRIVE_SPEED, 5, 5, 1.2);  // Forward 5 Inches with 1.2 Sec timeout
-                driveStatus = navxDrive(0.5, -5, 10, 0);
-                if (driveStatus) {
-                    opmodeState = OPMODE_STEPS.STEP3;
+                telemetry.addData("Step:", opmodeState.toString());
+
+                // Get off the platform and stop (to view VuMark)
+                // positive going forward negative go backward
+                // leaving platform always use negative for red and leaving platform for blue always use positive
+                if (alliance == ALLIANCE_COLOR.RED) {
+                    driveStatus = navxDrive(CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED,
+                            -CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_V2_DISTANCE_WITHOUT_OFFSET - drivingOffPlatformOffset,
+                            calculateTimeout(CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_V2_DISTANCE_WITHOUT_OFFSET +
+                                            drivingOffPlatformOffset,
+                                    CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
+                } else {
+                    if (!driveStatus) {
+                        driveStatus = navxDrive(CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED,
+                                CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_V2_DISTANCE_WITHOUT_OFFSET + drivingOffPlatformOffset,
+                                calculateTimeout(CargoBotConstants.DRIVE_OFF_TIP_PLATFORM_V2_DISTANCE_WITHOUT_OFFSET +
+                                                drivingOffPlatformOffset,
+                                        CargoBotConstants.DRIVING_OFF_PLATFORM_SPEED), 0);
+                    }
+                    // getting off the blue platform requires primary intake motor to "paddle" the robot off the platform
+                    // because there is not enough height clearance
+
+                }
+                // since the robot drive in reverse to get off the platform, intake motor does not need to be activated
+                if (alliance == ALLIANCE_COLOR.RED) {
+                    if (driveStatus) {
+                        opmodeState = OPMODE_STEPS.STEP3;
+                        // reset the intake status before going to the next step
+                        intakeStatus = false;
+                    }
+                } else {
+                    if (driveStatus && intakeStatus) {
+                        opmodeState = OPMODE_STEPS.STEP3;
+                        // reset the intake status before going to the next step
+                        intakeStatus = false;
+                    }
                 }
                 break;
             case STEP3:
-                driveStatus = navxRotateToAngle(-45, yawKp);
-                if (driveStatus){
-                    opmodeState = OPMODE_STEPS.STEP4;
+                // Turn towards the VuMark if it has not been identified in earlier step
+                if (vuMarkIdentified == VU_MARK_TYPE.UNKNOWN){
+                    if (alliance == ALLIANCE_COLOR.RED) {
+                        driveStatus = navxRotateToAngle(CargoBotConstants.RED_TURN_ANGLE_V2, 0.8 * yawKp);
+                    } else {
+                        driveStatus = navxRotateToAngle(CargoBotConstants.BLUE_TURN_ANGLE_V2, 0.8 * yawKp);
+                    }
+
+                    if (driveStatus) {
+                        readVuMarkStartTime = getRuntime();
+                        opmodeState = OPMODE_STEPS.STEP4;
+                        //CameraDevice.getInstance().setFocusMode(CameraDevice.FOCUS_MODE.FOCUS_MODE_TRIGGERAUTO);
+                    }
+                } else {
+                    // VuMark has been identified
+                    // skip the rotation toward VuMark and just go to the column
+                    opmodeState = OPMODE_STEPS.STEP5;
                 }
                 break;
             case STEP4:
-                driveStatus = navxRotateToAngle(0, yawKp);
-                if (driveStatus){
-                    opmodeState = OPMODE_STEPS.STEP5;
+                // wait for VuMark detection, no need to lower the ball arm since it's no longer in the way of the camera
+                driveStatus = false;
+                if (vuMarkIdentified != VU_MARK_TYPE.UNKNOWN) {
+                    driveStatus = true;
+                } else {
+                    driveStatus = false;
+                    // timeout and default to center
+                    if ((getRuntime() - readVuMarkStartTime) > CargoBotConstants.VU_MARK_DETECTION_TIMEOUT) {
+                        vuMarkIdentified = VU_MARK_TYPE.CENTER;
+                        driveStatus = true;
+                    }
                 }
 
+                if (driveStatus) {
+                    opmodeState = OPMODE_STEPS.STEP5;
+                }
                 break;
             case STEP5:
-                driveStatus = navxRotateToAngle(45, 1.2*yawKp);
-                if (driveStatus){
-                    opmodeState = OPMODE_STEPS.STEP6;
-                    navxDevice.close();
-                    isDoneRunningAuto = true;
+                // Turn away from VuMark
+
+                driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                        -CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC
+                                - CargoBotConstants.BACKUP_OFFSET_V2_TO_APPROACH_TIP_BOX,
+                        calculateTimeout(-CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC
+                                        - CargoBotConstants.BACKUP_OFFSET_V2_TO_APPROACH_TIP_BOX,
+                                CargoBotConstants.APPROACH_SPEED), 90);
+
+
+                if (driveStatus) {
+                    opmodeState = OPMODE_STEPS.STEP13;
                 }
                 break;
             case STEP6:
+                // move to the column specified by vuMark
+                switch (vuMarkIdentified) {
+                    case RIGHT:
+                        driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                                -CargoBotConstants.BACKUP_OFFSET_V2_TO_APPROACH_TIP_BOX,
+                                calculateTimeout(-CargoBotConstants.BACKUP_OFFSET_V2_TO_APPROACH_TIP_BOX,
+                                        CargoBotConstants.APPROACH_SPEED), 90);
+                        break;
+                    case CENTER:
+                        driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                                -CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC
+                                        - CargoBotConstants.BACKUP_OFFSET_V2_TO_APPROACH_TIP_BOX,
+                                calculateTimeout(-CargoBotConstants.MOVE_TO_CENTER_DISTANCE_RELIC
+                                                - CargoBotConstants.BACKUP_OFFSET_V2_TO_APPROACH_TIP_BOX,
+                                        CargoBotConstants.APPROACH_SPEED), 90);
+                        break;
+                    case LEFT:
+                        driveStatus = navxDrive(CargoBotConstants.FAR_COLUMN_APPROACH_SPEED,
+                                -CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC
+                                        - CargoBotConstants.BACKUP_OFFSET_V2_TO_APPROACH_TIP_BOX,
+                                calculateTimeout(-CargoBotConstants.MOVE_TO_LEFT_DISTANCE_RELIC
+                                                - CargoBotConstants.BACKUP_OFFSET_V2_TO_APPROACH_TIP_BOX,
+                                        CargoBotConstants.FAR_COLUMN_APPROACH_SPEED), 90);
+                        break;
+                }
+
+                if (driveStatus) {
+                    opmodeState = OPMODE_STEPS.STEP7;
+                }
                 break;
             case STEP7:
+                // turn to face column
+                driveStatus = navxRotateToAngle(CargoBotConstants.ANGLE_TO_FACE_BOX_RED_TIP, yawKp * 0.8);
+                if (driveStatus) {
+                    opmodeState = OPMODE_STEPS.STEP8;
+                    driveStatus = false;
+                }
                 break;
             case STEP8:
+                // move into a column
+                driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                        CargoBotConstants.CRYPTO_BOX_DISTANCE_V2_RED_TIP,
+                        calculateTimeout(CargoBotConstants.CRYPTO_BOX_DISTANCE_V2_RED_TIP, CargoBotConstants.APPROACH_SPEED),
+                        CargoBotConstants.ANGLE_TO_FACE_BOX_RED_TIP);
+                if (driveStatus) {
+                    opmodeState = OPMODE_STEPS.STEP9;
+                }
                 break;
+
             case STEP9:
+                // drive backwards so robot is not in contact with the block
+                driveStatus = navxDrive(CargoBotConstants.APPROACH_SPEED,
+                        CargoBotConstants.BACKUP_DISTANCE_V2,
+                        calculateTimeout(CargoBotConstants.BACKUP_DISTANCE_V2, CargoBotConstants.APPROACH_SPEED),
+                        CargoBotConstants.ANGLE_TO_FACE_BOX_RED_TIP);
+                if (driveStatus) {
+                    opmodeState = OPMODE_STEPS.STEP10;
+                }
                 break;
             case STEP10:
+                // turn 180 to get ready for teleOp or try to pick up extra block from the center pile
+                driveStatus = navxRotateToAngle(CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_RED_TIP, 0.8 * yawKp);
+                if (driveStatus) {
+                    opmodeState = OPMODE_STEPS.STEP11;
+                }
+                break;
+            case STEP11:
+                // drive backwards to push the block further into the box
+                driveStatus = navxDrive(CargoBotConstants.PUSH_BLOCK_BACK_SPEED,
+                        CargoBotConstants.BACKUP_PUSH_BLOCK_DISTANCE,
+                        calculateTimeout(CargoBotConstants.BACKUP_PUSH_BLOCK_DISTANCE, CargoBotConstants.PUSH_BLOCK_BACK_SPEED),
+                        CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_RED_TIP);
+                if (driveStatus) {
+                    opmodeState = OPMODE_STEPS.STEP12;
+                    driveStatus = false;
+                }
+                break;
+            case STEP12:
+                // drive forward so the robot is not in contact with the block
+                driveStatus = navxDrive(CargoBotConstants.AWAY_FROM_BLOCK_SPEED,
+                        CargoBotConstants.AWAY_FROM_BLOCK_DISTANCE,
+                        calculateTimeout(CargoBotConstants.AWAY_FROM_BLOCK_DISTANCE, CargoBotConstants.AWAY_FROM_BLOCK_SPEED),
+                        CargoBotConstants.ANGLE_TO_FACE_FIELD_CENTER_RED_TIP);
+                if (driveStatus) {
+                    opmodeState = OPMODE_STEPS.STEP13;
+                }
+                break;
+            case STEP13:
+                // TODO: ensure when the last step is complete, call onRobotStopOrInterrupt() to terminate properly. For now, step 15 is the conclusion of autonomous mode.
+                onRobotStopOrInterrupt();
+                telemetry.addData("Autonomous", "Complete");
+                telemetry.update();
                 break;
         }
-        telemetry.addData("Opmode step", opmodeState);
-
     }
 
     private void initNavxMicroCalibration(double timeoutS) {
@@ -947,6 +1247,8 @@ public class MMAutonomousTest extends LinearOpMode {
 
         if (!isNavxRotateInitialized) {
             // set the parameters before enabling the PID controller
+            // set tolerance for angle
+            yawTurnPIDController.setTolerance(navXPIDController.ToleranceType.ABSOLUTE, CargoBotConstants.ANGLE_TOLERANCE);
             yawTurnPIDController.setSetpoint(angleNormalized);
             yawTurnPIDController.setPID(Kp, MMShooterBotConstants.YAW_PID_I, MMShooterBotConstants.YAW_PID_D);
             yawTurnPIDController.enable(true);
@@ -957,6 +1259,7 @@ public class MMAutonomousTest extends LinearOpMode {
 
         navXPIDController.PIDResult yawPIDResult = new navXPIDController.PIDResult();
         DecimalFormat df = new DecimalFormat("#.##");
+        // this step is necessary for this method to work
         Thread.sleep(MMShooterBotConstants.SLEEP_MS);
 
         if (yawTurnPIDController.isNewUpdateAvailable(yawPIDResult)) {
@@ -973,6 +1276,8 @@ public class MMAutonomousTest extends LinearOpMode {
                 }
             } else {
                 double output = yawPIDResult.getOutput();
+                // scale the output so that the robot is not turning too fast
+                output = output * CargoBotConstants.SPEED_RATIO;
 
                 // amplify the output of PID controller as it gets close to the target
                 // otherwise, it would not finish turning in time
@@ -1011,15 +1316,15 @@ public class MMAutonomousTest extends LinearOpMode {
     }
 
     public boolean navxDrive( double speed,
-                           double distance,
-                           double timeoutS,
-                           double angle) throws InterruptedException {
+                              double distance,
+                              double timeoutS,
+                              double angle) throws InterruptedException {
 
         int     newLeftTarget;
         int     newRightTarget;
         int     moveCounts;
         boolean driveComplete = false;
-
+        // negation for mecanum drive arrangement
         distance = -distance;
 
         // set up navx stuff
@@ -1121,86 +1426,69 @@ public class MMAutonomousTest extends LinearOpMode {
         robot.rearRightDrive.setPower(0);
 
         // Turn off RUN_TO_POSITION
+        // It is critical to stop and reset the encoder before the next run
+        robot.frontLeftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         robot.frontLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        robot.frontRightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         robot.frontRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        robot.rearLeftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         robot.rearLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        robot.rearRightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         robot.rearRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
 
     private double calculateTimeout(double distance, double speed) {
         double timeoutS = 0.0;
         timeoutS = distance/speed * MMShooterBotConstants.TIMEOUT_SCALING_FACTOR;
-
-        // make sure we return a positive value
-        return Math.abs(timeoutS);
+        timeoutS = timeoutS * CargoBotConstants.TIMEOUT_CORRECTION_FACTOR;
+        // make sure we return a positive value;
+        // and add 1 second margin
+        return (Math.abs(timeoutS) + 1);
     }
 
-//    private boolean navxRotateToAngle(double angle, double Kp) {
-//        ENUM_NAVX_GYRO_TURN rotationStatus = ENUM_NAVX_GYRO_TURN.NOT_ARRIVED;
-//        double angleNormalized = -angle; // reverse the angle's direction: since positive is for CCW, negative is for CW
-//
-//        if (!isNavxRotateInitialized) {
-//            // set the parameters before enabling the PID controller
-//            yawTurnPIDController.setSetpoint(angleNormalized);
-//            yawTurnPIDController.setPID(Kp, MMShooterBotConstants.YAW_PID_I, MMShooterBotConstants.YAW_PID_D);
-//            yawTurnPIDController.enable(true);
-//            timeRotationRequested = getRuntime();
-//            // set to true so that init only runs once per request
-//            isNavxRotateInitialized = true;
-//        }
-//
-//        navXPIDController.PIDResult yawPIDResult = new navXPIDController.PIDResult();
-//        DecimalFormat df = new DecimalFormat("#.##");
-//
-//        if (yawTurnPIDController.isNewUpdateAvailable(yawPIDResult)) {
-//
-//            if (yawPIDResult.isOnTarget()) {
-//                robot.frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-//                robot.frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-//                robot.rearRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-//                robot.rearLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-//                turnOffDriveMotors();
-//                rotationStatus = ENUM_NAVX_GYRO_TURN.ARRIVED;
-//                if (MMShooterBotConstants.displayNavXTelemetryTeleOp) {
-//                    telemetry.addData("PIDOutput", df.format(0.00));
-//                }
-//            } else {
-//                double output = yawPIDResult.getOutput();
-//
-//                // amplify the output of PID controller as it gets close to the target
-//                // otherwise, it would not finish turning in time
-//                if (Math.abs(output) <= MMShooterBotConstants.NAVX_PID_LOW_OUTPUT_THRESHOLD) {
-//                    output = output * MMShooterBotConstants.MULTIPLER_WHEN_NAVX_LOW_OUTPUT;
-//                }
-//
-//                robot.frontLeftDrive.setPower(-output);
-//                robot.frontRightDrive.setPower(output);
-//                robot.rearLeftDrive.setPower(-output);
-//                robot.rearRightDrive.setPower(output);
-//                if (MMShooterBotConstants.displayNavXTelemetryTeleOp) {
-//                    telemetry.addData("PIDOutput", df.format(output) + ", " +
-//                            df.format(-output));
-//                }
-//            }
-//
-//            if (MMShooterBotConstants.displayNavXTelemetryTeleOp) {
-//                telemetry.addData("Yaw", df.format(-navxDevice.getYaw())); // add negative to convert to robot's heading
-//            }
-//        } else {
-//            // check for timeout waiting for navx data to update
-//            // note: this is not a timeout for the rotation, but for data availability.
-//            if ((getRuntime() - timeRotationRequested) >= MMShooterBotConstants.TIMEOUT_WAIT_FOR_NAVX_DATA) {
-//                // give up and return time out status
-//                rotationStatus = ENUM_NAVX_GYRO_TURN.TIMEOUT;
-//            }
-//
-//        }
-//        if (rotationStatus == ENUM_NAVX_GYRO_TURN.ARRIVED) {
-//            isNavxRotateInitialized = false;
-//            return true;
-//        } else {
-//            return false;
-//        }
-//    }
 
+    private void onRobotStopOrInterrupt(){
+        isDoneRunningAuto = true;
+        if (navxDevice != null) {
+            navxDevice.close();
+        }
+        turnOffDriveMotors();
+        // save the block lift position for next operation
+//        robot.fileHandler.writeToFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, Integer.toString(offset + robot.blockLift.getCurrentPosition()), robot.context);
+        // save the alliance color for teleop
+        robot.fileHandler.writeToFile("alliance_color.txt", CargoBotConstants.pathToAllianceColor, "red", robot.context);
+    }
+
+    private void localizeRobot(double robotHeading){
+        float tZCorrected = (float) (tZ * (1 + CargoBotConstants.TZ_CORRECTION_FACTOR));
+        double rXRadians = (rX * Math.PI / 180);
+        float projectedtZCorrected = tZCorrected * (float) cos(rXRadians);
+        double robotHeadingRadians = (abs(robotHeading) * Math.PI / 180);
+        float lateralDistFromCenterOfPic = projectedtZCorrected * (float) sin(robotHeadingRadians);
+        float longitudinalDisFromCenterOfPic = projectedtZCorrected * (float) cos(robotHeadingRadians);
+        float[] distanceArray = {lateralDistFromCenterOfPic, longitudinalDisFromCenterOfPic};
+        telemetry.addData("distance array", Arrays.toString(distanceArray));
+    }
+
+    private double getMedianValue(double yaw){
+        double median = 0;
+        yaws.add(yaw);
+
+        if (yaws.size() == 20){
+            double[] yawArray = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0, 0};
+            for (int i = 0; i < 20; i++){
+                yawArray[i] = yaws.get(i);
+            }
+            Arrays.sort(yawArray);
+
+            if (yawArray.length % 2 == 0){
+                median = (double)yawArray[yawArray.length/2] + (double)yawArray[yawArray.length/2 - 1]/2;
+
+            } else {
+                median =(double)yawArray[yawArray.length/2];
+            }
+        }
+
+        return median;
+    }
 }

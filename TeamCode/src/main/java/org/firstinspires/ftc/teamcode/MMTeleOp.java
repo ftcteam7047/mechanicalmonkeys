@@ -6,6 +6,7 @@ import com.kauailabs.navx.ftc.AHRS;
 import com.kauailabs.navx.ftc.navXPIDController;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsTouchSensor;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -25,7 +26,7 @@ import static java.lang.Math.sqrt;
 
 
 /**
- * Created by chrischen on 11/29/17.
+ * Created by Om Joshi on .
  * Test program to control 4 DC motors
  * 1 DC motor for primary intake: motor controller AH00QHU7, 1 = front
  * 2 DC motors for secondary intake: motor controller AL00VVM3, 1 = left, 2 = right
@@ -33,10 +34,10 @@ import static java.lang.Math.sqrt;
  * 1 MakeBlock servo for rotating the ramp/placing the block
  */
 
-@TeleOp(name = "CargoBotAdvanced V2")
-//@Disabled
+@TeleOp(name = "MM TeleOp")
+@Disabled
 
-public class CargoBotTeleopAdvancedV2 extends OpMode {
+public class MMTeleOp extends OpMode {
 
     Servo testServo;
     Servo ballArmServo;
@@ -379,7 +380,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         if ((gamepad2.a || shouldActivateIntakeDueToLifting) && !autoEjecting) {
             // normal intake
             setIntakeMotorDir(intakeDir.NORMAL);
-            activteSecondaryIntakeMotors();
+            activateSecondaryIntakeMotors();
         } else if (gamepad2.y || autoEjecting) {
             // reverse intake
             setIntakeMotorDir(intakeDir.REVERSE);
@@ -615,7 +616,7 @@ public class CargoBotTeleopAdvancedV2 extends OpMode {
         rightIntakeMotor.setPower(rightIntakeMotorPower);
     }
 
-    private void activteSecondaryIntakeMotors(){
+    private void activateSecondaryIntakeMotors(){
         // activate equal power on both left and right intake motors
         leftIntakeMotor.setPower(leftIntakeMotorPower);
         rightIntakeMotor.setPower(rightIntakeMotorPower);

@@ -22,7 +22,6 @@ import static java.lang.Math.min;
 import static java.lang.Math.sqrt;
 
 /**
- * Created by chrischen on 11/29/17.
  * Test program to control 4 DC motors
  * 1 DC motor for primary intake: motor controller AH00QHU7, 1 = front
  * 2 DC motors for secondary intake: motor controller AL00VVM3, 1 = left, 2 = right
@@ -30,42 +29,21 @@ import static java.lang.Math.sqrt;
  * 1 MakeBlock servo for rotating the ramp/placing the block
  */
 
-@TeleOp(name = "CargoBotAdvanced V2")
-@Disabled
+@TeleOp(name = "MM TeleOp New")
+//@Disabled
 
-public class MMVersion2Test2 extends OpMode {
+public class MMTeleOpNew extends OpMode {
 
-    Servo testServo;
-    //
-    DcMotor frontIntakeMotor;
-    DcMotor leftIntakeMotor;
-    DcMotor rightIntakeMotor;
+    //Servo testServo;  by om
+
     DcMotor frontLeftDrive;
     DcMotor frontRightDrive;
     DcMotor rearLeftDrive;
     DcMotor rearRightDrive;
-    DcMotor blockLift;
 
     MMFileHandler fileHandler = new MMFileHandler();
     Context context;
 
-    // servo variables
-    double targetPos = 0.0;
-    boolean lastGamepad1A = false;
-    boolean lastGamepad1B = false;
-    boolean lastGamepad1X = false;
-
-    double currentServoPos = 0.0;
-    boolean aIsPressed = false;
-    boolean bIsPressed = false;
-    boolean xIsPressed = false;
-
-    // servo parameters
-    double downTarget = 0.82;
-    double upTarget = 0.0;
-    double flatTarget = 0.66;
-    double timeIncrement = 0.025;
-    double posIncrement = 0.02;
 
     // dcMotor parameters
     double frontIntakeMotorPower = 0.5;
@@ -102,25 +80,6 @@ public class MMVersion2Test2 extends OpMode {
     float leftStickY = 0;
     float rightStickY = 0;
 
-    // enum for block lift
-    public enum LiftPosition {
-        LOW,
-        HIGH,
-        INIT_POSITION
-    }
-
-    // lift motor variables
-    LiftPosition liftPosition;
-    boolean isLifterButtonPressed;
-    int offset;
-    boolean isMotorStalled = false;
-    int target;
-    int lastTick = 0;
-    int lastMotorStallTick = 0;
-    double tStart = 0;
-    double tMotorStart = 0;
-    int lastEncoderPos = 0;
-
     // for time interval
     private ElapsedTime period  = new ElapsedTime();
 
@@ -154,13 +113,7 @@ public class MMVersion2Test2 extends OpMode {
     navXPIDController.PIDResult yawPIDResult;
     double navxDriveStartTime = 0;
 
-    // for activating intake motor while the ramp is moving to flat or up
-    boolean shouldRampMoveToDownDueToLift = false;
-    boolean shouldRampMoveToFlatDueToLift = false;
-    boolean isRampUpEvent = false;
-    boolean isLiftAtLowPosition = false;
-
-    // rotate to nearest 90 degrees
+        // rotate to nearest 90 degrees
     private enum ENUM_NAVX_GYRO_TURN {
         NOT_ARRIVED,
         ARRIVED,
@@ -170,22 +123,7 @@ public class MMVersion2Test2 extends OpMode {
     @Override
     public void init() {
         context = hardwareMap.appContext;
-        testServo = hardwareMap.servo.get("testServo");
-        testServo.setPosition(downTarget);
-        frontIntakeMotor = hardwareMap.dcMotor.get("frontIntakeMotor");
-        leftIntakeMotor = hardwareMap.dcMotor.get("leftIntakeMotor");
-        rightIntakeMotor = hardwareMap.dcMotor.get("rightIntakeMotor");
-        // set intake motor direction
-        setIntakeMotorDir(intakeDir.NORMAL);
-        // reset motor encoder
-        frontIntakeMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        leftIntakeMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rightIntakeMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        // maintain constant speed
-        frontIntakeMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        leftIntakeMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rightIntakeMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        initLiftMotor();
+
         initDriveMotors();
 
         // get a reference to NavX-micro device
@@ -222,18 +160,9 @@ public class MMVersion2Test2 extends OpMode {
 
     @Override
     public void loop() {
-        servoController();
-        intakeController();
+
         driveController();
-        blockLiftController();
-        // rotate to nearest 90 is not used
-        // back on to platform is not used
-//        try {
-//            checkCommandToGetOnToPlatform();
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-//        rotateToNearest90DegreeController();
+
 
         try {
             waitForTick(2); // every 2ms, sample the encoder
@@ -260,7 +189,7 @@ public class MMVersion2Test2 extends OpMode {
     public void start() {
         telemetry.addData(">", "TeleOp Started");
         telemetry.update();
-        tStart = getRuntime();
+      //  tStart = getRuntime();
     }
 
     private void initDriveMotors(){
@@ -287,77 +216,6 @@ public class MMVersion2Test2 extends OpMode {
         rearRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
 
-    private void intakeController() {
-        if (gamepad2.a) {
-            // normal intake
-            setIntakeMotorDir(intakeDir.NORMAL);
-            activateIntakeMotors();
-        } else if (gamepad2.y) {
-            // reverse intake
-            setIntakeMotorDir(intakeDir.REVERSE);
-            activateIntakeMotors();
-        } else {
-            turnOffIntakeMotors();
-        }
-
-    }
-
-    private void servoController(){
-        if (gamepad1.a && !lastGamepad1A) {
-            // ramp down
-            aIsPressed = true;
-            bIsPressed = false;
-            xIsPressed = false;
-            // allow driver input to override the request by block lift controller
-            shouldRampMoveToFlatDueToLift = false;
-            shouldRampMoveToDownDueToLift = false;
-
-            lastTick = getRuntimeInTicks(tStart, timeIncrement);
-        }
-        // store a copy for comparison in the next loop
-        lastGamepad1A = gamepad1.a;
-
-        if (gamepad1.b && !lastGamepad1B) {
-            // ramp up
-            aIsPressed = false;
-            bIsPressed = true;
-            xIsPressed = false;
-            // allow driver input to override the request by block lift controller
-            shouldRampMoveToFlatDueToLift = false;
-            shouldRampMoveToDownDueToLift = false;
-
-            lastTick = getRuntimeInTicks(tStart, timeIncrement);
-            isRampUpEvent = true;
-        } else {
-            isRampUpEvent = false;
-        }
-        // store a copy for comparison in the next loop
-        lastGamepad1B = gamepad1.b;
-
-        if (gamepad1.x && !lastGamepad1X) {
-            // ramp flat
-            aIsPressed = false;
-            bIsPressed = false;
-            xIsPressed = true;
-            // allow driver input to override the request by block lift controller
-            shouldRampMoveToFlatDueToLift = false;
-            shouldRampMoveToDownDueToLift = false;
-
-            lastTick = getRuntimeInTicks(tStart, timeIncrement);
-        }
-        // store a copy for comparison in the next loop
-        lastGamepad1X = gamepad1.x;
-
-        // execute the servo movement based on driver input (button A/B/X)
-        // or intended lift target (d-pad up/down)
-        if (aIsPressed || shouldRampMoveToDownDueToLift) {
-            moveRampToDown();
-        } else if (bIsPressed) {
-            moveRampToUp();
-        } else if (xIsPressed || shouldRampMoveToFlatDueToLift) {
-            moveRampToFlat();
-        }
-    }
 
     private void rotateToNearest90DegreeController() {
         if (isNavxDeviceConnected) {
@@ -429,35 +287,6 @@ public class MMVersion2Test2 extends OpMode {
         }
     }
 
-
-    private void activateIntakeMotors(){
-        // activate primary intake motor
-        frontIntakeMotor.setPower(frontIntakeMotorPower);
-        // use dpad left / right to add power to left or right intake motor
-        if (gamepad1.dpad_left) {
-            leftIntakeMotor.setPower(leftIntakeMotorPower + lrIntakeMotorDeltaPower);
-            rightIntakeMotor.setPower(rightIntakeMotorPower);
-        } else if (gamepad1.dpad_right) {
-            leftIntakeMotor.setPower(leftIntakeMotorPower);
-            rightIntakeMotor.setPower(rightIntakeMotorPower + lrIntakeMotorDeltaPower);
-        } else {
-            // activate equal power on both left and right intake motors
-            leftIntakeMotor.setPower(leftIntakeMotorPower);
-            rightIntakeMotor.setPower(rightIntakeMotorPower);
-        }
-    }
-
-    private void turnOffIntakeMotors(){
-        frontIntakeMotor.setPower(0);
-        leftIntakeMotor.setPower(0);
-        rightIntakeMotor.setPower(0);
-
-        // make sure intake motors maintain constant speed
-        frontIntakeMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        leftIntakeMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rightIntakeMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-    }
-
     private void turnOffDriveMotors(){
         frontLeftDrive.setPower(0);
         frontRightDrive.setPower(0);
@@ -470,87 +299,13 @@ public class MMVersion2Test2 extends OpMode {
         rearLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rearRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
-    private void setIntakeMotorDir(intakeDir dir){
-        if (dir == intakeDir.NORMAL){
-            frontIntakeMotor.setDirection(DcMotor.Direction.REVERSE);
-            leftIntakeMotor.setDirection(DcMotor.Direction.FORWARD);
-            rightIntakeMotor.setDirection(DcMotor.Direction.REVERSE);
-        } else {
-            frontIntakeMotor.setDirection(DcMotor.Direction.FORWARD);
-            leftIntakeMotor.setDirection(DcMotor.Direction.REVERSE);
-            rightIntakeMotor.setDirection(DcMotor.Direction.FORWARD);
-        }
 
-    }
 
     private int getRuntimeInTicks(double startTime, double tick){
         double runtime = getRuntime() - startTime;
 
         Double numTicks = runtime/tick;
         return numTicks.intValue();
-    }
-
-    private void moveRampToDown(){
-        int tick = 0;
-        tick = getRuntimeInTicks(tStart, timeIncrement);
-
-        if (tick > lastTick) {
-            int deltaTick = tick - lastTick;
-            lastTick = tick;
-            targetPos = testServo.getPosition() + deltaTick * posIncrement;
-            if (targetPos >= downTarget) {
-                targetPos = downTarget;
-            }
-            testServo.setPosition(targetPos);
-        }
-        // cancel the request when the servo is at the target
-        if (downTarget == testServo.getPosition()){
-            aIsPressed = false;
-            shouldRampMoveToDownDueToLift = false;
-        }
-    }
-    private void moveRampToUp(){
-        int tick = 0;
-        tick = getRuntimeInTicks(tStart, timeIncrement);
-
-        if (tick > lastTick) {
-            int deltaTick = tick - lastTick;
-            lastTick = tick;
-            targetPos = testServo.getPosition() - deltaTick * posIncrement;
-            if (targetPos <= upTarget) {
-                targetPos = upTarget;
-            }
-            testServo.setPosition(targetPos);
-        }
-        // cancel the request when the servo is at the target
-        if (upTarget == testServo.getPosition()){
-            bIsPressed = false;
-        }
-    }
-
-    private void moveRampToFlat(){
-        int tick = 0;
-        tick = getRuntimeInTicks(tStart, timeIncrement);
-
-        if (tick > lastTick) {
-            int deltaTick = tick - lastTick;
-            lastTick = tick;
-            currentServoPos = testServo.getPosition();
-            if ((currentServoPos - deltaTick * posIncrement) > flatTarget){
-                targetPos = currentServoPos - deltaTick * posIncrement;
-            } else if ((currentServoPos + deltaTick * posIncrement) < flatTarget){
-                targetPos = currentServoPos + deltaTick * posIncrement;
-            } else {
-                targetPos = flatTarget;
-            }
-
-            testServo.setPosition(targetPos);
-        }
-        // cancel the request when the servo is at the target
-        if (flatTarget == testServo.getPosition()){
-            xIsPressed = false;
-            shouldRampMoveToFlatDueToLift = false;
-        }
     }
 
     private double calculateSetPointRotateToNearest90CW() {
@@ -883,135 +638,6 @@ public class MMVersion2Test2 extends OpMode {
         }
     }
 
-    public void blockLiftController() {
-        // initialization, considering offset
-        if (liftPosition == liftPosition.INIT_POSITION) {
-            // first determine lift position, then determine the target position depending on dpad up/down
-            int low = (int) CargoBotConstants.LOW_DISTANCE_FROM_START;
-            int high = (int) CargoBotConstants.HIGH_DISTANCE_FROM_START;
-
-            if (offset < low) {
-                // only accept dpad up
-                if (gamepad1.dpad_up) {
-                    if (!isLifterButtonPressed) {
-                        liftPosition = liftPosition.LOW;
-                        isLifterButtonPressed = true;
-                    }
-                }
-            } else if (offset >= low && offset < high) {
-                // can accept dpad up or down
-                if (gamepad1.dpad_up) {
-                    if (!isLifterButtonPressed) {
-                        liftPosition = liftPosition.HIGH;
-                        isLifterButtonPressed = true;
-                    }
-                } else if (gamepad1.dpad_down) {
-                    if (!isLifterButtonPressed) {
-                        liftPosition = liftPosition.LOW;
-                        isLifterButtonPressed = true;
-                    }
-                }
-
-            } else {
-                // offset >= high, only accept dpad down
-                if (gamepad1.dpad_down) {
-                    if (!isLifterButtonPressed) {
-                        liftPosition = liftPosition.HIGH;
-                        isLifterButtonPressed = true;
-                    }
-                }
-            }
-        }
-        // normal operation
-        if (gamepad1.dpad_up) {
-            if (liftPosition == liftPosition.LOW && !isLifterButtonPressed) {
-                liftPosition = liftPosition.HIGH;
-                isLifterButtonPressed = true;
-                telemetry.addData("lift status", "to HIGH");
-            }
-            isMotorStalled = false;
-        } else if (gamepad1.dpad_down) {
-            if (liftPosition == liftPosition.HIGH && !isLifterButtonPressed) {
-                liftPosition = liftPosition.LOW;
-                isLifterButtonPressed = true;
-                telemetry.addData("lift status", "to LOW");
-            }
-            isMotorStalled = false;
-        }
-
-        switch (liftPosition) {
-            case LOW:
-                target = (int) CargoBotConstants.LOW_DISTANCE_FROM_START - offset;
-                break;
-            case HIGH:
-                target = (int) CargoBotConstants.HIGH_DISTANCE_FROM_START - offset;
-                break;
-            case INIT_POSITION:
-                // robot is just initialized, don't move the lifter without user input
-                break;
-        }
-
-        // don't move the lifter without user input
-        if (liftPosition != LiftPosition.INIT_POSITION) {
-            if (!isMotorStalled) {
-                blockLift.setTargetPosition(target);
-                blockLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                if (CargoBotConstants.SET_LIFT_MOTOR_HIGH_SPEED) {
-                    // always lift up/down at high speed
-                    blockLift.setPower(CargoBotConstants.LIFT_HI_SPEED);
-                } else {
-                    blockLift.setPower(CargoBotConstants.LIFT_SPEED);
-                }
-            }
-
-            //telemetry.addData("lift encoder pos", blockLift.getCurrentPosition());
-            //telemetry.update();
-            if (!blockLift.isBusy()) {
-                turnOffLiftMotor();
-                reportLiftLogicalPos();
-            } else {
-                detectNeverRest20MotorStall();
-                // move the ramp to the expected position while the lift is moving to either high or low position
-                if (liftPosition == LiftPosition.HIGH){
-                    if (!isLiftNearHighPosition()){
-                        // inform servo controller that we want to move to flat position
-                        shouldRampMoveToFlatDueToLift = true;
-                    }
-                } else if (liftPosition == LiftPosition.LOW){
-                    if (!isLiftNearLowPosition()){
-                        // inform servo controller that we want to move to down position
-                        shouldRampMoveToDownDueToLift = true;
-                    }
-                }
-
-            }
-        }
-
-        if (isLifterButtonPressed) {
-            if (!gamepad1.dpad_down && !gamepad1.dpad_up) {
-                isLifterButtonPressed = false;
-            }
-        }
-    }
-
-    private void turnOffLiftMotor() {
-        blockLift.setPower(0.0);
-        blockLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-    }
-
-    private void reportLiftLogicalPos() {
-        switch (liftPosition) {
-            case LOW:
-                telemetry.addData("lift status", "@ LOW");
-                break;
-            case HIGH:
-                telemetry.addData("lift status", "@ HIGH");
-                break;
-            case INIT_POSITION:
-                telemetry.addData("lift status", "@ INIT_POSITION");
-                break;
-        }
-    }
 
     /*
  * Calculate the theoretical encoder counts/pulses per tick using AndyMark's data
@@ -1028,45 +654,7 @@ public class MMVersion2Test2 extends OpMode {
         return maxEncoderPulsesPerTick;
     }
 
-    private void detectNeverRest20MotorStall() {
-        // create time base for checking if encoder count is not advancing much, which implies motor stall
-        int tick = 0;
-        // for every new request, set the last encoder position to the current position
-        // as the basis for comparison
-        // clear the motor stall flag to allow movement to other positions
-        if (isLifterButtonPressed) {
-            lastEncoderPos = blockLift.getCurrentPosition();
-            tMotorStart = getRuntime();
-            lastMotorStallTick = getRuntimeInTicks(tMotorStart, CargoBotConstants.MOTOR_STALL_CHECKING_PERIOD);
-        }
 
-        tick = getRuntimeInTicks(tMotorStart, CargoBotConstants.MOTOR_STALL_CHECKING_PERIOD);
-        if (tick > lastMotorStallTick) {
-            // update for comparison in the next loop
-            lastMotorStallTick = tick;
-            double time = CargoBotConstants.MOTOR_STALL_CHECKING_PERIOD;
-            double motorSpeed;
-            if (CargoBotConstants.SET_LIFT_MOTOR_HIGH_SPEED) {
-                motorSpeed = CargoBotConstants.LIFT_HI_SPEED;
-            } else {
-                motorSpeed = CargoBotConstants.LIFT_SPEED;
-            }
-            int motorStallThreshold = (int) (getNeverest20MotorEncoderCountWithTime(time, motorSpeed) * CargoBotConstants.MOTOR_STALL_RATIO);
-//            telemetry.addData("last encoder", lastEncoderPos);
-//            telemetry.addData("current pos", blockLift.getCurrentPosition());
-//            telemetry.addData("delta pos", abs(lastEncoderPos - blockLift.getCurrentPosition()));
-//            telemetry.addData("motor stall thres", motorStallThreshold);
-
-            // check the difference in encoder count at every tick
-            if (abs(lastEncoderPos - blockLift.getCurrentPosition()) < motorStallThreshold) {
-                turnOffLiftMotor();
-                isMotorStalled = true;
-            }
-            // update for comparison in the next loop
-            lastEncoderPos = blockLift.getCurrentPosition();
-
-        }
-    }
 
     // Computes the current battery voltage
     double getBatteryVoltage() {
@@ -1078,24 +666,6 @@ public class MMVersion2Test2 extends OpMode {
             }
         }
         return result;
-    }
-
-    private void initLiftMotor(){
-        liftPosition = LiftPosition.LOW;
-        context = hardwareMap.appContext;
-        if (fileHandler.readFromFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, context).equals("error")) {
-            offset = 0;
-        } else {
-            offset = fileHandler.stringToInt(fileHandler.readFromFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, context));
-        }
-
-        blockLift = hardwareMap.dcMotor.get("blockLiftVer2");
-
-        blockLift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        blockLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-        // configure motor direction
-        blockLift.setDirection(DcMotor.Direction.REVERSE);
     }
 
 
@@ -1360,29 +930,6 @@ public class MMVersion2Test2 extends OpMode {
         getOnPlatform();
     }
 
-    private boolean isLiftNearHighPosition(){
-        boolean retVal = false;
-        int highTarget = (int) CargoBotConstants.HIGH_DISTANCE_FROM_START - offset;
-        int currentLiftEncoder = blockLift.getCurrentPosition();
-
-        // if lift is close enough to the target
-        if (abs(highTarget - currentLiftEncoder) < CargoBotConstants.LIFT_TARGET_TOLERANCE){
-            retVal = true;
-        }
-        return retVal;
-    }
-
-    private boolean isLiftNearLowPosition(){
-        boolean retVal = false;
-        int lowTarget = (int) CargoBotConstants.LOW_DISTANCE_FROM_START - offset;
-        int currentLiftEncoder = blockLift.getCurrentPosition();
-
-        // if lift is close enough to the target
-        if (abs(lowTarget - currentLiftEncoder) < CargoBotConstants.LIFT_TARGET_TOLERANCE){
-            retVal = true;
-        }
-        return retVal;
-    }
 
     /***
      *
@@ -1411,9 +958,7 @@ public class MMVersion2Test2 extends OpMode {
     @Override
     public void stop() {
         navxDevice.close();
-        turnOffIntakeMotors();
         turnOffDriveMotors();
-        blockLift.setPower(0);
-        fileHandler.writeToFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, Integer.toString(offset + blockLift.getCurrentPosition()), context);
+//           fileHandler.writeToFile("offset.txt", CargoBotConstants.pathToLiftMotorOffset, Integer.toString(offset + blockLift.getCurrentPosition()), context);
     }
 }

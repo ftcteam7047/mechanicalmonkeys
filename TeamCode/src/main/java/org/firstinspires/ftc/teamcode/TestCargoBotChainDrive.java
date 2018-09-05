@@ -9,10 +9,10 @@ import com.qualcomm.robotcore.hardware.DcMotor;
  * Created by michaelchen on 9/30/17.
  */
 
-@TeleOp(name = "Concept: CargoBotChainDriveTest", group = "Concept")
+@TeleOp(name = "Concept: TestCargoBotChainDrive", group = "Concept")
 @Disabled
 
-public class CargoBotChainDriveTest extends OpMode {
+public class TestCargoBotChainDrive extends OpMode {
 
     DcMotor leftDrive;
     DcMotor rightDrive;

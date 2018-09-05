@@ -9,10 +9,10 @@ import com.qualcomm.robotcore.hardware.Servo;
  * Created by michaelchen on 9/25/17.
  */
 
-@TeleOp(name = "Concept: RelicControlTest", group = "Concept")
+@TeleOp(name = "Concept: TestRelicControl", group = "Concept")
 @Disabled
 
-public class RelicControlTest extends OpMode {
+public class TestRelicControl extends OpMode {
 
     Servo servo;
 

@@ -19,10 +19,10 @@ import com.qualcomm.robotcore.hardware.Servo;
  * this is demonstrated by using y
  */
 
-@TeleOp(name = "Concept: GripperArmTest", group = "Concept")
+@TeleOp(name = "Concept: TestGripperArm", group = "Concept")
 @Disabled
 
-public class GripperArmTest extends OpMode {
+public class TestGripperArm extends OpMode {
 
     MMFileHandler fileHandler = new MMFileHandler();
     Context context;

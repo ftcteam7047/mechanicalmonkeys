@@ -15,7 +15,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 @TeleOp(name = "Servo Test")
 @Disabled
 
-public class ServoTest extends OpMode {
+public class TestServo extends OpMode {
 
     Servo testServo;
     MMFileHandler fileHandler = new MMFileHandler();

@@ -1,7 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
 /**
- * Created by michaelchen on 10/7/17.
+ * updated by omjoshi on 7/6/18.
  */
 
 public interface CargoBotConstants {
@@ -38,6 +38,7 @@ public interface CargoBotConstants {
     double STACK_DISTANCE_FROM_START = COUNTS_PER_INCH_16_TOOTH * STACK_HEIGHT;
     double PLACE_DISTANCE_FROM_START = COUNTS_PER_INCH_16_TOOTH * PLACE_HEIGHT;
     double DIAGONAL_HALF_BAND_WIDTH = 0.30; // max shall be less than sqrt(2)
+
     // for ver 2 slider
     double SLIDER_LOW_HEIGHT = 0.0;
     double SLIDER_HIGH_HEIGHT = 7.5;
@@ -62,6 +63,8 @@ public interface CargoBotConstants {
     double DRIVE_OFF_TIP_PLATFORM_DISTANCE_WITHOUT_OFFSET = 26;
     double DRIVING_OFF_PLATFORM_SPEED = 0.3 * SPEED_RATIO;
     double DRIVING_OFF_BLUE_PLATFORM_SPEED = 2.0 * DRIVING_OFF_PLATFORM_SPEED;
+
+
     // drive off platform parameters for V2
     double DRIVE_OFF_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET = 25.5; // this has to be adjusted from V1, because the intake is in the center whereas the gripper is off-centered
     double DRIVE_OFF_BLUE_PLATFORM_DISTANCE_V2_WITHOUT_OFFSET = 24;

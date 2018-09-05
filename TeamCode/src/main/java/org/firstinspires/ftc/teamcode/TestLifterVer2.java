@@ -18,7 +18,7 @@ import static java.lang.Math.abs;
 @TeleOp(name = "lifterTest Ver2")
 @Disabled
 
-public class LifterTestVer2 extends OpMode {
+public class TestLifterVer2 extends OpMode {
 
     MMFileHandler fileHandler = new MMFileHandler();
     Context context;

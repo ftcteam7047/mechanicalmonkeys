@@ -28,8 +28,8 @@ repositories {
 }
 
 dependencies {
-    compile 'org.tensorflow:tensorflow-android:+'
+    implementation 'org.tensorflow:tensorflow-android:+'
 }
 android {
-    buildToolsVersion '26.0.2'
+    buildToolsVersion '27.0.3'
 }

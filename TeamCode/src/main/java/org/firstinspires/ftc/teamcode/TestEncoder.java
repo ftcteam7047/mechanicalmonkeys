@@ -14,7 +14,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 @TeleOp(name = "Encoder Test")
 @Disabled
 
-public class EncoderTest extends OpMode {
+public class TestEncoder extends OpMode {
 
     DcMotor test;
     MMFileHandler fileHandler = new MMFileHandler();

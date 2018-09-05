@@ -2,6 +2,8 @@ package org.firstinspires.ftc.teamcode;
 
 import android.content.Context;
 
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -21,42 +23,11 @@ public class HardwareMecanumCargoBot {
     public DcMotor rearLeftDrive;
     public DcMotor rearRightDrive;
 
-    // declaration of all non drive motors
-    public DcMotor blockLift;
 
-    // declaration of all robot servos
-    public Servo ballArm;
-    // TODO: relic servo
-    //public Servo relicServo;
-    public Servo lowerLeftServo;
-    public Servo lowerRightServo;
-    public Servo upperLeftServo;
-    public Servo upperRightServo;
+    // range sensor
+    ModernRoboticsI2cRangeSensor rangeSensor;
 
-    // enum for relic arm
-    public enum RelicGripPosition {
-        CLOSE,
-        OPEN
-    }
-    RelicGripPosition relicGripPosition;
-
-    // enum for block grabber
-    public enum GrabberPosition {
-        OPEN,
-        CLOSE,
-        WIDE_OPEN
-    }
-    GrabberPosition grabberPosition;
-
-    // enum for block lift
-    public enum LiftPosition {
-        GRAB,
-        MOVE,
-        STACK,
-        PLACE,
-        INIT_POSITION
-    }
-    LiftPosition liftPosition;
+    ColorSensor colorSensor;
 
 
     /* local OpMode members. */
@@ -67,7 +38,6 @@ public class HardwareMecanumCargoBot {
     public HardwareMecanumCargoBot(){
 
     }
-
 
 
     /* Initialize standard Hardware interfaces */
@@ -84,26 +54,40 @@ public class HardwareMecanumCargoBot {
         frontRightDrive = hwMap.dcMotor.get("frontRightDrive");
         rearLeftDrive = hwMap.dcMotor.get("rearLeftDrive");
         rearRightDrive = hwMap.dcMotor.get("rearRightDrive");
-        blockLift = hwMap.dcMotor.get("blockLift");
-        //relicServo = hwMap.servo.get("relicServo");
-        ballArm = hwMap.servo.get("ballArm");
-        lowerLeftServo = hwMap.servo.get("lls");
-        lowerRightServo = hwMap.servo.get("lrs");
-        upperLeftServo = hwMap.servo.get("uls");
-        upperRightServo = hwMap.servo.get("urs");
+
+
+        // range sensor
+        rangeSensor = hwMap.get(ModernRoboticsI2cRangeSensor.class, "rangeSensor1");
+
+        // Color Sensor
+        colorSensor = hwMap.get(ColorSensor.class, "colorSensor1");
 
 
         // Set motor initial direction
+        //frontLeftDrive.setDirection(DcMotor.Direction.REVERSE); // Set to FORWARD if using AndyMark motors Neverest 40
+        //frontRightDrive.setDirection(DcMotor.Direction.FORWARD);// Set to REVERSE if using AndyMark motors Neverest 40
+        //rearLeftDrive.setDirection(DcMotor.Direction.REVERSE); // Set to FORWARD if using AndyMark motors Neverest 40
+        //rearRightDrive.setDirection(DcMotor.Direction.FORWARD);// Set to REVERSE if using AndyMark motors Neverest 40
+
         frontLeftDrive.setDirection(DcMotor.Direction.FORWARD); // Set to FORWARD if using AndyMark motors Neverest 40
         frontRightDrive.setDirection(DcMotor.Direction.REVERSE);// Set to REVERSE if using AndyMark motors Neverest 40
         rearLeftDrive.setDirection(DcMotor.Direction.FORWARD); // Set to FORWARD if using AndyMark motors Neverest 40
         rearRightDrive.setDirection(DcMotor.Direction.REVERSE);// Set to REVERSE if using AndyMark motors Neverest 40
 
+
+
+
+        // set intake motor direction
+
+
         // Set all motors to zero power
+        // drive motors
         frontLeftDrive.setPower(0);
         frontRightDrive.setPower(0);
         rearLeftDrive.setPower(0);
         rearRightDrive.setPower(0);
+        // intake motors
+
 
         // Set chassis motors zero behavior
         frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -118,22 +102,14 @@ public class HardwareMecanumCargoBot {
         frontRightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rearLeftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rearRightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        liftPosition = LiftPosition.INIT_POSITION;
-        blockLift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        blockLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        // It must have "RUN_USING_ENCODER" to drive, or motor controller will not
+        // send power to the motor
+        frontLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rearLeftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rearRightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        // Set all servos to initial position
-        ballArm.setPosition(CargoBotConstants.BALL_ARM_UP);
 
-        // TODO: relic servos
-        //relicServo.setPosition(0.0);
-        relicGripPosition = RelicGripPosition.CLOSE;
-
-        lowerLeftServo.setPosition(CargoBotConstants.LEFT_CLOSE);
-        lowerRightServo.setPosition(CargoBotConstants.RIGHT_CLOSE);
-        upperLeftServo.setPosition(CargoBotConstants.LEFT_CLOSE);
-        upperRightServo.setPosition(CargoBotConstants.RIGHT_CLOSE);
-        grabberPosition = GrabberPosition.OPEN;
 
 //        // Set drive motors to run with encoders.
 //        front:eftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
